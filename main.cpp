@@ -1,97 +1,50 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: mlamkadm <mlamkadm@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/04/12 17:59:25 by mlamkadm          #+#    #+#             */
-/*   Updated: 2025/04/12 17:59:25 by mlamkadm         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-// main.cpp
-
-#include <cstdlib> // For std::getenv
+#include <cstdlib>
 #include <iostream>
-#include <memory> // For Tool pointers (optional but good practice)
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#include "json/json.h" // For Json::Value used by tools
-#include <curl/curl.h> // For curl_global_init/cleanup
-
 #include "inc/Agent.hpp"
 #include "inc/MiniGemini.hpp"
 #include "inc/Tool.hpp"
+#include "json/json.h"
+#include <curl/curl.h>
 
-#include "./externals/bash.cpp"       // Bash command execution tool
-#include "./externals/cal-events.cpp" // Calendar tool
-#include "./externals/ddg-search.cpp" // DuckDuckGo search tool
-#include "./externals/file.cpp"       // File tool
+#include "./externals/bash.cpp"
+#include "./externals/cal-events.cpp"
+#include "./externals/ddg-search.cpp"
+#include "./externals/file.cpp"
 #include "./externals/general.cpp"
-#include "./externals/write.cpp" // File writing tool
 #include "./externals/search.cpp"
 
-// --- Forward Declarations for External Tool Functions ---
-// These functions are defined in the externals/*.cpp files.
-// In a larger project, these would typically be in a shared header.
 extern std::string fileTool(const Json::Value &params);
 extern std::string localSearchTool(const Json::Value &params);
-extern std::string
-webSearchTool(const Json::Value &params); // Using Brave Search API
-extern std::string
-duckduckgoSearchTool(const Json::Value &params); // HTML scraping alternative
+extern std::string webSearchTool(const Json::Value &params);
+extern std::string duckduckgoSearchTool(const Json::Value &params);
 extern std::string calendarTool(const Json::Value &params);
-extern std::string
-writeFileTool(const std::string &inputData); // Text-based tool
-// extern std::string executeBashCommandReal(const Json::Value& params); //
-// Optional: Include if needed, use with caution
 
-// --- Logging Function (Copied from agent.cpp for main's use if needed) ---
-// Simple colored logging function (optional for main)
-void logMessageMain(LogLevel level, const std::string &message,
-                    const std::string &details = "") {
-  std::time_t now = std::time(nullptr);
-  std::tm *tm = std::localtime(&now);
-  char time_buffer[20]; // HH:MM:SS
-  std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", tm);
+void logMessageMain(LogLevel level, const std::string &message, const std::string &details = "") {
+    std::time_t now = std::time(nullptr);
+    std::tm *tm = std::localtime(&now);
+    char time_buffer[20];
+    std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", tm);
 
-  std::string prefix;
-  std::string color_start = "";
-  std::string color_end = "\033[0m"; // Reset color
+    std::string prefix;
+    std::string color_start = "";
+    std::string color_end = "\033[0m";
 
-  switch (level) {
-  case LogLevel::DEBUG:
-    prefix = "[DEBUG] ";
-    color_start = "\033[36m";
-    break; // Cyan
-  case LogLevel::INFO:
-    prefix = "[INFO]  ";
-    color_start = "\033[32m";
-    break; // Green
-  case LogLevel::WARN:
-    prefix = "[WARN]  ";
-    color_start = "\033[33m";
-    break; // Yellow
-  case LogLevel::ERROR:
-    prefix = "[ERROR] ";
-    color_start = "\033[1;31m";
-    break; // Bold Red
-  default:
-    prefix = "[LOG]   ";
-    break;
-  }
+    switch (level) {
+        case LogLevel::DEBUG: prefix = "[DEBUG] "; color_start = "\033[36m"; break;
+        case LogLevel::INFO:  prefix = "[INFO]  "; color_start = "\033[32m"; break;
+        case LogLevel::WARN:  prefix = "[WARN]  "; color_start = "\033[33m"; break;
+        case LogLevel::ERROR: prefix = "[ERROR] "; color_start = "\033[1;31m"; break;
+        default:              prefix = "[LOG]   "; break;
+    }
 
-  std::ostream &out = (level == LogLevel::ERROR || level == LogLevel::WARN)
-                          ? std::cerr
-                          : std::cout;
-  out << color_start << std::string(time_buffer) << " " << prefix << message
-      << color_end << std::endl;
-  if (!details.empty()) {
-    out << "  " << details << std::endl;
-  }
+    std::ostream &out = (level == LogLevel::ERROR || level == LogLevel::WARN) ? std::cerr : std::cout;
+    out << color_start << std::string(time_buffer) << " " << prefix << message << color_end << std::endl;
+
+    if (!details.empty())
+        out << "  " << details << std::endl;
 }
 
 static int orchestrator(const std::string &apiKey, Agent *note) {
@@ -99,11 +52,9 @@ static int orchestrator(const std::string &apiKey, Agent *note) {
     // Create API client (uses default config, checks key/env var)
     MiniGemini api(apiKey);
 
-    // Create Agent
     Agent agent(api);
 
-    agent.setName(
-        "Orchestrator Of Order & Light -Demurge"); // Give the agent a name
+    agent.setName("Orchestrator Of Order & Light -Demurge");
     agent.addAgent(note); // Add the NoteMaster agent to the orchestrator
     // Set system prompt (mention tool format)
     agent.setSystemPrompt(
