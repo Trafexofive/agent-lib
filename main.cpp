@@ -1,180 +1,277 @@
-#include <cstdlib>
+// main.cpp
+
+#include <chrono>  // Included via agent.hpp but good practice here too
+#include <cstdlib> // For std::getenv
+#include <iomanip> // Included via agent.hpp but good practice here too
 #include <iostream>
+#include <memory> // For Tool pointers (optional but good practice)
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include "json/json.h" // For Json::Value used by tools
+#include <curl/curl.h> // For curl_global_init/cleanup
+
 #include "inc/Agent.hpp"
 #include "inc/MiniGemini.hpp"
 #include "inc/Tool.hpp"
-#include "json/json.h"
-#include <curl/curl.h>
+#include "inc/modelApi.hpp" // For ApiError
 
+#include <chrono>  // Included via agent.hpp but good practice here too
+#include <cstdlib> // For std::getenv
+#include <iomanip> // Included via agent.hpp but good practice here too
+#include <iostream>
+#include <memory> // For Tool pointers (optional but good practice)
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "json/json.h" // For Json::Value used by tools
+#include <curl/curl.h> // For curl_global_init/cleanup
+
+#include "inc/Agent.hpp"
+#include "inc/MiniGemini.hpp"
+#include "inc/Tool.hpp"
+#include "inc/modelApi.hpp" // For ApiError
+
+// Include tool implementations
 #include "./externals/bash.cpp"
 #include "./externals/cal-events.cpp"
 #include "./externals/ddg-search.cpp"
 #include "./externals/file.cpp"
 #include "./externals/general.cpp"
 #include "./externals/search.cpp"
+#include "./externals/write.cpp"
 
-extern std::string fileTool(const Json::Value &params);
-extern std::string localSearchTool(const Json::Value &params);
-extern std::string webSearchTool(const Json::Value &params);
-extern std::string duckduckgoSearchTool(const Json::Value &params);
+// --- Forward Declarations for External Tool Functions ---
+extern std::string executeBashCommandReal(const Json::Value &params);
 extern std::string calendarTool(const Json::Value &params);
+extern std::string duckduckgoSearchTool(const Json::Value &params);
+extern std::string fileTool(const Json::Value &params);
+extern std::string getTime(const Json::Value &params);
+extern std::string calculate(const Json::Value &params);
+extern std::string webSearchTool(const Json::Value &params);
+extern std::string writeFileTool(const Json::Value &params);
+// --- Logging Function ---
+void logMessageMain(LogLevel level, const std::string &message,
+                    const std::string &details = "") {
+  auto now = std::chrono::system_clock::now();
+  auto now_c = std::chrono::system_clock::to_time_t(now);
+  std::tm now_tm = *std::localtime(&now_c);
+  char time_buffer[20];
+  std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", &now_tm);
 
-void logMessageMain(LogLevel level, const std::string &message, const std::string &details = "") {
-    std::time_t now = std::time(nullptr);
-    std::tm *tm = std::localtime(&now);
-    char time_buffer[20];
-    std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", tm);
+  std::string prefix;
+  std::string color_start = "";
+  std::string color_end = "\033[0m";
 
-    std::string prefix;
-    std::string color_start = "";
-    std::string color_end = "\033[0m";
+  switch (level) {
+  case LogLevel::DEBUG:
+    prefix = "[DEBUG] ";
+    color_start = "\033[36m";
+    break;
+  case LogLevel::INFO:
+    prefix = "[INFO]  ";
+    color_start = "\033[32m";
+    break;
+  case LogLevel::WARN:
+    prefix = "[WARN]  ";
+    color_start = "\033[33m";
+    break;
+  case LogLevel::ERROR:
+    prefix = "[ERROR] ";
+    color_start = "\033[1;31m";
+    break;
+  case LogLevel::TOOL_CALL:
+    prefix = "[TOOL CALL] ";
+    color_start = "\033[1;35m";
+    break;
+  case LogLevel::TOOL_RESULT:
+    prefix = "[TOOL RESULT] ";
+    color_start = "\033[35m";
+    break;
+  case LogLevel::PROMPT:
+    prefix = "[PROMPT] ";
+    color_start = "\033[34m";
+    break;
+  }
 
-    switch (level) {
-        case LogLevel::DEBUG: prefix = "[DEBUG] "; color_start = "\033[36m"; break;
-        case LogLevel::INFO:  prefix = "[INFO]  "; color_start = "\033[32m"; break;
-        case LogLevel::WARN:  prefix = "[WARN]  "; color_start = "\033[33m"; break;
-        case LogLevel::ERROR: prefix = "[ERROR] "; color_start = "\033[1;31m"; break;
-        default:              prefix = "[LOG]   "; break;
-    }
-
-    std::ostream &out = (level == LogLevel::ERROR || level == LogLevel::WARN) ? std::cerr : std::cout;
-    out << color_start << std::string(time_buffer) << " " << prefix << message << color_end << std::endl;
-
-    if (!details.empty())
-        out << "  " << details << std::endl;
+  std::ostream &out = (level == LogLevel::ERROR || level == LogLevel::WARN)
+                          ? std::cerr
+                          : std::cout; out << color_start << std::string(time_buffer) << " " << prefix << message
+      << color_end << std::endl;
+  if (!details.empty()) {
+    out << color_start << "  " << details.substr(0, 500)
+        << (details.length() > 500 ? "..." : "") << color_end << std::endl;
+  }
 }
 
-static int orchestrator(const std::string &apiKey, Agent *note) {
+// --- Orchestrator Setup and Run Function ---
+int startOrchestrator(const std::string &apiKey, Agent *noteAgent) {
+  logMessageMain(LogLevel::INFO, "--- Starting Orchestrator Agent ---");
+  std::vector<Tool *> orchestratorTools;
   try {
-    // Create API client (uses default config, checks key/env var)
-    MiniGemini api(apiKey);
+    MiniGemini orchestratorApi(apiKey);
+    Agent orchestratorAgent(orchestratorApi);
+    orchestratorAgent.setName("Orchestrator");
+    orchestratorAgent.setDescription("Top-level agent coordinating tasks.");
 
-    Agent agent(api);
+    if (noteAgent) {
+      orchestratorAgent.addAgent(noteAgent);
+      logMessageMain(LogLevel::INFO,
+                     "Registered 'NoteMaster' with Orchestrator.");
+    }
 
-    agent.setName("Orchestrator Of Order & Light -Demurge");
-    agent.addAgent(note); // Add the NoteMaster agent to the orchestrator
-    // Set system prompt (mention tool format)
-    agent.setSystemPrompt(
-        "You are a powerful intuitive orchestrator assistant. Capable of "
-        "interacting with tools and agents.\n"
-        "Communicate with other agents and use tools to achieve the masters "
-        "will.\n"
-        "Do not ask for clarification infer from convo and fill the gaps (you "
-        "are meant to be assistive to the max, giving a report/intuitive "
-        "analysis based on the things done.).\n"
-        "You have memory of past interaction/actions as well as the ability "
-        "to skip (asking for one more compute iteration). You can only call "
-        "tools/agents "
-        "(strictly in the provided format below) you can even call multiple "
-        "at "
-        "the same time. tool_name is essential, if a tools are used and "
-        "there "
-        "is no output the tool_name is incorrect [INFO] all tools give some "
-        "sort of feedback:\n"
-        "==============================================\n"
-        "```tool:{sample_tool_name (must be correct)}\n"
-        "{\"param_name\": \"value\"}\n" // Use valid JSON for parameters [TIP]
-                                        // tool calls can be stacked
-        "```\n"
-        "==============================================\n"
-        "Dilimited in code by the following (tool_name is parsed after :):\n"
-        "const std::string startMarker = \"```tool:\n\""
-        "const std::string endMarker = \"```\"\n"
-        "Only use the available tools. any other form of output that doesnt "
-        "follow that format will be treated as a user reply.\n"
-        "[IMPORTANT] Do not be shy about using the skip functionality, if it "
-        "seems like there was an issue or mistake, feel free to "
-        "rectify/debug. if the desired task/goal/purpose is not yet reached, "
-        "keep trying, keep skipping. (do not stop and query the user.)\n"
-        "[IMPORTANT] Again. You have a fully fledge bash tool, use that to "
-        "get context (just be mindful of the history, cating files will leave "
-        "them in history and by consequence they would flood the context), "
-        "plan ahead and test ...\n");
+    // ** UPDATED Orchestrator System Prompt **
+    orchestratorAgent.setSystemPrompt(
+        R"(SYSTEM PROMPT: Orchestrator Agent (Named: Demurge)
 
-    // Create Tools (simpler constructor - no schema string)
-    Tool timeTool("time", "Get the current system date and time.", getTime);
-    Tool calcTool("calc",
-                  "Calculate a simple expression. single param expression : {1 "
-                  "+ 2 / 2 * 2.5}",
-                  calculate);
+**Role:** Central coordinator agent (basically the master agent if you will). Serve the Master (Named:CleverLord) by translating high-level goals into executable workflows, leveraging sub-agents and tools. Aim for 10x-100x amplification of the Master's capabilities (Jarvis/Alfred vision).
 
-    Tool realBashTool(
-        "bash",
-        "Executes a real Bash command on the host system using \n popen and "
-        "returns its combined stdout and stderr. Accepts a JSON \n object "
-        "with "
-        "a required name [bash] and 'command' parameter (string). Usage is "
-        "fine since its in a controlled env\n."
-        "[TIP] As a general rule of thumb. Anything that can be achieved using "
-        "another tool should and always should be done using that tool. Of "
-        "course, if a tool were to fail or malfuction or appear to be "
-        "unreliable then using the bash tool is encouraged. \n",
-        executeBashCommandReal);
+**Core Interaction Model:**
+You MUST respond with a single JSON object containing the following fields:
+1.  `thought`: (String) Your reasoning, analysis of the current situation, and plan for the next step(s). Be concise but clear.
+2.  `tool_calls`: (Array of Objects | null) A list of tools to execute *now*. Each object in the array MUST be formatted EXACTLY as: `{"tool_name": "...", "params": { ... }}`. If no tools need to be called, this should be `null` or an empty array `[]`.
+3.  `final_response`: (String | null) The final answer or response to the user/Master. Provide this ONLY when the entire task is complete and no further actions are needed. If more steps (tool calls, thinking) are required, this MUST be `null`.
 
-    Tool file(
-        "file",
-        "Performs file system operations on relative paths. Actions:\n"
-        "- 'read': Get content of a file.\n"
-        "- 'write': Write/overwrite content to a file. Fails if path is a "
-        "directory.\n" // Clarified write
-        "- 'list': List contents of a directory.\n"
-        "- 'info': Get metadata (type, size, modified time) for a path.\n"
-        "- 'delete': Delete a file or an *empty* directory.\n" // Emphasized
-                                                               // empty
-        "- 'mkdir': Create a new directory. Fails if path exists or parent "
-        "doesn't exist.\n" // Added mkdir
-        "Input: JSON object {'action': string, 'path': string (relative), "
-        "'content': string (required ONLY for 'write')}.\n"
-        "Output: Varies by action (content, listing, info, success/error "
-        "message).\n"
-        "Constraints: Paths MUST be relative, safe (no '..', no unsafe chars).",
-        fileTool // Function pointer to the implementation above
-    );
-    agent.addTool(&file);
-    Tool web(
+**Operational Guidelines:**
+*   **Decomposition:** Break down complex requests from the Master into logical steps.
+*   **Tool Usage:** Use available tools via the `tool_calls` field. Prioritize specific tools over `bash`. Use `bash` cautiously. Use `help` if unsure about tool parameters.
+*   **Delegation:** Use the `promptAgent` tool in `tool_calls` to delegate tasks to specialized agents. That said if the task at hand isnt big enough, there is no need for of loading to sub-agents (Again. use tools at hand smartly to achieve the desired result). Provide clear context in the `prompt` parameter.
+*   **Agent Creation:** Use the `createAgent` tool to instantiate new agents from YAML configs when needed. (not implemented yet)
+*   **Synthesis:** If previous steps involved tool calls or agent delegation, use your `thought` field to analyze the results (present in history) and plan the next step or formulate the `final_response`.
+*   **Context & Inference:** Utilize conversation history and available memory to understand context, infer missing details ("the nitty gritty gritty"), and anticipate needs. Minimize clarification requests.
+*   **Workflow Control:** If a task requires multiple LLM iterations (e.g., read file -> process -> write file), use `tool_calls` for the first action(s) and set `final_response` to `null`. The results will appear in the history for your next turn. Use the `skip` tool *only* if you explicitly need the system to pause *before* generating the next LLM response after tool execution (rarely needed with this structured format).
+*   **Error Handling:** If a tool call fails (indicated in history), your `thought` should analyze the error, and your next action could be to retry, use a different tool, or inform the Master in `final_response` if the task cannot be completed.
+
+**Example Response Format (Calling a tool):**
+```json
+{
+  "thought": "The Master wants the weather in London. I need to use the getWeather tool.",
+  "tool_calls": [
+    {
+      "tool_name": "getWeather",
+      "params": { "location": "London" }
+    }
+  ],
+  "final_response": null
+}
+
+
+Example Response Format (Final Answer):
+
+{
+  "thought": "I received the weather for London from the tool. The task is complete, I can now provide the final response.",
+  "tool_calls": null,
+  "final_response": "The current weather in London is [Weather Details from Tool Result]."
+}
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution. 
+Json
+IGNORE_WHEN_COPYING_END
+
+Adhere strictly to this JSON response format. Orchestrate effectively.
+)");
+
+    // --- Register Tools for Orchestrator ---
+    Tool *timeTool =
+        new Tool("time", "Get the current system date and time. Parameters: {}",
+                 getTime);
+    orchestratorAgent.addTool(timeTool);
+    orchestratorTools.push_back(timeTool);
+
+    Tool *calcTool = new Tool("calc",
+                              "Calculate a simple arithmetic expression. "
+                              "Parameters: {\"expression\": \"string\"}",
+                              calculate);
+    orchestratorAgent.addTool(calcTool);
+    orchestratorTools.push_back(calcTool);
+
+    Tool *webSearch = new Tool(
         "web",
-        "Performs web search using DuckDuckGo. \nParams: JSON object "
-        "{'query': 'search term', 'num_results': int (default 3), "
-        "'search_engine': 'google'|'duckduckgo'}",
-        webSearchTool// Function pointer from externals/ddg-search.cpp
-    );
-    agent.addTool(&web);
+        "Performs web search. Parameters: {\"query\": \"string\", "
+        "\"num_results\": int?, \"search_engine\": \"google\"|\"duckduckgo\"?}",
+        webSearchTool);
+    orchestratorAgent.addTool(webSearch);
+    orchestratorTools.push_back(webSearch);
 
-    // *** Add the tool ONLY if you fully accept the risks ***
-    agent.addTool(&realBashTool);
-    // Add Tools to Agent
-    agent.addTool(&timeTool);
-    agent.addTool(&calcTool);
-    // agent.addTool(&memoryTool);
-    // agent.addTool(&toolfile);
+    Tool *ddgSearch =
+        new Tool("ddg_search",
+                 "[Alt Web Search] Uses HTML scraping. Parameters: {\"query\": "
+                 "\"string\", \"num_results\": int?}",
+                 duckduckgoSearchTool);
+    orchestratorAgent.addTool(ddgSearch);
+    orchestratorTools.push_back(ddgSearch);
 
-    // Run interactive loop
-    agent.run();
+    Tool *fileOpsTool = new Tool(
+        "file",
+        "File system operations (read, write, list, info, delete, mkdir). "
+        "Params: {'action': string, 'path': string, 'content': string?}. "
+        "Relative paths assumed unless $NOTES is used.",
+        fileTool);
+    orchestratorAgent.addTool(fileOpsTool);
+    orchestratorTools.push_back(fileOpsTool);
 
+    Tool *bashTool = new Tool("bash",
+                              "Executes raw Bash command. Params: "
+                              "{\"command\": \"string\"}",
+                              executeBashCommandReal);
+    orchestratorAgent.addTool(bashTool);
+    orchestratorTools.push_back(bashTool);
+
+    // TODO: Add Agent Factory Tool registration here once implemented
+    // extern std::string createAgentFromYamlTool(const Json::Value& params,
+    // Agent& callingAgent); Tool* agentFactoryTool = new Tool("createAgent",
+    // "Creates agent from YAML. Params: {\"config_path\": \"string\"}",
+    // createAgentFromYamlTool, orchestratorAgent);
+    // orchestratorAgent.addTool(agentFactoryTool);
+    // orchestratorTools.push_back(agentFactoryTool);
+
+    logMessageMain(LogLevel::INFO, "Tools registered with Orchestrator.");
+    orchestratorAgent.run();
+
+  } catch (const ApiError &e) {
+    logMessageMain(LogLevel::ERROR, "Orchestrator API Error:", e.what());
+    for (Tool *tool : orchestratorTools)
+      delete tool;
+    return 1;
   } catch (const std::exception &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-    curl_global_cleanup();
+    logMessageMain(LogLevel::ERROR, "Orchestrator Error:", e.what());
+    for (Tool *tool : orchestratorTools)
+      delete tool;
+    return 1;
+  } catch (...) {
+    logMessageMain(LogLevel::ERROR, "Unknown error in Orchestrator.");
+    for (Tool *tool : orchestratorTools)
+      delete tool;
     return 1;
   }
+
+  for (Tool *tool : orchestratorTools)
+    delete tool;
+  logMessageMain(LogLevel::INFO, "--- Orchestrator Agent Finished ---");
   return 0;
 }
 
+// --- Main Application Entry Point ---
 int main() {
-  // 1. Initialize libcurl globally
   CURLcode curl_global_res = curl_global_init(CURL_GLOBAL_DEFAULT);
   if (curl_global_res != CURLE_OK) {
     std::cerr << "Fatal: Failed to initialize libcurl globally: "
               << curl_easy_strerror(curl_global_res) << std::endl;
     return 1;
   }
+  logMessageMain(LogLevel::INFO, "libcurl initialized.");
 
-  logMessageMain(LogLevel::INFO, "Note Manager Agent Starting...");
+  std::string apiKey;
+  Agent *noteAgentPtr = nullptr;
+  std::vector<Tool *> noteMasterTools;
 
   try {
-    // 2. Get API Key for MiniGemini
+    logMessageMain(LogLevel::INFO, "--- Setting up NoteMaster Agent ---");
+
     const char *apiKeyEnv = std::getenv("GEMINI_API_KEY");
     if (!apiKeyEnv || std::string(apiKeyEnv).empty()) {
       logMessageMain(LogLevel::ERROR,
@@ -182,131 +279,178 @@ int main() {
       curl_global_cleanup();
       return 1;
     }
-    std::string apiKey(apiKeyEnv);
+    apiKey = apiKeyEnv;
+    logMessageMain(LogLevel::INFO, "API Key loaded.");
 
-    // 3. Create MiniGemini API Client
-    MiniGemini apiClient(apiKey);
-    apiClient.setModel("gemini-2.0-flash"); // Set the model to use
-    logMessageMain(LogLevel::INFO, "MiniGemini API client initialized.");
+    MiniGemini noteApiClient(apiKey);
+    logMessageMain(LogLevel::INFO, "NoteMaster API client initialized.");
 
-    // 4. Create the Agent
-    Agent noteAgent(apiClient);
-    noteAgent.setName("NoteMaster"); // Give the agent a name
+    noteAgentPtr = new Agent(noteApiClient);
+    noteAgentPtr->setName("NoteMaster");
+    noteAgentPtr->setDescription(
+        "Specialized agent for managing notes ($NOTES), calendar events.");
+    // Ensure this directory exists or the agent can create it.
+    noteAgentPtr->addEnvVar("NOTES", "/home/mlamkadm/notes");
     logMessageMain(LogLevel::INFO, "Agent 'NoteMaster' created.");
 
-    // 5. Set System Prompt
-    noteAgent.setSystemPrompt(
-        "You are NoteMaster, a fully automated assistant specialized in "
-        "managing notes, files, and information within the user's local "
-        "environment. You manage only $NOTES"
-        "You can a call on behalf of the user from another agent.\n"
-        "Your primary goal is to help the user create, find, organize, "
-        "summarize, and retrieve information from their notes and files, as "
-        "well as create reports. "
-        "Use the available tools precisely as documented to fulfill user "
-        "requests. Do not ask any questions or seek clarifications. Infer any "
-        "missing pieces and act to accomplish the task. You can keep a "
-        "reference of any habits/preferences/ways-to-do-better in $NOTES/.data"
-        "You can also manage calendar events which might be linked to dated "
-        "notes or reminders."
-        "\nAvailable Tool Formats:"
-        "\n- JSON-based tools: Use ```tool:tool_name\n{\"param\": "
-        "\"value\"}\n```"
-        "\n- Text-based tools: Use ```tool:tool_name\ncontent in pure text "
-        "format (depending on the tool description)\n```");
+    // ** UPDATED NoteMaster System Prompt **
+    noteAgentPtr->setSystemPrompt(R"(SYSTEM PROMPT: NoteMaster Agent
+
+Role: Automated agent managing notes and calendar events within the $NOTES directory.
+
+Core Interaction Model:
+You MUST respond with a single JSON object containing the following fields:
+
+thought: (String) Your reasoning about the request and plan.
+
+tool_calls: (Array of Objects | null) Tools to execute now, each formatted as {"tool_name": "...", "params": { ... }}. Use null or [] if no tools are needed.
+
+final_response: (String | null) The final response to the caller (usually Orchestrator). Provide ONLY when the task is fully complete. Set to null if more steps/tools are needed.
+
+Operational Guidelines:
+
+Focus: Primarily use the file tool for CRUD operations on notes within the $NOTES directory and the calendar tool for events. Use full paths when possible, leveraging the $NOTES env var.
+
+Execution: Execute requests from the Orchestrator or Master precisely. Infer intent for missing details; do not ask for clarification.
+
+Tool Format: Adhere strictly to the {"tool_name": "...", "params": { ... }} format within the tool_calls array.
+
+Response: Ensure final_response is non-null only upon task completion. If calling tools, final_response MUST be null.
+
+Error Handling: If a tool fails, note it in your thought and potentially inform the caller via final_response if the task cannot proceed.
+
+Example Response (Adding a calendar event):
+
+{
+  "thought": "Request received to add a calendar event. I will use the 'calendar' tool with the 'add' action.",
+  "tool_calls": [
+    {
+      "tool_name": "calendar",
+      "params": {
+        "action": "add",
+        "date": "YYYY-MM-DD", // Fill in calculated date
+        "time": "14:00",
+        "description": "Team Meeting"
+      }
+    }
+  ],
+  "final_response": null
+}
+
+Example Response (After successful tool call):
+
+{
+  "thought": "The calendar tool reported success in adding the event. The task is complete.",
+  "tool_calls": null,
+  "final_response": "Success: Calendar event 'Team Meeting' added for YYYY-MM-DD at 14:00."
+}
+
+)");
     logMessageMain(LogLevel::INFO, "System prompt set for NoteMaster.");
 
-    noteAgent.addEnvVar("NOTES",
-                        "/home/mlamkadm/notes"); // Set default notes directory
-    noteAgent.setDescription(
-        "NoteMaster - A fully automated assistant specialized in managing "
-        "notes, files, and information within the user's local environment. "
-        "Responsible for managing notes, files, and information within the assigned folder."
-        "Resort to using this agent when needing to I/O note, calendars, events, to-do, new-tasks ...");
+    // Register Tools for NoteMaster
+    Tool *file = new Tool("file",
+                          "File system operations (read, write, list, info, "
+                          "delete, mkdir) within $NOTES env var. Params: {'action': "
+                          "string, 'path': string, 'content': string?}",
+                          fileTool);
+    noteAgentPtr->addTool(file);
+    noteMasterTools.push_back(file);
 
-    Tool bashTool(
-        "bash",
-        "Executes a bash command. \nParams: Json object {'command': 'bash "
-        "command to execute'}",
-        executeBashCommandReal // Function pointer from externals/bash.cpp
-    );
-    noteAgent.addTool(&bashTool);
-    Tool calendar("calendar",
-                  "Manages calendar events. \nParams: Json object {'action': "
-                  "'add'|'remove'|'list', 'event': 'event details'}",
-                  calendarTool // Function pointer from externals/cal-events.cpp
-    );
-    noteAgent.addTool(&calendar);
+    Tool *calTool = new Tool(
+        "calendar",
+        "Manages calendar events (add, list). Params: {'action': 'add'|'list', "
+        "'date': 'YYYY-MM-DD', 'time': 'HH:MM'?, 'description': string?}",
+        calendarTool);
+    noteAgentPtr->addTool(calTool);
+    noteMasterTools.push_back(calTool);
 
-    Tool file(
-        "file",
-        "Performs file system operations on relative paths. Actions:\n"
-        "- 'read': Get content of a file.\n"
-        "- 'write': Write/overwrite content to a file. Fails if path is a "
-        "directory.\n" // Clarified write
-        "- 'list': List contents of a directory.\n"
-        "- 'info': Get metadata (type, size, modified time) for a path.\n"
-        "- 'delete': Delete a file or an *empty* directory.\n" // Emphasized
-                                                               // empty
-        "- 'mkdir': Create a new directory. Fails if path exists or parent "
-        "doesn't exist.\n" // Added mkdir
-        "Input: JSON object {'action': string, 'path': string (relative), "
-        "'content': string (required ONLY for 'write')}.\n"
-        "Output: Varies by action (content, listing, info, success/error "
-        "message).\n"
-        "Constraints: Paths MUST be relative, safe (no '..', no unsafe chars).",
-        fileTool // Function pointer to the implementation above
-    );
-    noteAgent.addTool(&file); // Add to NoteMaster
-    // orchestratorAgent.addTool(&file); // Optionally add to Orchestrator too
-    // Tool writeTool(
-    //     "write",
-    //     "text tool: Writes text content to a file. Tool Function: Writes "
-    //     "content to a "
-    //     "file specified by the path on the first line of input. Input : A "
-    //     "string where the first line is the file path, and subsequent lines "
-    //     "are the content.Output : A success message or an error message.",
-    //     writeFileTool // Function pointer from externals/write.cpp
-    // );
-    // noteAgent.addTextTool(&writeTool);
+    // Bash tool potentially restricted for NoteMaster
+    // Tool* noteBashTool = new Tool("bash", "[DANGEROUS] Bash commands ONLY
+    // within $NOTES. Params: {\"command\": \"string\"}",
+    // executeBashCommandReal); noteAgentPtr->addTool(noteBashTool);
+    // noteMasterTools.push_back(noteBashTool);
 
     logMessageMain(LogLevel::INFO, "Tools registered with NoteMaster.");
 
-    Json::Value params;
-
-    // Example of using the bash tool directly
-    // params["command"] = "cd ~/notes";
-    //
-    // noteAgent.manualToolCall("bash", params);
-    // params.clear();
-    // params["command"] = "tree --noreport -C -I .git";
-    // noteAgent.manualToolCall("bash", params);
-    // 7. Start the Agent's Interactive Loop
-    // noteAgent.run();
-    // call run from orchestrator scope
-    orchestrator(apiKey, &noteAgent);
-
   } catch (const ApiError &e) {
-    logMessageMain(LogLevel::ERROR, "API Error occurred:", e.what());
+    logMessageMain(LogLevel::ERROR, "NoteMaster Setup API Error:", e.what());
+    for (Tool *tool : noteMasterTools)
+      delete tool;
+    if (noteAgentPtr)
+      delete noteAgentPtr;
     curl_global_cleanup();
     return 1;
   } catch (const std::invalid_argument &e) {
-    logMessageMain(LogLevel::ERROR, "Initialization Error:", e.what());
+    logMessageMain(LogLevel::ERROR,
+                   "NoteMaster Setup Initialization Error:", e.what());
+    for (Tool *tool : noteMasterTools)
+      delete tool;
+    if (noteAgentPtr)
+      delete noteAgentPtr;
     curl_global_cleanup();
     return 1;
   } catch (const std::exception &e) {
-    logMessageMain(LogLevel::ERROR, "An unexpected error occurred:", e.what());
+    logMessageMain(LogLevel::ERROR,
+                   "NoteMaster Setup Unexpected Error:", e.what());
+    for (Tool *tool : noteMasterTools)
+      delete tool;
+    if (noteAgentPtr)
+      delete noteAgentPtr;
     curl_global_cleanup();
     return 1;
   } catch (...) {
-    logMessageMain(LogLevel::ERROR, "An unknown fatal error occurred.");
+    logMessageMain(LogLevel::ERROR, "NoteMaster Setup Unknown Fatal Error.");
+    for (Tool *tool : noteMasterTools)
+      delete tool;
+    if (noteAgentPtr)
+      delete noteAgentPtr;
     curl_global_cleanup();
     return 1;
   }
 
-  // 8. Cleanup libcurl globally
-  curl_global_cleanup();
-  logMessageMain(LogLevel::INFO, "Note Manager Agent Shutting Down.");
+  // Start Orchestrator
+  int orchestratorStatus = startOrchestrator(apiKey, noteAgentPtr);
 
-  return 0;
+  // Cleanup
+  logMessageMain(LogLevel::INFO, "Cleaning up resources...");
+  for (Tool *tool : noteMasterTools)
+    delete tool;
+  if (noteAgentPtr)
+    delete noteAgentPtr;
+  curl_global_cleanup();
+  logMessageMain(LogLevel::INFO, "Application Shutting Down.");
 }
+
+// **Key Prompt Changes:**
+//
+// 1.  **Explicit JSON Structure:** Both prompts now explicitly demand a single
+// JSON object response with `thought`, `tool_calls`, and `final_response`
+// fields.
+// 2.  **Field Explanations:** Each field's purpose is clearly defined
+// (`thought` for reasoning, `tool_calls` for actions, `final_response` only
+// when done).
+// 3.  **Tool Call Format within JSON:** The prompts specify that the
+// `tool_calls` array must contain objects formatted as `{"tool_name": "...",
+// "params": { ... }}`.
+// 4.  **Conditional Logic:** Instructions clarify that `final_response` should
+// be `null` if `tool_calls` are present, and vice-versa (enforcing the idea
+// that the agent either thinks/acts *or* gives a final answer in one turn).
+// 5.  **Workflow/Multi-Step Handling:** The prompts explain how to handle
+// multi-step tasks by using `tool_calls` and setting `final_response` to
+// `null`, relying on the history/context for the next iteration. The role of
+// the `skip` tool is de-emphasized slightly as the structured format provides
+// better control.
+// 6.  **Error Handling Guidance:** Briefly mentions how to handle tool errors
+// (analyze in `thought`, potentially inform in `final_response`).
+// 7.  **Role-Specific Instructions:** The prompts retain their specific focus
+// (Orchestrator coordinates/delegates, NoteMaster manages notes/calendar in
+// $NOTES).
+// 8.  **Examples:** Clear examples of the expected JSON output format are
+// provided for both tool calls and final responses.
+//
+// These updated prompts should guide the LLM much more effectively to produce
+// output compatible with the enhanced `Agent::prompt` loop logic discussed
+// previously. Remember that the `Agent::prompt` function itself needs the
+// corresponding parsing logic (`parseStructuredLLMResponse`) to handle this new
+// format.

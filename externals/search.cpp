@@ -27,66 +27,41 @@ std::string urlEncode(const std::string &value) {
     return result;
 }
 
-// --- Tool Implementation (Returns JSON String) ---
+// --- Tool Implementation ---
 std::string webSearchTool(const Json::Value &params) {
-    Json::Value response; // JSON for response
-
     // 1. Validate Parameters
     if (!params.isObject()) {
-        response["status"] = "error";
-        response["result"] = "Error: webSearchTool requires a JSON object as input.";
-        return response.toStyledString();
+        return "Error: webSearchTool requires a JSON object as input.";
     }
     if (!params.isMember("query") || !params["query"].isString() || params["query"].asString().empty()) {
-        response["status"] = "error";
-        response["result"] = "Error: Missing or invalid required non-empty string parameter 'query'.";
-        return response.toStyledString();
+        return "Error: Missing or invalid required non-empty string parameter 'query'.";
     }
 
     std::string query = params["query"].asString();
-    // Note: num_results is not used by this basic implementation, but we keep the param validation
     int num_results = 3; // Default
     if (params.isMember("num_results") && params["num_results"].isInt()) {
         num_results = params["num_results"].asInt();
-        if (num_results <= 0 || num_results > 20) { // Limit results requested
-             std::cerr << "[WARN] webSearchTool: num_results out of range (1-20), using default.";
-             num_results = 3;
+        if (num_results <= 0) {
+            num_results = 3;
         }
     }
-
-    std::string search_engine = "google"; // Default
+    std::string search_engine = "google";
     if (params.isMember("search_engine") && params["search_engine"].isString()) {
         search_engine = params["search_engine"].asString();
     }
-
     std::string url;
-    // Important: This tool currently only uses DDG, ignoring the 'search_engine' param for URL choice.
-    // The duckduckgoSearchTool in ddg-search.cpp provides actual DDG scraping.
-    // This function is more of a placeholder or needs a real search API integration.
-    // For demonstration, let's stick to the DDG HTML URL.
-    url = "https://html.duckduckgo.com/html/?q=" + urlEncode(query);
-     std::cout << "[INFO] webSearchTool using URL: " << url << std::endl;
-    /*
     if (search_engine == "google") {
-        // Google search scraping is very likely to be blocked. Requires API.
         url = "https://www.google.com/search?q=" + urlEncode(query);
     } else if (search_engine == "duckduckgo") {
         url = "https://html.duckduckgo.com/html/?q=" + urlEncode(query);
     } else {
-        response["status"] = "error";
-        response["result"] = "Error: Invalid search engine: " + search_engine + ". Supported (currently DDG only): duckduckgo";
-        return response.toStyledString();
+        return "Error: Invalid search engine: " + search_engine + ". Supported engines: google, duckduckgo";
     }
-    */
-
     CURL *curl = curl_easy_init();
     if (!curl) {
-        response["status"] = "error";
-        response["result"] = "Error: Failed to initialize libcurl.";
-        return response.toStyledString();
+        return "Error: Failed to initialize libcurl.";
     }
     std::string readBuffer;
-    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_handle(curl, curl_easy_cleanup);
 
     try {
         // Set CURL options
@@ -94,48 +69,33 @@ std::string webSearchTool(const Json::Value &params) {
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L); // Increased timeout
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-        curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
 
         // Perform the request
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            response["status"] = "error";
-            response["result"] = "Error: Web search network request failed: " + std::string(curl_easy_strerror(res));
-            return response.toStyledString();
+            curl_easy_cleanup(curl);
+            return "Error: Web search failed: " + std::string(curl_easy_strerror(res));
         }
 
         long http_code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
         if (http_code != 200) {
-            response["status"] = "error";
-            response["result"] = "Error: Web search returned HTTP " + std::to_string(http_code) + ". URL: " + url;
-            return response.toStyledString();
+            curl_easy_cleanup(curl);
+            return "Error: Web search returned HTTP " + std::to_string(http_code);
         }
 
-        // Extremely basic result "parsing" - just returns a snippet of the raw HTML.
-        // A real implementation needs proper HTML parsing (like in ddg-search.cpp) or API usage.
-        std::stringstream output;
-        output << "Web Search Results for '" << query << "' (from " << url << "):
-";
-        output << "Raw HTML Snippet (Max 500 chars):
-" << readBuffer.substr(0, 500) << (readBuffer.length() > 500 ? "..." : "") << "
-";
-        output << "
-[Note: This tool currently returns raw HTML. Use 'duckduckgoSearchTool' for parsed results.]";
+        curl_easy_cleanup(curl);
 
-        response["status"] = "success";
-        response["result"] = output.str();
-        return response.toStyledString();
+        // Basic result parsing (This will need improvement!)
+        std::stringstream output;
+        output << "Web Search Results for '" << query << "':\n";
+        output << "Retrieved from: " << url << "\n";
+        output << "Raw response (first 200 chars):\n" << readBuffer.substr(0, 200) << "...\n"; // For debugging
+        return output.str();
 
     } catch (const std::exception &e) {
-        response["status"] = "error";
-        response["result"] = "Error: Exception during web search: " + std::string(e.what());
-        return response.toStyledString();
-    } catch (...) {
-         response["status"] = "error";
-        response["result"] = "Error: Unknown exception during web search.";
-        return response.toStyledString();
+        curl_easy_cleanup(curl);
+        return "Error: Exception during web search: " + std::string(e.what());
     }
 }
