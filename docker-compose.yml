@@ -1,0 +1,44 @@
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: agent-backend
+    restart: unless-stopped
+    ports:
+      # Map host port 7777 to container port 7777
+      - "7777:7777"
+    environment:
+      # Pass the API key from the .env file
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Define the workspace path inside the container
+      - AGENT_WORKSPACE=/app/agent_workspace
+    volumes:
+      # Mount the local agent_workspace into the container
+      # This allows the agent to read/write persistent files
+      - ./agent_workspace:/app/agent_workspace
+      # Mount prompts read-only (optional, useful if you change prompts often)
+      - ./prompts:/app/prompts:ro
+    # Run as the non-root user created in the Dockerfile
+    user: agentuser
+    networks:
+      - agent-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: agent-frontend
+    restart: unless-stopped
+    ports:
+      # Map host port 8000 to container port 80 (Nginx default)
+      - "8000:80"
+    depends_on:
+      - backend # Start backend first (doesn't guarantee readiness)
+    networks:
+      - agent-net
+
+networks:
+  agent-net:
+    driver: bridge

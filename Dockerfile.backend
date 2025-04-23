@@ -1,0 +1,68 @@
+# Dockerfile.backend
+
+# ---- Build Stage ----
+FROM debian:bookworm as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang++ \
+    make \
+    libcurl4-openssl-dev \
+    libjsoncpp-dev \
+    git \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only necessary files for building
+COPY Makefile ./Makefile
+COPY main.cpp ./main.cpp
+
+# If needed by any build step or runtime script
+COPY client.py ./client.py 
+# If needed by any build step or runtime script
+COPY save.sh ./save.sh     
+
+COPY server/server.cpp ./server/server.cpp
+COPY src/ ./src/
+COPY inc/ ./inc/
+COPY externals/ ./externals/
+COPY server/vendor/ ./server/vendor/
+COPY prompts/ ./prompts/
+
+# Build the server executable (ensure Makefile targets 'agent-server')
+# Adjust target if Makefile uses a different name
+RUN make agent-server
+
+# ---- Final Stage ----
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4 \
+    libjsoncpp25 \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Create a non-root user for security
+RUN useradd --create-home --shell /bin/bash agentuser
+USER agentuser
+
+# Copy the compiled binary from the build stage
+COPY --from=builder --chown=agentuser:agentuser /app/agent-server ./agent-server
+
+# Copy prompts directory (if needed at runtime by the agent)
+COPY --from=builder --chown=agentuser:agentuser /app/prompts/ ./prompts/
+
+# Create agent workspace directory and set permissions
+# The actual content will be mounted via docker-compose
+RUN mkdir -p /app/agent_workspace
+# Permissions adjusted here if needed, but volume mount overrides host permissions mostly
+
+# Expose the port the server listens on
+EXPOSE 7777
+
+# Set the entrypoint to run the server
+ENTRYPOINT ["./agent-server"]
