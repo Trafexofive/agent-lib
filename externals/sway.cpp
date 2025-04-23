@@ -1,5 +1,4 @@
 // externals/sway_control.cpp
-#pragma once
 
 #include <string>
 #include <cstdio>       // For popen, pclose, fgets

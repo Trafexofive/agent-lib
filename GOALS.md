@@ -1,0 +1,3 @@
+- [ ] Create a flexible agent that can be easily extended with new tools.
+- [ ] Implement a robust and reliable system.
+- [ ] Provide a user-friendly interface for interacting with the agent.

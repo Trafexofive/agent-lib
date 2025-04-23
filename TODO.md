@@ -1,0 +1,4 @@
+- [ ] Implement more sophisticated error handling.
+- [ ] Add more tools.
+- [ ] Improve the agent's decision-making process.
+- [ ] Implement a more robust memory management system.

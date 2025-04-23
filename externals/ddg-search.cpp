@@ -1,4 +1,3 @@
-#pragma once // Prevent multiple inclusions
 
 #include <iostream>
 #include <memory> // For unique_ptr

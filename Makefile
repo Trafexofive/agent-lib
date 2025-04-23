@@ -1,53 +1,148 @@
 # Compiler
 CXX := clang++
-# Flags
-CXXFLAGS := -Wall -Wextra -pedantic -O2 # Release flags
-CPPFLAGS := -Iinclude                   # Include directory
-LDFLAGS := -lcurl -ljsoncpp             # Link libraries
+# CXX := g++
 
-# Project Structure
-SRC_DIR := src
+# Target Executable Names
+TARGET_BIN := bin
+TARGET_SERVER := agent-server # *** RENAMED the server executable ***
+
+# Directories
 BUILD_DIR := build
-TARGET := agent
+INC_DIRS  := inc server/vendor/httplib
 
-# Files
-SOURCES := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp) main.cpp
-OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o, $(filter $(SRC_DIR)/%.cpp, $(SOURCES)))
-OBJECTS += $(patsubst %.cpp,$(BUILD_DIR)/%.o, $(filter-out $(SRC_DIR)/%.cpp, $(SOURCES)))
-HEADERS := $(wildcard include/*.hpp)
+# Flags
+CXXFLAGS := -std=c++17 -Wall -Wextra -pedantic -O2 -g -MMD -MP
+CPPFLAGS := $(foreach dir,$(INC_DIRS),-I$(dir))
+LDFLAGS := -lcurl -ljsoncpp -pthread
 
-# Default target
-all: $(TARGET)
+# --- Source Files (Explicitly List ALL with relative paths) ---
+MAIN_SRC      := main.cpp
+SERVER_SRC    := server/server.cpp # Path to server source
 
-# Link executable
-$(TARGET): $(OBJECTS)
-	@echo "Linking $(TARGET)..."
+SRC_SOURCES   := $(wildcard src/*.cpp)
+EXT_SOURCES   := $(wildcard externals/*.cpp)
+
+COMMON_SOURCES := $(SRC_SOURCES) $(EXT_SOURCES)
+ALL_SOURCES := $(MAIN_SRC) $(SERVER_SRC) $(COMMON_SOURCES)
+
+# --- Object Files (Map explicitly using notdir and build path) ---
+MAIN_OBJ       := $(BUILD_DIR)/$(notdir $(MAIN_SRC:.cpp=.o))
+SERVER_OBJ     := $(BUILD_DIR)/$(notdir $(SERVER_SRC:.cpp=.o))
+COMMON_OBJECTS := $(addprefix $(BUILD_DIR)/, $(notdir $(COMMON_SOURCES:.cpp=.o)))
+ALL_OBJECTS := $(MAIN_OBJ) $(SERVER_OBJ) $(COMMON_OBJECTS)
+DEPS := $(ALL_OBJECTS:.o=.d)
+
+# --- Build Rules ---
+
+# Default target builds the SERVER executable
+all: $(TARGET_SERVER)
+
+# Rule to build 'bin' executable (uses main.cpp)
+$(TARGET_BIN): $(MAIN_OBJ) $(COMMON_OBJECTS) | $(BUILD_DIR)
+	@echo "Linking $(TARGET_BIN)..."
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
-	@echo "$(TARGET) built successfully."
+	@echo "$(TARGET_BIN) built successfully."
 
-# Compile sources from src/ dir
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) | $(BUILD_DIR)
-	@echo "Compiling $< -> $@..."
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+# Rule to build the server executable (now named agent-server)
+$(TARGET_SERVER): $(SERVER_OBJ) $(COMMON_OBJECTS) | $(BUILD_DIR)
+	@echo "Linking $(TARGET_SERVER)..."
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+	@echo "$(TARGET_SERVER) built successfully."
 
-# Compile sources from root dir (e.g., main.cpp)
-$(BUILD_DIR)/%.o: %.cpp $(HEADERS) | $(BUILD_DIR)
-	@echo "Compiling $< -> $@..."
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+# --- Explicit Compilation Rules for EACH file ---
 
-# Create build directory
+# Ensure build directory exists (Order-only prerequisite)
+$(ALL_OBJECTS): | $(BUILD_DIR)
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-# Clean build files
+# Compile main.cpp
+$(BUILD_DIR)/main.o: main.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Compile server/server.cpp
+# Target is still build/server.o, Source is server/server.cpp
+$(BUILD_DIR)/server.o: server/server.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Compile src files
+$(BUILD_DIR)/agent.o: src/agent.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/behavior.o: src/behavior.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/groqClient.o: src/groqClient.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/MiniGemini.o: src/MiniGemini.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/tools.o: src/tools.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/utils.o: src/utils.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Compile externals files
+$(BUILD_DIR)/bash.o: externals/bash.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/cal-events.o: externals/cal-events.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/ddg-search.o: externals/ddg-search.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/file.o: externals/file.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/general.o: externals/general.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/search.o: externals/search.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/sway.o: externals/sway.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/write.o: externals/write.cpp
+	@echo "Compiling $< -> $@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# --- Dependencies ---
+-include $(DEPS)
+
+# --- Convenience Targets ---
+bin: $(TARGET_BIN)
+# Phony target named 'server' depends on the actual executable file 'agent-server'
+server: $(TARGET_SERVER)
+
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET)
+	# Remove the specific executable FILES and the build dir
+	rm -f $(TARGET_BIN) $(TARGET_SERVER)
 	rm -rf $(BUILD_DIR)
 	@echo "Clean complete."
 
-# Phony targets
-.PHONY: all clean
+# Rebuild targets depend on the phony targets
+re: clean all
+re-bin: clean bin
+re-server: clean server
 
-# Prevent intermediate object file deletion
-.SECONDARY: $(OBJECTS)
+# Run targets depend on the phony targets
+run-bin: bin
+	@echo "Running $(TARGET_BIN)..."
+	./$(TARGET_BIN)
+
+run-server: server
+	@echo "Running $(TARGET_SERVER)..."
+	./$(TARGET_SERVER) # Execute the renamed file
+
+.PHONY: all bin server clean re re-bin re-server run-bin run-server
+
+# Prevent deletion of intermediate object files
+.SECONDARY: $(ALL_OBJECTS)

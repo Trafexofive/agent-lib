@@ -34,15 +34,6 @@
 #include "inc/Tool.hpp"
 #include "inc/modelApi.hpp" // For ApiError
 
-// Include tool implementations
-#include "./externals/bash.cpp"
-#include "./externals/cal-events.cpp"
-#include "./externals/ddg-search.cpp"
-#include "./externals/file.cpp"
-#include "./externals/general.cpp"
-#include "./externals/search.cpp"
-#include "./externals/write.cpp"
-
 // --- Forward Declarations for External Tool Functions ---
 extern std::string executeBashCommandReal(const Json::Value &params);
 extern std::string calendarTool(const Json::Value &params);

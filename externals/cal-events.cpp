@@ -1,4 +1,3 @@
-#pragma once // Prevent multiple inclusions
 
 #include <algorithm>  // For std::sort, std::find_if
 #include <chrono>     // For generating basic IDs

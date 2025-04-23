@@ -1,1 +1,0 @@
-This is file 3, and it's a bit longer.  It has multiple lines of text to test the file writing capabilities more thoroughly.
