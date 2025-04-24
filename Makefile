@@ -3,7 +3,7 @@ CXX := clang++
 # CXX := g++
 
 # Target Executable Names
-TARGET_BIN := bin
+TARGET_BIN := agent-bin
 TARGET_SERVER := agent-server # *** RENAMED the server executable ***
 
 # Directories

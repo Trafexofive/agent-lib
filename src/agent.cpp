@@ -14,6 +14,7 @@
 #include <json/json.h>
 #include <sstream>
 #include <stdexcept>
+#include "../inc/Utils.hpp"   // For fileList, fileExists
 
 #include <string>
 #include <sys/stat.h> // For file operations
