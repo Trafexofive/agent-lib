@@ -185,3 +185,4 @@ private: // Private members should come after public interface
     void addTask(const std::string &task); // Example
     void addInitialCommand(const std::string &command); // Example
 };
+

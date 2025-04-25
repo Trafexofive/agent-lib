@@ -1,35 +1,51 @@
-# AI Project Analysis - agentttt
-- Generated on: Wed Apr 23 06:09:17 PM +01 2025
+# AI Project Analysis - agent-libVGG
+- Generated on: Fri Apr 25 05:59:34 AM +01 2025
 - System: Linux 6.12.21-1-lts x86_64
 - Arch Linux: 1649 packages installed
-- Directory: /home/mlamkadm/ai-repos/agents/agentttt
+- Directory: /home/mlamkadm/ai-repos/agents/agent-lib
 
 ## Directory Structure
 ```
-../agentttt
+../agent-lib
 ├── agent_workspace
-│   └── AGENT_WORKSPACE
-│       └── notes
+│   ├── AGENT_WORKSPACE
+│   │   └── notes
+│   └── email_drafts
+├── backend.log
+├── build
+│   └── server.d
 ├── client.py
+├── compose.sh
+├── config
+│   ├── agents
+│   ├── bin
+│   └── server
 ├── dashboard
 │   ├── app.js
 │   ├── index.html
 │   ├── style.css
 │   └── templates
 │       ├── index.html
-│       └── index-voice.html
+│       ├── index-voice.html
+│       └── voice
+├── dev_run.sh
+├── docker-compose.yml
 ├── Dockerfile
+├── Dockerfile.backend
+├── Dockerfile.frontend
 ├── docs
+│   ├── backend-guide.md
+│   ├── cors.md
+│   ├── libs-guide.md
 │   └── termbox-docs.md
 ├── externals
 │   ├── bash.cpp
 │   ├── cal-events.cpp
-│   ├── ddg-search.cpp
 │   ├── file.cpp
 │   ├── general.cpp
-│   ├── search.cpp
 │   ├── sway.cpp
 │   └── write.cpp
+├── frontend.log
 ├── GOALS.md
 ├── inc
 │   ├── Agent.hpp
@@ -39,7 +55,8 @@
 │   ├── MiniGemini.hpp
 │   ├── modelApi.hpp
 │   ├── notes.hpp
-│   └── Tool.hpp
+│   ├── Tool.hpp
+│   └── Utils.hpp
 ├── main.cpp
 ├── Makefile
 ├── prompts
@@ -49,7 +66,6 @@
 ├── save.sh
 ├── server
 │   ├── server.cpp
-│   ├── server.o
 │   └── vendor
 │       ├── httplib
 │       └── jsoncpp
@@ -68,21 +84,64 @@
 │   ├── utils
 │   └── utils.cpp
 ├── TODO.md
-└── tools
-    ├── bash.cpp
-    └── file_reader.cpp
+├── tools
+│   ├── bash.cpp
+│   └── file_reader.cpp
+└── voice-client.py
 ```
 
 ## Project Statistics
-- Total Files: 66
-- Total Lines of Code: 17686
-- Languages: .cpp(18),.hpp(8),.md(6),.html(3),.txt(1),.sh(1),.py(1),.o(1),.js(1),.h(1),.css(1)
+- Total Files: 88
+- Total Lines of Code: 19372
+- Languages: .cpp(16),.sample(14),.md(9),.hpp(9),.html(4),.sh(3),.py(2),.pid(2),.log(2),.js(2),.css(2),.yml(1),.txt(1),.rev(1),.pack(1),.idx(1),.h(1),.frontend(1),.env(1),.d(1),.backend(1)
 
 ## Project Files
 
 ### File: agent_workspace/AGENT_WORKSPACE/notes/status_report.txt
 ```
 No pending tasks.  No calendar events scheduled for 2024-10-27.```
+
+### File: backend.log
+```
+[32m15:14:38 [INFO]  libcurl initialized.[0m
+[32m15:14:38 [INFO]  API Key loaded from environment variable.[0m
+[32m15:14:38 [INFO]  --- Setting up NoteMaster Agent ---[0m
+[32m15:14:38 [INFO]  NoteMaster API client initialized.[0m
+[32m15:14:38 [INFO]  Agent instance created[0m
+[32m  | Name: default_agent[0m
+[32m15:14:38 [INFO]  System prompt set for NoteMaster.[0m
+[32m15:14:38 [INFO]  Agent 'NoteMaster' added tool: 'file'[0m
+[32m15:14:38 [INFO]  Agent 'NoteMaster' added tool: 'calendar'[0m
+[32m15:14:38 [INFO]  Tools registered with NoteMaster.[0m
+[32m15:14:38 [INFO]  --- NoteMaster Agent Setup Complete ---[0m
+[32m15:14:38 [INFO]  --- Setting up Orchestrator Agent ---[0m
+[32m15:14:38 [INFO]  Orchestrator API client initialized.[0m
+[32m15:14:38 [INFO]  Agent instance created[0m
+[32m  | Name: default_agent[0m
+[32m15:14:38 [INFO]  System prompt set for Orchestrator.[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' added tool: 'time'[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' added tool: 'calc'[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' added tool: 'web'[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' added tool: 'ddg_search'[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' added tool: 'bash'[0m
+[32m15:14:38 [INFO]  Agent 'Orchestrator' registered sub-agent: 'NoteMaster'[0m
+[32m15:14:38 [INFO]  Registered 'NoteMaster' with Orchestrator.[0m
+[32m15:14:38 [INFO]  --- Orchestrator Agent Setup Complete ---[0m
+[32m15:14:38 [INFO]  All agents initialized successfully.[0m
+[32m15:14:38 [INFO]  HTTP server configured.[0m
+[32m15:14:38 [INFO]  Starting server on 0.0.0.0:7777[0m
+[34m15:15:00 [REQ]   OPTIONS /prompt (CORS preflight)[0m
+[34m15:15:00 [REQ]   POST /prompt from 127.0.0.1[0m
+[32m15:15:00 [INFO]  User prompt received[0m
+[32m  | hello[0m
+[36m15:15:00 [DEBUG] Added to history[0m
+[36m  | Role: Master[0m
+[32m15:15:00 [INFO]  User Input received by Agent 'Orchestrator'[0m
+[32m  | hello[0m
+[36m15:15:00 [DEBUG] Agent 'Orchestrator' - Iteration 1/15[0m
+[36m15:15:00 [DEBUG] Full prompt built for Agent 'Orchestrator'[0m
+[32m15:15:00 [INFO]  Sending prompt to LLM API for agent 'Orchestrator'[0m
+```
 
 ### File: client.py
 ```python
@@ -197,6 +256,85 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main_loop(args.url)
+```
+
+### File: compose.sh
+```bash
+#!/bin/bash
+# compose.sh - Helper script for Docker Compose
+
+set -e # Exit immediately if a command exits with a non-zero status.
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo "Error: .env file not found."
+    echo "Please create a .env file with your GEMINI_API_KEY."
+    echo "Example:"
+    echo "GEMINI_API_KEY=YOUR_API_KEY_HERE"
+    exit 1
+fi
+
+# Check if GEMINI_API_KEY is set in .env
+if ! grep -q "^GEMINI_API_KEY=.\+" .env; then
+    echo "Error: GEMINI_API_KEY is not set or is empty in the .env file."
+    exit 1
+fi
+
+
+COMMAND=$1
+shift # Remove the first argument (the command)
+
+usage() {
+    echo "Usage: $0 <command> [options]"
+    echo "Commands:"
+    echo "  up      Start services in detached mode"
+    echo "  down    Stop and remove services"
+    echo "  build   Build or rebuild services"
+    echo "  logs    Follow service logs"
+    echo "  restart Restart services"
+    echo "  ps      List running services"
+    echo "  exec    Execute a command in a service (e.g., ./compose.sh exec backend bash)"
+    exit 1
+}
+
+case $COMMAND in
+    up)
+        echo "Starting services..."
+        docker-compose up -d "$@"
+        ;;
+    down)
+        echo "Stopping and removing services..."
+        docker-compose down "$@"
+        ;;
+    build)
+        echo "Building services..."
+        docker-compose build "$@"
+        ;;
+    logs)
+        echo "Following logs (Ctrl+C to stop)..."
+        docker-compose logs -f "$@"
+        ;;
+    restart)
+        echo "Restarting services..."
+        docker-compose restart "$@"
+        ;;
+    ps)
+        docker-compose ps "$@"
+        ;;
+    exec)
+        if [ -z "$1" ]; then
+            echo "Error: Missing service name for 'exec'."
+            echo "Usage: ./compose.sh exec <service_name> <command>"
+            exit 1
+        fi
+        docker-compose exec "$@"
+        ;;
+    *)
+        usage
+        ;;
+esac
+
+exit 0
 ```
 
 ### File: dashboard/app.js
@@ -1325,10 +1463,1658 @@ h1 {
 </html>
 ```
 
+### File: dashboard/templates/voice/app.js
+```javascript
+// dashboard/app.js
+
+document.addEventListener('DOMContentLoaded', () => {
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    const micButton = document.getElementById('micButton'); // Get the mic button
+    const statusDiv = document.getElementById('status'); // Get the status div
+
+    // --- Configuration ---
+    const API_ENDPOINT = 'https://agent.clevo.ddnsgeek.com/prompt';
+    const REQUEST_KEY = 'prompt';
+    const RESPONSE_KEY = 'response';
+    // ---------------------
+
+    /**
+     * Adds a message bubble to the chatbox.
+     * @param {string} text - The message content.
+     * @param {'user' | 'agent' | 'error' | 'system'} sender - The sender type.
+     */
+    function addMessage(text, sender) {
+        if (!chatbox) {
+            console.error("Chatbox element not found!");
+            return;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', sender);
+        // Basic sanitization - prevent rendering HTML tags
+        messageDiv.textContent = text;
+        chatbox.appendChild(messageDiv);
+        chatbox.scrollTop = chatbox.scrollHeight; // Scroll down
+    }
+
+    /**
+     * Sets the status message and disables/enables inputs.
+     * @param {string} text - The status text to display.
+     * @param {boolean} isBusy - Whether the agent/system is busy (disables inputs).
+     */
+    function setStatus(text, isBusy) {
+        if (statusDiv) statusDiv.textContent = text;
+        if (userInput) userInput.disabled = isBusy;
+        if (sendButton) sendButton.disabled = isBusy;
+        // Also disable mic button when the system is busy sending/receiving messages
+        if (micButton) micButton.disabled = isBusy;
+    }
+
+    /**
+     * Sends the user's message to the backend API and displays the response.
+     */
+    async function sendMessage() {
+        if (!userInput || !sendButton) {
+            console.error("Input or button element not found!");
+            return;
+        }
+        const userText = userInput.value.trim();
+        if (!userText) {
+            return; // Don't send empty messages
+        }
+
+        // Display user message immediately only if it's not already the last message
+        // (prevents duplication if sent via Enter right after voice input finishes)
+        const lastMessage = chatbox.lastElementChild;
+        if (!lastMessage || !lastMessage.classList.contains('user') || lastMessage.textContent !== userText) {
+            addMessage(userText, 'user');
+        }
+
+        const currentInputText = userText; // Store before clearing
+        userInput.value = ''; // Clear input field
+        setStatus('Agent thinking...', true); // Set status and disable inputs
+
+        try {
+            const requestBody = {};
+            requestBody[REQUEST_KEY] = currentInputText;
+
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                let errorText = `HTTP error! Status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorText += `, Message: ${JSON.stringify(errorData)}`;
+                } catch (e) {
+                    const textError = await response.text();
+                    errorText += `, Body: ${textError}`;
+                }
+                throw new Error(errorText);
+            }
+
+            const data = await response.json();
+            const agentResponse = data[RESPONSE_KEY];
+
+            if (agentResponse !== undefined && agentResponse !== null) {
+                addMessage(agentResponse, 'agent');
+            } else {
+                 console.warn(`Response key "${RESPONSE_KEY}" missing or null.`, data);
+                 addMessage(`Received response, but couldn't find content (key: "${RESPONSE_KEY}").`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Error sending/receiving message:', error);
+            addMessage(`Error: ${error.message}`, 'error');
+        } finally {
+            setStatus('', false); // Clear status, re-enable inputs
+            userInput.focus();
+        }
+    }
+
+    // --- Speech Recognition Setup ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    let isRecording = false;
+    let finalTranscript = ''; // Store final transcript from speech events
+
+    if (SpeechRecognition && micButton) {
+        micButton.classList.remove('hidden'); // Show the button if API is supported
+        recognition = new SpeechRecognition();
+        recognition.continuous = false; // Process speech after user stops talking
+        recognition.interimResults = true; // Show results as they come in
+        recognition.lang = 'en-US'; // Adjust language if needed
+
+        recognition.onstart = () => {
+            console.log("Speech recognition started");
+            isRecording = true;
+            finalTranscript = ''; // Clear previous final transcript
+            micButton.classList.add('recording');
+            micButton.title = "Stop Recording";
+            setStatus('Listening...', false); // Indicate listening, keep inputs enabled for now
+            sendButton.disabled = true; // Disable send while listening
+        };
+
+        recognition.onresult = (event) => {
+            let interimTranscript = '';
+            finalTranscript = ''; // Recalculate final transcript each time
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcriptPart = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcriptPart;
+                } else {
+                    interimTranscript += transcriptPart;
+                }
+            }
+            // Update the input field with the latest transcript (final takes precedence)
+            userInput.value = finalTranscript || interimTranscript;
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error, event.message);
+            let errorMsg = `Speech Error: ${event.error}`;
+            if (event.error === 'no-speech') {
+                errorMsg = "No speech detected. Please try again.";
+            } else if (event.error === 'audio-capture') {
+                errorMsg = "Microphone error. Ensure it's connected and enabled.";
+            } else if (event.error === 'not-allowed') {
+                errorMsg = "Microphone access denied. Please allow access in browser settings.";
+            } else if (event.error === 'network') {
+                 errorMsg = "Network error during speech recognition.";
+            }
+            addMessage(errorMsg, 'system'); // Show error in chat
+            setStatus('', false); // Clear status, enable inputs
+            isRecording = false;
+            micButton.classList.remove('recording');
+            micButton.title = "Start Recording";
+            sendButton.disabled = false; // Re-enable send on error
+        };
+
+        recognition.onend = () => {
+            console.log("Speech recognition ended");
+            isRecording = false;
+            micButton.classList.remove('recording');
+            micButton.title = "Start Recording";
+            setStatus('', false); // Clear listening status
+            sendButton.disabled = false; // Re-enable send button
+
+            // IMPORTANT: Send the message automatically if we got a final transcript
+            if (finalTranscript.trim()) {
+                console.log("Final transcript received:", finalTranscript);
+                userInput.value = finalTranscript.trim(); // Ensure input field has the final text
+                sendMessage(); // <<< Automatically send the message
+            } else {
+                console.log("No final transcript obtained.");
+                userInput.focus(); // Focus input if nothing was sent
+            }
+        };
+
+        // Microphone Button Event Listener
+        micButton.addEventListener('click', () => {
+            if (!recognition) return; // Safety check
+
+            if (isRecording) {
+                recognition.stop();
+                // onend will handle UI changes
+            } else {
+                // Clear previous text before starting new recording? Optional.
+                // userInput.value = '';
+                finalTranscript = ''; // Reset transcript
+                try {
+                    recognition.start();
+                    // onstart will handle UI changes
+                } catch (e) {
+                    // Handle potential errors if start() fails immediately (e.g., mic already in use)
+                    console.error("Error starting recognition:", e);
+                    addMessage(`Could not start microphone: ${e.message}`, 'error');
+                    setStatus('', false); // Reset UI
+                }
+            }
+        });
+
+    } else {
+        console.warn("Web Speech Recognition API not supported in this browser.");
+        if(micButton) micButton.classList.add('hidden'); // Ensure it stays hidden
+    }
+    // --- End Speech Recognition Setup ---
+
+
+    // --- Event Listeners (Send Button and Enter Key) ---
+    if (sendButton) {
+        sendButton.addEventListener('click', sendMessage);
+    } else {
+        console.error("Send button not found!");
+    }
+
+    if (userInput) {
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey && !sendButton.disabled) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    } else {
+        console.error("User input element not found!");
+    }
+
+    // Optional: Add initial message
+    // addMessage("Agent connected. How can I help?", 'agent'); // Moved to HTML
+    userInput?.focus(); // Set focus to input on load
+});
+```
+
+### File: dashboard/templates/voice/index.html
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link to your existing style.css -->
+    <link rel="stylesheet" href="style.css">
+    <title>Agent Chat Interface</title>
+    <!-- Add specific styles for the mic button here or in style.css -->
+    <style>
+        /* Style for the mic button */
+        #micButton {
+            padding: 10px;
+            min-width: 40px; /* Ensure consistent size */
+            height: 40px;
+            border: none;
+            background-color: #6c757d; /* Grey */
+            color: white;
+            border-radius: 50%; /* Round */
+            cursor: pointer;
+            font-size: 1.2em;
+            margin-left: 5px; /* Spacing */
+            transition: background-color 0.2s ease;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        #micButton:hover {
+            background-color: #5a6268;
+        }
+        #micButton.recording {
+            background-color: #dc3545; /* Red when recording */
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        /* Hide mic button if API not supported */
+        #micButton.hidden {
+            display: none;
+        }
+        /* Basic pulse animation */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        /* Minor adjustment for input area */
+        .input-area {
+            display: flex;
+            align-items: center; /* Vertically align items */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Agent Server</h1>
+        <div id="chatbox">
+            <!-- Chat messages appear here -->
+            <div class="message agent">Welcome! Ask me anything.</div>
+        </div>
+        <!-- Status Area (Optional but helpful) -->
+        <div id="status" style="text-align: center; margin-bottom: 5px; min-height: 1.2em; font-style: italic; color: #666;"></div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message...">
+            <!-- Microphone Button Added -->
+            <button id="micButton" class="hidden" title="Start/Stop Recording">🎤</button>
+            <button id="sendButton" title="Send Message">Send</button>
+        </div>
+    </div>
+
+    <!-- Link to your existing app.js -->
+    <script src="app.js"></script>
+</body>
+</html>
+```
+
+### File: dashboard/templates/voice/style.css
+```css
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    height: 80vh; /* Limit height */
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+}
+
+#chatbox {
+    flex-grow: 1; /* Takes available space */
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 15px;
+    overflow-y: auto; /* Enable scrolling */
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    line-height: 1.4;
+}
+
+.user {
+    background-color: #d1e7fd;
+    text-align: right;
+    margin-left: auto; /* Push to right */
+    max-width: 80%;
+}
+
+.agent {
+    background-color: #e2e3e5;
+    text-align: left;
+    margin-right: auto; /* Push to left */
+    max-width: 80%;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    text-align: left;
+    max-width: 80%;
+}
+
+
+.input-area {
+    display: flex;
+}
+
+#userInput {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px;
+}
+
+#sendButton {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#sendButton:hover {
+    background-color: #0056b3;
+}
+```
+
+### File: dev_run.sh
+```bash
+#!/bin/bash
+
+# Simple development script for agentttt backend and frontend
+
+# --- Configuration ---
+BACKEND_EXE="./agent-server"
+FRONTEND_DIR="./dashboard"
+FRONTEND_PORT="8000" # Port for the simple Python HTTP server
+BACKEND_PID_FILE=".backend.pid"
+FRONTEND_PID_FILE=".frontend.pid"
+
+# Exit on any error
+set -e
+
+# --- Functions ---
+
+# Function to build the backend
+build_backend() {
+    echo "--- Building Backend (make agent-server) ---"
+    if make agent-server; then
+        echo "--- Backend build successful ---"
+    else
+        echo "--- ERROR: Backend build failed! ---"
+        exit 1
+    fi
+}
+
+# Function to start the backend server
+start_backend() {
+    if [ -f "$BACKEND_PID_FILE" ]; then
+        echo "Backend PID file found ($BACKEND_PID_FILE). Already running or needs cleanup?"
+        echo "Run '$0 stop' first if needed."
+        # Optionally: Check if PID is actually running: kill -0 $(cat $BACKEND_PID_FILE) 2>/dev/null
+        return 1 # Indicate potential issue
+    fi
+
+    if [ ! -f "$BACKEND_EXE" ]; then
+        echo "Backend executable '$BACKEND_EXE' not found. Building first..."
+        build_backend
+    fi
+
+    # Source environment variables from .env file
+    if [ -f ".env" ]; then
+        echo "Loading environment variables from .env"
+        export $(grep -v '^#' .env | xargs)
+    else
+        echo "Warning: .env file not found."
+    fi
+
+    # Check specifically for GEMINI_API_KEY
+    if [ -z "$GEMINI_API_KEY" ] || [[ "$GEMINI_API_KEY" == "YOUR_API_KEY_HERE" ]]; then
+        echo "--- ERROR: GEMINI_API_KEY not set correctly in environment or .env file! ---"
+        exit 1
+    fi
+
+
+    echo "--- Starting Backend Server ($BACKEND_EXE) ---"
+    # Run in background, redirect stdout/stderr to files, store PID
+    "$BACKEND_EXE" > backend.log 2>&1 &
+    BACKEND_PID=$!
+    echo $BACKEND_PID > "$BACKEND_PID_FILE"
+    echo "Backend PID: $BACKEND_PID (Logs: backend.log)"
+    sleep 1 # Give it a moment to start or fail
+    if ! kill -0 $BACKEND_PID 2>/dev/null; then
+         echo "--- ERROR: Backend failed to start. Check backend.log ---"
+         rm -f "$BACKEND_PID_FILE"
+         exit 1
+    fi
+}
+
+# Function to start the frontend HTTP server
+start_frontend() {
+     if [ -f "$FRONTEND_PID_FILE" ]; then
+        echo "Frontend PID file found ($FRONTEND_PID_FILE). Already running or needs cleanup?"
+        echo "Run '$0 stop' first if needed."
+        return 1
+    fi
+
+    if [ ! -d "$FRONTEND_DIR" ]; then
+        echo "--- ERROR: Frontend directory '$FRONTEND_DIR' not found! ---"
+        exit 1
+    fi
+
+    echo "--- Starting Frontend HTTP Server (Python http.server on port $FRONTEND_PORT) ---"
+    # Run in background within the specified directory, redirect output, store PID
+    python -m http.server "$FRONTEND_PORT" --directory "$FRONTEND_DIR" > frontend.log 2>&1 &
+    FRONTEND_PID=$!
+    echo $FRONTEND_PID > "$FRONTEND_PID_FILE"
+    echo "Frontend PID: $FRONTEND_PID (Logs: frontend.log)"
+    echo "Access Frontend at: http://localhost:$FRONTEND_PORT"
+    sleep 1
+     if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+         echo "--- ERROR: Frontend server failed to start. Check frontend.log ---"
+         rm -f "$FRONTEND_PID_FILE"
+         exit 1
+    fi
+}
+
+# Function to stop running servers
+stop_servers() {
+    echo "--- Stopping Servers ---"
+    if [ -f "$BACKEND_PID_FILE" ]; then
+        PID=$(cat "$BACKEND_PID_FILE")
+        echo "Stopping Backend (PID: $PID)..."
+        # Check if process exists before killing
+        if kill -0 $PID 2>/dev/null; then
+            kill $PID
+            sleep 1 # Give it time to shut down
+            # Force kill if still running (optional)
+            # if kill -0 $PID 2>/dev/null; then kill -9 $PID; fi
+        else
+            echo "Backend process $PID not found."
+        fi
+        rm -f "$BACKEND_PID_FILE"
+    else
+        echo "Backend PID file not found. Server might not be running."
+    fi
+
+    if [ -f "$FRONTEND_PID_FILE" ]; then
+        PID=$(cat "$FRONTEND_PID_FILE")
+        echo "Stopping Frontend (PID: $PID)..."
+        if kill -0 $PID 2>/dev/null; then
+            kill $PID
+        else
+            echo "Frontend process $PID not found."
+        fi
+        rm -f "$FRONTEND_PID_FILE"
+    else
+        echo "Frontend PID file not found. Server might not be running."
+    fi
+    echo "--- Stop sequence complete ---"
+}
+
+# Function to display logs
+show_logs() {
+    echo "--- Tailing Logs (Press Ctrl+C to stop) ---"
+    # Tail both logs concurrently
+    tail -f backend.log frontend.log
+}
+
+
+# --- Main Script Logic ---
+
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        start_backend || echo "Backend failed to start properly, skipping frontend."
+        start_frontend || echo "Frontend failed to start properly."
+        echo "--- Services started (check logs for details) ---"
+        ;;
+    stop)
+        stop_servers
+        ;;
+    build)
+        build_backend
+        ;;
+    restart)
+        stop_servers
+        echo # Add a newline for clarity
+        start_backend || echo "Backend failed to start properly, skipping frontend."
+        start_frontend || echo "Frontend failed to start properly."
+        echo "--- Services restarted (check logs for details) ---"
+        ;;
+    logs)
+        show_logs
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|build|restart|logs}"
+        echo "  start   : Build (if needed) and start backend & frontend servers."
+        echo "  stop    : Stop running servers."
+        echo "  build   : Build the backend server."
+        echo "  restart : Stop, then start servers."
+        echo "  logs    : Tail the logs of both servers."
+        exit 1
+        ;;
+esac
+
+exit 0
+```
+
+### File: docker-compose.yml
+```yaml
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: agent-backend
+    restart: unless-stopped
+    ports:
+      # Map host port 7777 to container port 7777
+      - "7777:7777"
+    environment:
+      # Pass the API key from the .env file
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Define the workspace path inside the container
+      - AGENT_WORKSPACE=/app/agent_workspace
+    volumes:
+      # Mount the local agent_workspace into the container
+      # This allows the agent to read/write persistent files
+      - ./agent_workspace:/app/agent_workspace
+      # Mount prompts read-only (optional, useful if you change prompts often)
+      - ./prompts:/app/prompts:ro
+    # Run as the non-root user created in the Dockerfile
+    user: agentuser
+    networks:
+      - agent-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: agent-frontend
+    restart: unless-stopped
+    ports:
+      # Map host port 8000 to container port 80 (Nginx default)
+      - "8000:80"
+    depends_on:
+      - backend # Start backend first (doesn't guarantee readiness)
+    networks:
+      - agent-net
+
+networks:
+  agent-net:
+    driver: bridge
+```
+
 ### File: Dockerfile
 ```
 
 # TO-DO:
+```
+
+### File: Dockerfile.backend
+```
+# Dockerfile.backend
+
+# ---- Build Stage ----
+FROM debian:bookworm as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang++ \
+    make \
+    libcurl4-openssl-dev \
+    libjsoncpp-dev \
+    git \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only necessary files for building
+COPY Makefile ./Makefile
+COPY main.cpp ./main.cpp
+
+# If needed by any build step or runtime script
+COPY client.py ./client.py 
+# If needed by any build step or runtime script
+COPY save.sh ./save.sh     
+
+COPY server/server.cpp ./server/server.cpp
+COPY src/ ./src/
+COPY inc/ ./inc/
+COPY externals/ ./externals/
+COPY server/vendor/ ./server/vendor/
+COPY prompts/ ./prompts/
+
+# Build the server executable (ensure Makefile targets 'agent-server')
+# Adjust target if Makefile uses a different name
+RUN make agent-server
+
+# ---- Final Stage ----
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4 \
+    libjsoncpp25 \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Create a non-root user for security
+RUN useradd --create-home --shell /bin/bash agentuser
+USER agentuser
+
+# Copy the compiled binary from the build stage
+COPY --from=builder --chown=agentuser:agentuser /app/agent-server ./agent-server
+
+# Copy prompts directory (if needed at runtime by the agent)
+COPY --from=builder --chown=agentuser:agentuser /app/prompts/ ./prompts/
+
+# Create agent workspace directory and set permissions
+# The actual content will be mounted via docker-compose
+RUN mkdir -p /app/agent_workspace
+# Permissions adjusted here if needed, but volume mount overrides host permissions mostly
+
+# Expose the port the server listens on
+EXPOSE 7777
+
+# Set the entrypoint to run the server
+ENTRYPOINT ["./agent-server"]
+```
+
+### File: Dockerfile.frontend
+```
+# Dockerfile.frontend
+
+# Use a lightweight Nginx image
+FROM nginx:stable-alpine
+
+# Remove default nginx website
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy the dashboard files to the nginx html directory
+COPY ./dashboard /usr/share/nginx/html
+
+# Expose port 80 (default nginx port)
+EXPOSE 80
+
+# Default command starts nginx
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### File: docs/backend-guide.md
+```markdown
+---
+
+## The Comprehensive Guide to C++ Backend Servers, HTTPS, and CORS
+
+This guide covers the essential concepts and practices for building robust and secure C++ backend servers, particularly focusing on handling web requests over HTTP/HTTPS and managing Cross-Origin Resource Sharing (CORS).
+
+**1. Fundamentals of HTTP and HTTPS**
+
+*   **HTTP (Hypertext Transfer Protocol):**
+    *   The foundation of data communication for the World Wide Web.
+    *   A **client-server protocol**: A client (like a web browser or your `client.py`) sends a request to a server, and the server sends back a response.
+    *   **Stateless:** Each request/response pair is independent by default. State (like user sessions) needs to be managed explicitly (e.g., using cookies, tokens).
+    *   **Request Structure:** Typically includes:
+        *   **Method:** The action to perform (e.g., `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`).
+        *   **Path:** The specific resource being requested (e.g., `/prompt`, `/users/123`).
+        *   **HTTP Version:** (e.g., `HTTP/1.1`, `HTTP/2`).
+        *   **Headers:** Key-value pairs providing metadata (e.g., `Host`, `Content-Type`, `Authorization`, `Accept`).
+        *   **Body (Optional):** Data sent with the request (e.g., JSON payload in a `POST`).
+    *   **Response Structure:** Typically includes:
+        *   **HTTP Version:**
+        *   **Status Code:** A 3-digit number indicating the outcome (e.g., `200 OK`, `404 Not Found`, `500 Internal Server Error`).
+        *   **Status Message:** A short text description of the status code (e.g., "OK", "Not Found").
+        *   **Headers:** Key-value pairs providing metadata about the response (e.g., `Content-Type`, `Content-Length`, `Access-Control-Allow-Origin`).
+        *   **Body (Optional):** The actual content returned (e.g., HTML, JSON, image data).
+
+*   **HTTPS (HTTP Secure):**
+    *   Not a separate protocol, but **HTTP layered over TLS/SSL** (Transport Layer Security / Secure Sockets Layer).
+    *   **Adds Security:**
+        *   **Encryption:** Protects the confidentiality of data exchanged between client and server. Prevents eavesdropping.
+        *   **Authentication:** Allows the client to verify the server's identity using its SSL/TLS Certificate. Prevents man-in-the-middle attacks.
+        *   **Integrity:** Ensures data hasn't been tampered with during transit.
+    *   **Requires Certificates:** Servers need an SSL/TLS certificate issued by a trusted Certificate Authority (CA) or a self-signed certificate (for testing, generates browser warnings).
+    *   **Standard Port:** 443 (whereas HTTP uses port 80).
+
+**2. Building Backend Servers in C++**
+
+While languages like Node.js, Python, Go, and Java are often more common for web backends due to extensive ecosystems, C++ is perfectly capable and offers potential performance advantages, especially for CPU-intensive tasks.
+
+*   **Core Server Loop:** The fundamental logic involves:
+    1.  **Socket Creation:** Creating a network socket.
+    2.  **Binding:** Associating the socket with a specific IP address and port on the server.
+    3.  **Listening:** Telling the socket to listen for incoming client connections.
+    4.  **Accepting:** Accepting a connection request from a client, creating a new socket for that specific connection.
+    5.  **Request Handling:** Reading the HTTP request data from the client socket.
+    6.  **Parsing:** Interpreting the request (method, path, headers, body).
+    7.  **Routing & Logic:** Determining which function/handler should process the request based on method and path. Executing application logic (e.g., calling your Agent).
+    8.  **Response Generation:** Creating the HTTP response (status code, headers, body).
+    9.  **Sending Response:** Writing the response data back to the client socket.
+    10. **Closing/Keeping Alive:** Closing the client socket or keeping it open for subsequent requests (HTTP Keep-Alive).
+    11. **Looping:** Returning to the Accept step to handle the next client.
+
+*   **Concurrency:** A real-world server needs to handle multiple clients simultaneously. Common approaches:
+    *   **Multithreading:** Create a new thread (or use a thread pool) to handle each accepted client connection. Simpler to reason about initially but can have overhead and require careful synchronization.
+    *   **Asynchronous I/O (Event Loop):** Use mechanisms like `select`, `poll`, `epoll` (Linux), `kqueue` (BSD/macOS), or `IOCP` (Windows) to monitor multiple sockets for readiness without blocking. A single thread (or a few threads) can manage many connections efficiently. This is generally more scalable but often more complex to program directly.
+
+*   **Libraries (The Key to Productivity):** Writing all the above from scratch using raw socket APIs is tedious and error-prone. Leverage libraries:
+    *   **`httplib.h` (Your Current Choice):**
+        *   *Pros:* Simple, header-only, easy to integrate, includes both client and server, supports SSL.
+        *   *Cons:* Less feature-rich than larger frameworks, basic threading model (thread-per-connection or thread pool). Good for simpler projects or embedding.
+    *   **Boost.Asio:**
+        *   *Pros:* Very powerful, highly flexible, excellent for high-performance asynchronous networking. Part of the widely respected Boost libraries. Cross-platform.
+        *   *Cons:* Steeper learning curve, more boilerplate code required compared to simpler libraries. It's a networking library, not a full web framework (you build HTTP handling on top).
+    *   **Poco C++ Libraries:**
+        *   *Pros:* Mature, comprehensive set of libraries including networking (HTTP client/server with HTTPS), threading, configuration, databases, XML, JSON, etc. A full application framework.
+        *   *Cons:* Larger dependency, potentially more overhead than a minimal library.
+    *   **Crow (`CrowCpp/Crow`)**:
+        *   *Pros:* Modern C++, header-only (like httplib), focuses specifically on building web APIs/microservices, inspired by Python's Flask (easy routing). Supports middleware.
+        *   *Cons:* Might be less mature or have fewer features than Boost/Poco in some areas outside core HTTP handling. Often relies on Asio internally.
+    *   **Pistache (`pistacheio/pistache`)**:
+        *   *Pros:* Modern C++, focused on performance, REST API framework, asynchronous using its own event loop abstraction.
+        *   *Cons:* Can be complex, potentially smaller community than Boost/Poco.
+
+**3. Implementing HTTPS in Your C++ Server**
+
+1.  **Obtain Certificate & Key:**
+    *   **Let's Encrypt (Recommended for Production):** Use `certbot` or similar ACME clients to get free, auto-renewing certificates for your domain.
+    *   **Commercial CA:** Purchase a certificate.
+    *   **Self-Signed (Testing/Local Dev Only):** Use `openssl` command-line tools:
+        ```bash
+        # Generate private key
+        openssl genpkey -algorithm RSA -out server.key
+        # Generate Certificate Signing Request (CSR)
+        openssl req -new -key server.key -out server.csr
+        # Generate self-signed certificate valid for 365 days
+        openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+        ```
+        *Remember browsers will distrust these.*
+
+2.  **Use Library's SSL/TLS Capabilities:** Your chosen HTTP library must support SSL/TLS, usually via OpenSSL integration.
+    *   **With `httplib.h`:**
+        *   Include the header normally.
+        *   Ensure your project is compiled and linked against OpenSSL libraries (`-lssl -lcrypto`).
+        *   Instantiate `httplib::SSLServer` instead of `httplib::Server`, passing the paths to your certificate (`.crt`) and private key (`.key`) files to the constructor.
+        *   Listen on an appropriate port (usually 443).
+        ```c++
+        #include "httplib.h"
+        #include <iostream>
+
+        int main() {
+            #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+            httplib::SSLServer svr("./server.crt", "./server.key");
+
+            if (!svr.is_valid()) {
+                std::cerr << "SSL Server setup failed. Check cert/key paths and OpenSSL linkage." << std::endl;
+                // You might want to print OpenSSL errors here: ERR_print_errors_fp(stderr);
+                return 1;
+            }
+
+            svr.Get("/", [](const httplib::Request &, httplib::Response &res) {
+                res.set_content("Hello Secure World!", "text/plain");
+            });
+
+            std::cout << "HTTPS server listening on port 8080..." << std::endl;
+            svr.listen("0.0.0.0", 8080); // Use 443 for standard HTTPS
+
+            #else
+            std::cerr << "HTTPS not supported: Compile with OpenSSL enabled." << std::endl;
+            return 1;
+            #endif
+
+            return 0;
+        }
+        ```
+    *   **With Boost.Asio/Poco/etc.:** These libraries have specific classes and methods for creating SSL contexts (`ssl::context`) and SSL streams/sockets. You'll load the certificate and key into the context and then use SSL-aware stream objects. Consult their respective documentation.
+
+**4. Understanding CORS (Cross-Origin Resource Sharing)**
+
+*   **The "Why": Same-Origin Policy (SOP)** Browsers block scripts on `https://frontend.com` from making `fetch` or `XMLHttpRequest` calls to `https://api.backend.com` by default. This prevents malicious scripts on one site from stealing data from another site the user might be logged into. "Origin" = Protocol + Domain + Port.
+*   **The "What": CORS Headers:** CORS is a mechanism where the *server* uses specific HTTP headers to tell the browser that requests *from* certain other origins *are* allowed. It's the server granting permission.
+*   **The "How":**
+    *   **Simple Requests:** Some requests (e.g., `GET`, `HEAD`, some `POST` with specific `Content-Type`s) are considered "simple". The browser makes the request directly, and the server *must* include `Access-Control-Allow-Origin` in the response for the browser to allow the frontend script access to it.
+    *   **Preflighted Requests (`OPTIONS`):** Most API calls (e.g., `POST` with `Content-Type: application/json`, `PUT`, `DELETE`, requests with custom headers like `Authorization`) require a "preflight" check.
+        1.  The browser *first* sends an `OPTIONS` request to the target URL.
+        2.  The server responds to the `OPTIONS` request with specific CORS headers indicating *if* the actual request would be allowed.
+        3.  If the `OPTIONS` response is permissive enough, the browser then sends the *actual* request (e.g., `POST`).
+        4.  The server *still* needs to include `Access-Control-Allow-Origin` in the response to the *actual* request.
+*   **Essential Server Response Headers:**
+    *   `Access-Control-Allow-Origin: <origin>` or `*`:
+        *   Specifies which frontend origin(s) are allowed.
+        *   `<origin>`: e.g., `https://your-frontend.com`. **Best practice for security.** Can only be *one* specific origin or `*`. Cannot be a list. Your server logic needs to check the request's `Origin` header and echo it back if allowed, or send `*`.
+        *   `*`: Allows *any* origin. **Use with caution.** Incompatible with `Access-Control-Allow-Credentials: true`.
+        *   *Needed on responses to both `OPTIONS` and the actual request.*
+    *   `Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT`: (For `OPTIONS` response) Lists the HTTP methods allowed for the actual request.
+    *   `Access-Control-Allow-Headers: Content-Type, Authorization`: (For `OPTIONS` response) Lists the HTTP headers the frontend is allowed to include in the actual request.
+    *   `Access-Control-Allow-Credentials: true`: (Optional) Allows requests with cookies or HTTP authentication to be made. Requires `Access-Control-Allow-Origin` to be a *specific* origin, not `*`.
+    *   `Access-Control-Max-Age: 86400`: (Optional, for `OPTIONS` response) Tells the browser how long (in seconds) it can cache the preflight response, avoiding repeated `OPTIONS` checks.
+
+*   **Implementation (Conceptual `httplib.h`):**
+    ```c++
+    // In your main setup:
+    const std::string ALLOWED_ORIGIN = "https://your-frontend.com"; // Or read from config
+
+    // Preflight handler
+    svr.Options("/api/.*", [&](const httplib::Request &req, httplib::Response &res) {
+        std::string origin = req.get_header_value("Origin");
+        if (origin == ALLOWED_ORIGIN) { // Check if origin is allowed
+             res.set_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+             res.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+             res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+             // res.set_header("Access-Control-Allow-Credentials", "true"); // If needed
+             // res.set_header("Access-Control-Max-Age", "86400"); // Optional caching
+        } else {
+            // Optionally deny or just don't send CORS headers
+        }
+         res.status = 204; // No Content for OPTIONS success
+    });
+
+    // Actual request handler
+    svr.Post("/api/prompt", [&](const httplib::Request &req, httplib::Response &res) {
+        std::string origin = req.get_header_value("Origin");
+         if (origin == ALLOWED_ORIGIN) { // Check origin again
+             res.set_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+             // res.set_header("Access-Control-Allow-Credentials", "true"); // If needed
+         } else {
+             // If origin not allowed, should ideally not send CORS header and potentially deny request
+             // For simplicity here, we might still process but browser would block frontend access if origin header mismatch
+         }
+
+        // ... handle the API request ...
+        res.set_content("{\"response\": \"Agent says hi!\"}", "application/json");
+        res.status = 200;
+    });
+    ```
+
+**5. Integrating HTTPS and CORS**
+
+*   They solve different problems: HTTPS encrypts the connection; CORS manages browser cross-origin permissions.
+*   You need **both** if your frontend is served securely (HTTPS) from a different origin than your backend API (which should *also* be HTTPS).
+*   The CORS configuration (headers your server sends) remains largely the same whether you are using HTTP or HTTPS. The key is that the `Access-Control-Allow-Origin` header must match the *exact* origin the browser sees for the frontend, including the `https://`.
+
+**6. Best Practices & Security Considerations**
+
+*   **HTTPS Everywhere:** Always use HTTPS for production APIs. Obtain certificates properly (Let's Encrypt). Redirect HTTP traffic to HTTPS. Enable HSTS (HTTP Strict Transport Security) header.
+*   **Input Validation:** *Never* trust data from the client (request body, headers, query params, path params). Validate type, length, format, range. Sanitize inputs to prevent injection attacks (SQLi, XSS - though XSS is more about frontend rendering).
+*   **Authentication & Authorization:** Secure endpoints that shouldn't be public. Use robust methods like OAuth 2.0 / OpenID Connect with tokens (JWTs). Don't roll your own crypto.
+*   **Error Handling:** Return appropriate HTTP status codes. Don't leak sensitive information (stack traces, internal paths) in error messages to the client. Log detailed errors server-side.
+*   **Rate Limiting:** Protect against brute-force attacks and denial-of-service by limiting requests per client IP or API key.
+*   **Logging:** Implement comprehensive logging (requests, responses, errors, important events) for debugging and security monitoring.
+*   **Dependencies:** Keep your C++ libraries (HTTP, OpenSSL, JSON, etc.) updated to patch security vulnerabilities. Use a package manager if possible or track versions carefully.
+*   **Secure Headers:** Consider adding headers like `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`.
+*   **Least Privilege:** Run your server process under a dedicated, non-root user account.
+*   **Secrets Management:** Do not hardcode API keys, database passwords, etc. Use environment variables (like you do for `GEMINI_API_KEY`), configuration files (outside version control), or dedicated secrets management systems.
+*   **CORS Configuration:** Be specific with `Access-Control-Allow-Origin`. Avoid `*` in production unless absolutely necessary and understand the implications.
+
+**7. Advanced Topics (Beyond the Basics)**
+
+*   **WebSockets:** For real-time, bidirectional communication (e.g., live transcription streaming, chat apps).
+*   **API Design:** REST principles, GraphQL, gRPC. Designing clean, consistent, and versioned APIs.
+*   **Databases:** Interacting with SQL or NoSQL databases. Using ORMs or database connector libraries. Connection pooling.
+*   **Caching:** Improving performance by caching responses (HTTP caching headers, Redis/Memcached).
+*   **Deployment:** Containerization (Docker - like you're doing!), cloud platforms (AWS, GCP, Azure), reverse proxies (Nginx, Apache), load balancing.
+*   **Monitoring & Alerting:** Tracking performance (latency, error rates), resource usage (CPU, memory), and setting up alerts for problems.
+
+**Conclusion**
+
+Building backend servers in C++ involves understanding HTTP/HTTPS fundamentals, choosing appropriate libraries to handle the networking complexity, implementing robust security measures like HTTPS and proper CORS configuration, and following general software engineering best practices. While the C++ ecosystem might require more manual setup than some other languages, it offers significant performance potential when needed. Start with a good library like `httplib.h` or explore options like Crow or Asio as your needs grow, always prioritizing security and proper error handling. Good luck!
+```
+
+### File: docs/cors.md
+```markdown
+
+**1. CORS (Cross-Origin Resource Sharing)**
+
+*   **The Problem: Same-Origin Policy (SOP)**
+    *   Web browsers enforce a security rule called the Same-Origin Policy. By default, a web page loaded from one "origin" (defined by protocol (http/https), domain, and port) cannot make requests to a *different* origin.
+    *   In your setup:
+        *   The **Frontend** (dashboard) is likely served from somewhere like `http://localhost:8000` (during local development) or `https://test.clevo.ddnsgeek.com` (as configured in your server).
+        *   The **Backend** (your C++ agent server) is running at `http://<server-ip>:7777`.
+    *   Since the origin of the frontend (e.g., `https://test.clevo.ddnsgeek.com:443` - HTTPS default port is 443) is different from the origin of the backend (`http://<server-ip>:7777`), the browser will block the frontend's JavaScript (`app.js`) from directly calling the `/prompt` endpoint on the backend *unless* the backend explicitly permits it.
+
+*   **The Solution: CORS Headers**
+    *   CORS is a mechanism using HTTP headers that tells the browser it's okay for a frontend from one origin to access resources on a backend from a different origin.
+    *   Your server needs to send specific `Access-Control-*` headers in its responses.
+
+*   **How Your Code Implements CORS:**
+    *   **Preflight Request (`OPTIONS`):** For requests that are considered "non-simple" (like your `POST` request with `Content-Type: application/json`), the browser first sends an `OPTIONS` request to the server endpoint (`/prompt`). This is called a "preflight" request. It asks the server "Hey, is it okay if a script from origin X tries to send a POST request with these headers?".
+        *   Your code handles this correctly:
+            ```c++
+            svr.Options("/prompt", [](const httplib::Request &, httplib::Response &res) {
+                // Which frontend origins are allowed?
+                res.set_header("Access-Control-Allow-Origin", "https://test.clevo.ddnsgeek.com");
+                // Which headers can the frontend send in the *actual* request?
+                res.set_header("Access-Control-Allow-Headers", "Content-Type");
+                // Which methods are allowed for the *actual* request?
+                res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
+                res.status = 204; // Standard success for preflight
+                serverLog("REQUEST", "OPTIONS /prompt (CORS preflight)");
+            });
+            ```
+        *   The browser checks this `OPTIONS` response. If the origin, method, and headers match what the frontend wants to do, it proceeds to the actual request. Otherwise, it blocks the request and shows a CORS error in the console.
+
+    *   **Actual Request (`POST`):** If the preflight is successful (or if the request was "simple" and didn't need a preflight), the browser sends the actual `POST` request. Crucially, the server *still* needs to include the `Access-Control-Allow-Origin` header in the response to this `POST` request as well.
+        *   Your code handles this too:
+            ```c++
+            svr.Post("/prompt", [&](const httplib::Request &req, httplib::Response &res) {
+                // MUST include this again in the actual response!
+                res.set_header("Access-Control-Allow-Origin", "https://test.clevo.ddnsgeek.com");
+
+                // ... (rest of your POST handler logic) ...
+
+                res.status = 200;
+                res.set_content(responseBody, "application/json");
+                serverLog("RESPONSE", "Sent 200 OK for /prompt");
+            });
+            ```
+
+    *   **`Access-Control-Allow-Origin` Value:**
+        *   `"https://test.clevo.ddnsgeek.com"`: This is specific and secure. Only frontend code served from exactly this origin can talk to your backend.
+        *   `"http://localhost:8000"`: You had this commented out. You'd use this during local development if your frontend dev server runs on port 8000.
+        *   `"*"`: (Wildcard) Allows *any* origin. This is generally **not recommended for production** as it disables the SOP protection, but can be useful for quick testing or truly public APIs. Your code currently *doesn't* use the wildcard.
+
+**2. HTTPS (Hypertext Transfer Protocol Secure)**
+
+*   **What it is:** HTTPS is essentially the standard HTTP protocol layered on top of an encryption layer, usually TLS (Transport Layer Security), which is the successor to SSL (Secure Sockets Layer).
+*   **What it Provides:**
+    *   **Encryption:** Protects the data exchanged between the browser and the server from eavesdropping (confidentiality). Anyone intercepting the traffic only sees scrambled data.
+    *   **Authentication:** Allows the browser to verify the identity of the server it's talking to using the server's SSL/TLS certificate. This prevents man-in-the-middle attacks where someone pretends to be your server.
+    *   **Integrity:** Ensures that the data hasn't been tampered with during transit.
+*   **Why it's Important:** Essential for any communication involving sensitive data (logins, personal info, API keys if sent directly). Modern browsers increasingly push for HTTPS everywhere and flag HTTP sites as "Not Secure".
+*   **How Your Code Handles It (Currently It Doesn't):**
+    *   Your code uses `httplib::Server svr;`. This creates a standard **HTTP** server.
+    *   It listens on port 7777 using plain HTTP.
+*   **How to Implement HTTPS with `httplib.h`:**
+    1.  **Get Certificates:** You need an SSL/TLS certificate and a corresponding private key.
+        *   **Options:**
+            *   **Let's Encrypt:** Free, automated, and widely trusted certificates (recommended for production). Requires a domain name and running an ACME client (like Certbot) to obtain and renew certificates.
+            *   **Commercial CA:** Purchase certificates from providers like DigiCert, Comodo, etc.
+            *   **Self-Signed:** Generate your own certificate. Free and easy for testing/local development, but browsers will show a security warning because it's not trusted by a recognized Certificate Authority (CA). You'd have to manually tell your browser/client to trust it.
+        *   **Files:** You typically get two `.pem` files (or similar formats):
+            *   `server.crt` (or `fullchain.pem`): The public certificate (and possibly intermediate certificates).
+            *   `server.key` (or `privkey.pem`): The private key (keep this secure!).
+    2.  **Use `httplib::SSLServer`:** Change your server creation line:
+        ```c++
+        // Replace this:
+        // httplib::Server svr;
+
+        // With this:
+        #ifdef CPPHTTPLIB_OPENSSL_SUPPORT // Check if OpenSSL support is compiled in
+        // Provide paths to your certificate and key files
+        httplib::SSLServer svr("./path/to/your/server.crt", "./path/to/your/server.key");
+
+        // Check if the server was initialized correctly (e.g., files found, valid)
+        if (!svr.is_valid()) {
+            serverLog("FATAL", "Failed to initialize SSLServer. Check certificate paths/validity.");
+            // Include OpenSSL error details if possible: ERR_print_errors_fp(stderr);
+            return 1;
+        }
+        #else
+        serverLog("FATAL", "Server compiled without OpenSSL support, cannot run HTTPS.");
+        // You might fall back to HTTP or exit
+        // httplib::Server svr; // Or just exit
+         return 1;
+        #endif
+        ```
+    3.  **Port:** Typically, you would listen on port **443** for HTTPS:
+        ```c++
+        const int port = 443; // Default HTTPS port
+        // ...
+        if (!svr.listen(host.c_str(), port)) { /* ... */ }
+        ```
+        If you use a non-standard port (like 7777) for HTTPS, clients *must* specify it in the URL (e.g., `https://test.clevo.ddnsgeek.com:7777`).
+    4.  **Compile with OpenSSL:** The `httplib.h` library needs to be used in a project compiled and linked with OpenSSL development libraries. Your `Makefile` seems to link `-lcurl -ljsoncpp -pthread`. You would need to add flags to link against OpenSSL (like `-lssl -lcrypto`).
+
+**Connecting CORS and HTTPS:**
+
+*   Using HTTPS **does not** remove the need for CORS if the frontend and backend are still on different origins.
+*   If your frontend is at `https://test.clevo.ddnsgeek.com` and your backend is at `https://your-backend-domain.com:7777` (note different domain or port), you *still* need the `Access-Control-Allow-Origin` headers from the backend, even though both are HTTPS.
+*   The only way to avoid CORS is to serve both the frontend files and the backend API from the *exact same origin* (same protocol, same domain, same port).
+
+**In Summary for Your Code:**
+
+1.  Your server is currently **HTTP**.
+2.  It correctly implements **CORS** headers to allow requests specifically from `https://test.clevo.ddnsgeek.com`.
+3.  The CORS implementation handles the necessary preflight (`OPTIONS`) request for your frontend's `POST` call.
+4.  To switch to **HTTPS**, you need to:
+    *   Obtain SSL certificate/key files.
+    *   Change `httplib::Server` to `httplib::SSLServer` and provide the file paths.
+    *   Ensure your project is compiled and linked with OpenSSL.
+    *   Consider using port 443 or ensure the frontend uses the correct port in the HTTPS URL.
+5.  Remember that CORS headers will likely still be needed even after switching to HTTPS if the frontend origin differs from the backend origin.
+```
+
+### File: docs/libs-guide.md
+```markdown
+Okay, let's dive into getting *really* good with `jsoncpp` and `httplib.h` in C++. Achieving "mastery" and a "god workflow" comes down to understanding the tools deeply, applying best practices consistently, handling errors robustly, and knowing how to combine them efficiently.
+
+This guide will cover:
+
+1.  **Mastering `jsoncpp`:** Parsing, Building, Accessing, Modifying, Serializing, Error Handling, Best Practices.
+2.  **Mastering `httplib.h`:** Server setup, Routing, Request Handling, Response Generation, Client Usage, HTTPS, Error Handling, Best Practices.
+3.  **Achieving Synergy (The "God Workflow"):** Combining them effectively for APIs, configuration, etc.
+4.  **Advanced Topics & Considerations:** Performance, Security, Async (Limitations).
+
+---
+
+## 1. Mastering `jsoncpp`
+
+`jsoncpp` is your tool for dealing with JSON data within your C++ application.
+
+**A. Parsing JSON (Reading Data)**
+
+You'll usually get JSON as a string or from a stream (like a file or HTTP response body).
+
+*   **From String:**
+    ```c++
+    #include <json/json.h>
+    #include <string>
+    #include <iostream>
+    #include <sstream>
+
+    std::string jsonString = R"({ "name": "Agent Smith", "level": 99, "active": true })";
+    Json::Value root;
+    Json::CharReaderBuilder readerBuilder;
+    std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
+    std::string errs;
+
+    std::stringstream ss(jsonString); // Or use string directly with parse bounds
+    bool parsingSuccessful = reader->parse(ss, &root, &errs);
+    // Alt: bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.length(), &root, &errs);
+
+    if (!parsingSuccessful) {
+        std::cerr << "JSON parsing failed: " << errs << std::endl;
+        // Handle error appropriately
+    } else {
+        // Proceed with using 'root'
+        std::cout << "Parsing successful." << std::endl;
+    }
+    ```
+*   **From Stream (e.g., `std::ifstream`):**
+    ```c++
+    #include <fstream>
+    // ... include jsoncpp headers ...
+
+    std::ifstream jsonFile("config.json");
+    Json::Value configRoot;
+    Json::CharReaderBuilder readerBuilder;
+    std::string errs;
+    if (!jsonFile.is_open()) {
+        std::cerr << "Error opening config.json" << std::endl;
+    } else {
+        bool parsingSuccessful = Json::parseFromStream(readerBuilder, jsonFile, &configRoot, &errs);
+        if (!parsingSuccessful) {
+            std::cerr << "JSON parsing failed: " << errs << std::endl;
+        } else {
+            std::cout << "Config loaded successfully." << std::endl;
+        }
+    }
+    ```
+
+**B. Building JSON Programmatically**
+
+`Json::Value` is the core. It can hold different JSON types.
+
+```c++
+Json::Value data; // Starts as Null
+
+// Assigning basic types
+data["agentName"] = "Agent Neo";
+data["version"] = 1.0;
+data["iterations"] = 15;
+data["enabled"] = true;
+data["secretKey"] = Json::nullValue; // Explicit Null
+
+// Building an array
+Json::Value toolsArray(Json::arrayValue); // Explicitly create an array
+toolsArray.append("bash");
+toolsArray.append("file");
+toolsArray.append("search");
+data["availableTools"] = toolsArray;
+
+// Building a nested object
+Json::Value apiConfig(Json::objectValue); // Explicitly create an object
+apiConfig["endpoint"] = "http://api.example.com";
+apiConfig["timeout"] = 30;
+data["api"] = apiConfig;
+
+// Adding to existing array/object
+data["availableTools"].append("calculator");
+data["api"]["retries"] = 3;
+```
+
+**C. Accessing JSON Data Safely**
+
+*Never* assume a key exists or has the type you expect.
+
+*   **Check Existence:** `isMember()`
+    ```c++
+    if (root.isMember("level")) {
+        // Safe to access
+    } else {
+        std::cerr << "Warning: 'level' key not found." << std::endl;
+    }
+    ```
+*   **Check Type:** `isString()`, `isInt()`, `isDouble()`, `isBool()`, `isArray()`, `isObject()`, `isNull()`
+    ```c++
+    if (root.isMember("active") && root["active"].isBool()) {
+        bool isActive = root["active"].asBool();
+        std::cout << "Agent is active: " << (isActive ? "Yes" : "No") << std::endl;
+    } else {
+        std::cerr << "Warning: 'active' key missing or not a boolean." << std::endl;
+        // Handle default or error
+    }
+    ```
+*   **Access with Default:** `get(key, defaultValue)`
+    ```c++
+    // Provides a default if 'level' is missing or not convertible to int
+    int level = root.get("level", 0).asInt();
+    std::string description = root.get("description", "No description provided").asString();
+    ```
+    *Note:* `get()` still returns a `Json::Value`. You *must* still check the type or use `asXxx()` carefully if the default value's type might not match the actual data's type.
+*   **Direct Access (Use Cautiously):** `operator[]`
+    *   For objects: `root["name"]`. If "name" doesn't exist, it *creates* a null member! Often undesirable for reading. Better to use `isMember` or `get`.
+    *   For arrays: `root["availableTools"][0]`. Throws `Json::LogicError` if index is out of bounds or if it's not an array.
+*   **Iterating:**
+    ```c++
+    // Array
+    if (data.isMember("availableTools") && data["availableTools"].isArray()) {
+        const Json::Value& tools = data["availableTools"]; // Use const&
+        std::cout << "Tools:" << std::endl;
+        for (const auto& tool : tools) { // Range-based for loop
+            if (tool.isString()) {
+                std::cout << "- " << tool.asString() << std::endl;
+            }
+        }
+        // Or index-based:
+        // for (Json::ArrayIndex i = 0; i < tools.size(); ++i) { ... tools[i] ... }
+    }
+
+    // Object
+    if (data.isMember("api") && data["api"].isObject()) {
+        const Json::Value& api = data["api"]; // Use const&
+         std::cout << "API Config:" << std::endl;
+        for (auto const& key : api.getMemberNames()) {
+            std::cout << "- " << key << ": " << api[key].toStyledString(); // .toStyledString() handles different types
+        }
+    }
+    ```
+
+**D. Modifying JSON Data**
+
+Use `operator[]` for assignments.
+
+```c++
+root["level"] = 100; // Update existing or add new
+root["status"] = "upgraded";
+root["availableTools"].append("planner"); // Add to array
+root["api"]["endpoint"] = "https://secure.api.example.com"; // Modify nested
+```
+
+**E. Serializing JSON (Writing Data)**
+
+Convert `Json::Value` back to string or stream.
+
+*   **To String:**
+    ```c++
+    Json::StreamWriterBuilder writerBuilder;
+    // For compact output (good for APIs)
+    writerBuilder["indentation"] = "";
+    std::string outputJson = Json::writeString(writerBuilder, root);
+
+    // For pretty-printed output (good for config files, debugging)
+    // Json::StreamWriterBuilder prettyWriterBuilder; // Defaults are usually pretty
+    // prettyWriterBuilder["indentation"] = "  "; // Example: 2-space indent
+    // std::string prettyJson = Json::writeString(prettyWriterBuilder, root);
+    // OR use the older StyledWriter:
+    // Json::StyledWriter styledWriter;
+    // std::string prettyJson = styledWriter.write(root);
+
+    std::cout << "Compact JSON:\n" << outputJson << std::endl;
+    // std::cout << "\nPretty JSON:\n" << prettyJson << std::endl;
+    ```
+*   **To Stream (e.g., `std::ofstream`):**
+    ```c++
+    #include <fstream>
+    // ... build Json::Value root ...
+
+    std::ofstream outFile("output.json");
+    if (outFile.is_open()) {
+        Json::StreamWriterBuilder writerBuilder;
+        writerBuilder["indentation"] = "\t"; // Use tabs for indent
+        std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
+        writer->write(root, &outFile);
+        outFile.close();
+        std::cout << "JSON written to output.json" << std::endl;
+    }
+    ```
+
+**F. Error Handling**
+
+*   **Parsing:** Check the return value of `parse()` or `parseFromStream()`. Examine the `errs` string.
+*   **Access:** Use `isMember`, `isXxx` type checks, and `get()` with defaults. Catch `Json::LogicError` (or `std::exception`) if using direct `operator[]` access where failures are possible.
+
+**G. `jsoncpp` Best Practices:**
+
+1.  **Validate Input:** Before parsing, ensure the source (string, stream) is valid/open.
+2.  **Check Parse Success:** *Always* check the boolean return value of parsing functions. Log errors.
+3.  **Defensive Access:** *Always* check `isMember` and `isXxx` before using `asXxx` or `operator[]` on potentially missing or incorrectly typed data. Use `get()` for optional fields with defaults.
+4.  **Use `const&`:** When passing `Json::Value` around for reading, use `const Json::Value&` to avoid unnecessary copying.
+5.  **`ArrayIndex`:** Use `Json::ArrayIndex` for indexing arrays, not just `int`.
+6.  **Choose Writer Wisely:** Use compact output (`indentation = ""`) for network transmission, pretty output (`StyledWriter` or builder with indentation) for human-readable files.
+7.  **Error Strategy:** Decide how to handle missing/invalid fields – use defaults, log warnings, or throw exceptions depending on how critical the data is.
+
+---
+
+## 2. Mastering `httplib.h`
+
+`httplib.h` provides client and server capabilities.
+
+**A. Server Side**
+
+*   **Basic Setup:**
+    ```c++
+    #include "httplib.h" // Assuming it's in the include path
+
+    int main() {
+        httplib::Server svr;
+
+        // Define routes before listening
+        svr.Get("/", [](const httplib::Request& req, httplib::Response& res) {
+            res.set_content("Hello World!", "text/plain");
+        });
+
+        // Start listening
+        std::cout << "Server listening on port 8080..." << std::endl;
+        if (!svr.listen("0.0.0.0", 8080)) {
+             std::cerr << "Failed to listen on port 8080" << std::endl;
+             return 1;
+        }
+        return 0; // Server runs until stopped (e.g., Ctrl+C)
+    }
+    ```
+*   **Routing:**
+    *   Methods: `svr.Get`, `svr.Post`, `svr.Put`, `svr.Delete`, `svr.Patch`, `svr.Options`.
+    *   Path Parameters:
+        ```c++
+        // Matches /users/123, /users/abc etc.
+        svr.Get(R"(/users/(\d+))", [&](const httplib::Request& req, httplib::Response& res) {
+            std::string user_id = req.matches[1]; // Access captured group
+            res.set_content("User ID: " + user_id, "text/plain");
+        });
+        // Or using httplib's named params (internally uses regex)
+        svr.Get("/items/:id/details/:detail_name", [&](const httplib::Request& req, httplib::Response& res) {
+            auto item_id = req.path_params.at("id");
+            auto detail = req.path_params.at("detail_name");
+             res.set_content("Item: " + item_id + ", Detail: " + detail, "text/plain");
+        });
+        ```
+*   **Handling Requests (`const httplib::Request& req`)**
+    *   `req.method`: "GET", "POST", etc.
+    *   `req.path`: Full request path (e.g., "/users/123?query=abc").
+    *   `req.target`: Path + Query (e.g., "/users/123?query=abc").
+    *   `req.version`: "HTTP/1.1".
+    *   `req.headers`: A `httplib::Headers` multimap. Use `req.has_header(key)`, `req.get_header_value(key, id=0)`, `req.get_header_value_count(key)`. Headers are case-insensitive.
+    *   `req.params`: A `httplib::Params` multimap for URL query parameters. Use `req.has_param(key)`, `req.get_param_value(key, id=0)`, `req.get_param_value_count(key)`.
+    *   `req.body`: The raw request body as `std::string`.
+    *   `req.files`: For multipart/form-data uploads. A `httplib::MultipartFormDataMap`. Access like `req.files.find("myFile")`, `req.get_file_value("myFile")`.
+    *   `req.matches`: `std::smatch` result if using regex routing.
+    *   `req.path_params`: `std::unordered_map<std::string, std::string>` if using named path parameters.
+    *   `req.remote_addr`, `req.remote_port`.
+*   **Sending Responses (`httplib::Response& res`)**
+    *   `res.status`: Set the HTTP status code (e.g., `200`, `404`, `500`). Defaults to `-1`, which becomes `200 OK` if not set. *Always set this explicitly.*
+    *   `res.version`: Usually leave as "HTTP/1.1".
+    *   `res.headers`: `httplib::Headers` multimap. Use `res.set_header(key, value)`.
+    *   `res.body`: Set the response body `std::string`.
+    *   `res.set_content(body, content_type)`: Helper to set body and Content-Type header.
+    *   `res.set_redirect(url, status_code=302)`: Sets Location header and status.
+    *   Content Providers: For large files or dynamic content, use `res.set_content_provider` or `res.set_chunked_content_provider` to avoid loading everything into memory.
+*   **Middleware/Other Handlers:**
+    *   `svr.set_logger(...)`: Log requests/responses.
+    *   `svr.set_exception_handler(...)`: Catch exceptions within handlers.
+    *   `svr.set_error_handler(...)`: Customize responses for specific HTTP errors (e.g., 404).
+*   **HTTPS:** Requires `CPPHTTPLIB_OPENSSL_SUPPORT`. Use `httplib::SSLServer svr(cert_path, key_path);`. Setup is more involved.
+*   **Threading:** `httplib` uses a thread pool by default (`CPPHTTPLIB_THREAD_POOL_COUNT`). Your handlers will be called concurrently. Ensure your handler logic is thread-safe if it accesses shared resources.
+
+**B. Client Side**
+
+*   **Basic Setup:**
+    ```c++
+    #include "httplib.h"
+    #include <iostream>
+
+    int main() {
+        // HTTP
+        httplib::Client cli("http://localhost:8080"); // Or "http://example.com"
+
+        // HTTPS (Requires OpenSSL support compiled in)
+        #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+            // httplib::SSLClient ssl_cli("https://example.com");
+            // ssl_cli.set_ca_cert_path("./ca-bundle.crt"); // Optional: if needed
+            // ssl_cli.enable_server_certificate_verification(true);
+        #else
+            // Handle case where SSL is not supported if needed
+        #endif
+
+        // Set timeouts (highly recommended!)
+        cli.set_connection_timeout(5); // 5 seconds
+        cli.set_read_timeout(10);      // 10 seconds
+        cli.set_write_timeout(10);     // 10 seconds
+
+        // ... make requests ...
+        return 0;
+    }
+    ```
+*   **Making Requests:**
+    *   Methods: `cli.Get()`, `cli.Post()`, `cli.Put()`, etc.
+    *   Arguments: Path (`const char*` or `std::string`), optional `httplib::Headers`, optional body (`std::string` or `const char*, size_t`), optional content type.
+    *   Params: Pass `httplib::Params` for GET requests or form data for POST/PUT.
+    *   Files: Use `httplib::MultipartFormDataItems` for `cli.Post()` or `cli.Put()`.
+    ```c++
+    // GET request
+    if (auto res = cli.Get("/status")) {
+        // OK
+    } else {
+        // Error
+    }
+
+    // GET with headers and params
+    httplib::Headers headers = { {"X-API-Key", "mysecret"} };
+    httplib::Params params = { {"query", "agent"}, {"active", "true"} };
+    if (auto res = cli.Get("/search", params, headers)) {
+       // OK
+    }
+
+    // POST JSON
+    Json::Value jsonData;
+    jsonData["command"] = "reboot";
+    Json::StreamWriterBuilder wbuilder;
+    wbuilder["indentation"] = "";
+    std::string jsonBody = Json::writeString(wbuilder, jsonData);
+
+    if (auto res = cli.Post("/command", jsonBody, "application/json")) {
+        // OK
+    }
+
+    // POST Form data
+     httplib::Params formData = { {"user", "neo"}, {"action", "activate"} };
+     if (auto res = cli.Post("/action", formData)) {
+         // OK
+     }
+    ```*   **Handling Responses (`httplib::Result res`)**
+    *   **Check Success:** *Crucially, check if the request succeeded at the network level first!*
+        ```c++
+        if (res) {
+            // Network request was successful, now check HTTP status
+            std::cout << "HTTP Status: " << res->status << std::endl;
+            std::cout << "Body: " << res->body << std::endl;
+
+            // Check specific status codes
+            if (res->status == 200) {
+                // Process success
+            } else {
+                std::cerr << "HTTP Error: " << res->status << std::endl;
+            }
+        } else {
+            // Network/connection error occurred
+            auto err = res.error();
+            std::cerr << "Network Error: " << httplib::to_string(err) << std::endl;
+            // Handle connection refused, timeout, SSL error, etc.
+        }
+        ```
+    *   `res->status`: HTTP status code (`int`).
+    *   `res->version`: HTTP version (`std::string`).
+    *   `res->reason`: HTTP reason phrase (`std::string`).
+    *   `res->headers`: `httplib::Headers` multimap. Use `res->get_header_value()`, etc.
+    *   `res->body`: Response body (`std::string`).
+    *   `res.error()`: If `res` evaluates to `false`, this returns the `httplib::Error` enum value indicating the network-level error.
+*   **Authentication:**
+    *   `cli.set_basic_auth(user, pass);`
+    *   `cli.set_bearer_token_auth(token);`
+*   **Proxies:** `cli.set_proxy(host, port);`, `cli.set_proxy_basic_auth(...)`.
+*   **Progress:** Some methods accept a `Progress` callback `std::function<bool(uint64_t current, uint64_t total)>`.
+
+**C. `httplib.h` Best Practices:**
+
+1.  **Server:**
+    *   **Explicit Status/Content-Type:** Always set `res.status` and the `Content-Type` header for non-empty responses.
+    *   **Error Handling:** Use `try-catch` in handlers if necessary, or set an exception handler. Return appropriate HTTP error codes (4xx for client errors, 5xx for server errors). Provide informative error messages (often as JSON) in the response body for errors.
+    *   **Input Validation:** *Never* trust client input. Validate path parameters, query parameters, headers, and request bodies.
+    *   **Security:** Be mindful of security (HTTPS, input sanitization, rate limiting - though `httplib` doesn't provide rate limiting itself).
+    *   **Logging:** Use `set_logger` for debugging and monitoring.
+    *   **Thread Safety:** Ensure handlers accessing shared data use mutexes or other synchronization.
+2.  **Client:**
+    *   **Check `Result`:** *Always* check `if (res)` before accessing `res->status` or `res->body`. This catches network errors.
+    *   **Check `res->status`:** After confirming network success, check the HTTP status code to ensure the request was logically successful (e.g., 200 OK).
+    *   **Set Timeouts:** *Always* set connection, read, and write timeouts to prevent indefinite blocking.
+    *   **User-Agent:** Consider setting a descriptive User-Agent header (`cli.set_default_headers`).
+    *   **HTTPS Verification:** For `SSLClient`, ensure certificate verification is enabled unless you have a specific reason to disable it (like testing with self-signed certs). Use `set_ca_cert_path` if needed.
+    *   **Error Handling:** Check `res.error()` when `if (res)` is false to understand the specific network failure.
+
+---
+
+## 3. Achieving Synergy (The "God Workflow")
+
+This is about using `jsoncpp` and `httplib.h` together smoothly.
+
+*   **Server: API Endpoint (JSON Request -> JSON Response)**
+    ```c++
+    #include "httplib.h"
+    #include <json/json.h>
+    #include <memory> // For unique_ptr
+    #include <sstream>
+
+    // Helper to send JSON response
+    void send_json_response(httplib::Response& res, int status, const Json::Value& json_data) {
+        Json::StreamWriterBuilder wbuilder;
+        wbuilder["indentation"] = ""; // Compact JSON for API
+        res.status = status;
+        res.set_content(Json::writeString(wbuilder, json_data), "application/json");
+    }
+
+    int main() {
+        httplib::Server svr;
+
+        svr.Post("/process", [](const httplib::Request& req, httplib::Response& res) {
+            Json::Value requestJson;
+            Json::CharReaderBuilder readerBuilder;
+            std::string errs;
+            std::stringstream ss(req.body);
+
+            // 1. Parse Request Body using jsoncpp
+            if (!Json::parseFromStream(readerBuilder, ss, &requestJson, &errs)) {
+                Json::Value errorJson;
+                errorJson["error"] = "Invalid JSON request body";
+                errorJson["details"] = errs;
+                send_json_response(res, 400, errorJson); // Bad Request
+                return;
+            }
+
+            // 2. Validate and Process Data (using jsoncpp accessors)
+            if (!requestJson.isMember("command") || !requestJson["command"].isString()) {
+                 Json::Value errorJson;
+                 errorJson["error"] = "Missing or invalid 'command' field";
+                 send_json_response(res, 400, errorJson);
+                 return;
+            }
+            std::string command = requestJson.get("command", "").asString();
+            int priority = requestJson.get("priority", 0).asInt(); // Example default
+
+            std::cout << "Received command: " << command << " with priority: " << priority << std::endl;
+            // ... perform action based on command ...
+
+            // 3. Build Response JSON using jsoncpp
+            Json::Value responseJson;
+            responseJson["status"] = "success";
+            responseJson["message"] = "Command '" + command + "' processed.";
+            responseJson["result_code"] = 123; // Example result
+
+            // 4. Send Response using httplib
+            send_json_response(res, 200, responseJson); // OK
+        });
+
+        std::cout << "JSON API Server listening on port 8081..." << std::endl;
+        svr.listen("0.0.0.0", 8081);
+        return 0;
+    }
+    ```
+*   **Client: Calling a JSON API**
+    ```c++
+    #include "httplib.h"
+    #include <json/json.h>
+    #include <iostream>
+    #include <memory> // For unique_ptr
+    #include <sstream>
+
+    int main() {
+        httplib::Client cli("http://localhost:8081"); // Connect to the server above
+        cli.set_connection_timeout(5);
+        cli.set_read_timeout(10);
+
+        // 1. Build Request JSON using jsoncpp
+        Json::Value reqData;
+        reqData["command"] = "update_agent";
+        reqData["priority"] = 5;
+        Json::Value params(Json::objectValue);
+        params["target_version"] = "2.1";
+        reqData["params"] = params;
+
+        Json::StreamWriterBuilder wbuilder;
+        wbuilder["indentation"] = "";
+        std::string reqBody = Json::writeString(wbuilder, reqData);
+
+        // 2. Send Request using httplib
+        httplib::Headers headers = { {"User-Agent", "MyAgentClient/1.0"} };
+        auto res = cli.Post("/process", headers, reqBody, "application/json");
+
+        // 3. Handle Response (Check network, status, parse body)
+        if (!res) {
+            std::cerr << "Request failed: " << httplib::to_string(res.error()) << std::endl;
+            return 1;
+        }
+
+        std::cout << "Response Status: " << res->status << std::endl;
+        std::cout << "Response Body: " << res->body << std::endl;
+
+        if (res->status != 200) {
+            std::cerr << "API returned error status: " << res->status << std::endl;
+             // Optionally parse error JSON here
+            return 1;
+        }
+
+        // 4. Parse Response Body using jsoncpp
+        Json::Value responseJson;
+        Json::CharReaderBuilder readerBuilder;
+        std::string errs;
+        std::stringstream ss_res(res->body);
+
+        if (!Json::parseFromStream(readerBuilder, ss_res, &responseJson, &errs)) {
+            std::cerr << "Failed to parse JSON response body: " << errs << std::endl;
+            return 1;
+        }
+
+        // 5. Process Response Data using jsoncpp
+        std::string status = responseJson.get("status", "unknown").asString();
+        std::string message = responseJson.get("message", "").asString();
+
+        std::cout << "Parsed API Status: " << status << std::endl;
+        std::cout << "Parsed API Message: " << message << std::endl;
+
+        return 0;
+    }
+    ```
+*   **Configuration Files:** Load configuration at startup using `jsoncpp`'s file parsing.
+*   **Logging:** Format structured logs as JSON using `jsoncpp` before writing them.
+
+**The "God Workflow" Mindset:**
+
+*   **Clear Boundaries:** Use `httplib.h` for transport (HTTP), `jsoncpp` for data representation (JSON). Don't mix concerns excessively.
+*   **Robustness:** Assume things *will* fail. Validate JSON, check HTTP results (`if (res)` AND `res->status`), handle exceptions.
+*   **Consistency:** Use consistent JSON structures for your APIs (e.g., always have a `status` field, an `error` object on failure, a `data` object on success).
+*   **Readability:** Use pretty JSON for files/logs, compact JSON for network. Write clean C++ code with good variable names and comments.
+*   **Security First:** Always be thinking about how your HTTP endpoints or client requests could be misused. Validate, sanitize, use HTTPS.
+
+---
+
+## 4. Advanced Topics & Considerations
+
+*   **Asynchronous Operations:** `httplib.h` is fundamentally **synchronous**. For highly concurrent applications needing non-blocking I/O, consider libraries like Boost.Asio, cpp-restsdk (Casablanca), or oat++. `httplib.h`'s threading model works well for many use cases but doesn't use async I/O paradigms.
+*   **Performance:** For extreme performance, `httplib.h` might not be the fastest option compared to lower-level libraries or frameworks built on async I/O. `jsoncpp` is generally fast enough, but for hyper-optimization, libraries like simdjson exist (though often overkill). Profile your application if performance is critical.
+*   **Security:** Beyond input validation and HTTPS: consider authentication/authorization, rate limiting, protecting against common web vulnerabilities (if applicable) – these often require more than just `httplib.h`.
+*   **Dependency Management:** `httplib.h` is easy (single header). `jsoncpp` usually requires linking. Consider using package managers (CMake + FetchContent, vcpkg, Conan) to manage dependencies.
+*   **Testing:** Write unit tests for your JSON building/parsing logic. Write integration tests for your HTTP endpoints and client interactions.
+
+---
+
+By focusing on robust error handling, defensive coding, clear structure, and understanding the strengths and limitations of these libraries, you can build highly effective and reliable C++ applications that communicate over HTTP using JSON. Good luck achieving your "god workflow"!
 ```
 
 ### File: docs/termbox-docs.md
@@ -1908,276 +3694,6 @@ std::string calendarTool(const Json::Value &params) {
     return "Error: Unknown action '" + action +
            "'. Supported actions: 'add', 'list'.";
   }
-}
-```
-
-### File: externals/ddg-search.cpp
-```cpp
-
-#include <iostream>
-#include <memory> // For unique_ptr
-#include <regex>  // For basic HTML entity decoding
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "json/json.h" // For parsing the JSON input parameters
-#include <curl/curl.h> // For making HTTP requests
-
-// --- Helper: libcurl Write Callback (Can likely be shared if put in a common
-// header) ---
-static size_t ddgWriteCallback(void *contents, size_t size, size_t nmemb,
-                               void *userp) {
-  ((std::string *)userp)->append((char *)contents, size * nmemb);
-  return size * nmemb;
-}
-
-// --- Helper: URL Encode (Can likely be shared) ---
-std::string ddgUrlEncode(const std::string &value) {
-  CURL *curl = curl_easy_init();
-  if (!curl)
-    return "";
-  char *output = curl_easy_escape(curl, value.c_str(), static_cast<int>(value.length()));
-  if (!output) {
-    curl_easy_cleanup(curl);
-    return "";
-  }
-  std::string result(output);
-  curl_free(output);
-  curl_easy_cleanup(curl);
-  return result;
-}
-
-// --- Helper: Basic HTML Entity Decode ---
-// Very basic, only handles a few common entities. A proper library is better.
-std::string basicHtmlDecode(std::string text) {
-  // Order matters for things like &lt;
-  text = std::regex_replace(text, std::regex("&"), "&");
-  text = std::regex_replace(text, std::regex("<"), "<");
-  text = std::regex_replace(text, std::regex(">"), ">");
-    text = std::regex_replace(text, std::regex("\""), "\"");
-    text = std::regex_replace(text, std::regex("'"), "'");
-    // Add more entities if needed
-    return text;
-}
-
-// --- Helper: Extract text between tags (VERY basic) ---
-std::string extractText(const std::string &html, size_t startPos) {
-  size_t tagEnd = html.find('>', startPos);
-  if (tagEnd == std::string::npos)
-    return "";
-  size_t textStart = tagEnd + 1;
-  size_t textEnd = html.find('<', textStart);
-  if (textEnd == std::string::npos)
-    return ""; // Malformed?
-  return basicHtmlDecode(html.substr(textStart, textEnd - textStart));
-}
-
-// --- Tool Implementation ---
-
-// Tool Function: Performs a web search using DuckDuckGo HTML endpoint scraping.
-// Input: JSON object like: {"query": "search terms" [, "num_results": N
-// (optional, best effort)]} Output: Formatted string with search results
-// (title, url, snippet) or an error message. WARNING: Relies on HTML scraping,
-// which is fragile and may break without notice.
-std::string duckduckgoSearchTool(const Json::Value &params) {
-
-  // 1. Validate Parameters
-  if (!params.isObject()) {
-    return "Error: duckduckgoSearchTool requires a JSON object as input.";
-  }
-  if (!params.isMember("query") || !params["query"].isString() ||
-      params["query"].asString().empty()) {
-    return "Error: Missing or invalid required non-empty string parameter "
-           "'query'.";
-  }
-
-  std::string query = params["query"].asString();
-  int max_results = 5; // Default max results to aim for
-  if (params.isMember("num_results") && params["num_results"].isInt()) {
-    max_results = params["num_results"].asInt();
-    if (max_results <= 0 ||
-        max_results > 10) { // Keep requested count reasonable
-      max_results = 5;
-    }
-  }
-  // NOTE: We may get more/less results from the HTML page regardless of this
-  // param.
-
-  std::cout << "[TOOL_DEBUG] duckduckgoSearchTool: Query='" << query
-            << "', Aiming for max " << max_results << " results." << std::endl;
-
-  // 2. Prepare Request
-  std::string encodedQuery = ddgUrlEncode(query);
-  if (encodedQuery.empty() && !query.empty()) {
-    return "Error: Failed to URL-encode the search query.";
-  }
-
-  // Use the non-JavaScript HTML endpoint
-  std::string url = "https://html.duckduckgo.com/html/?q=" + encodedQuery;
-
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    return "Error: Failed to initialize libcurl for DuckDuckGo search.";
-  }
-  std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_handle(
-      curl, curl_easy_cleanup);
-
-  std::string readBuffer;
-  long http_code = 0;
-  // Use a common browser User-Agent
-  const char *userAgent =
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
-      "like Gecko) Chrome/91.0.4472.124 Safari/537.36";
-
-  try {
-    // Set CURL Options
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ddgWriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);       // 15 second timeout
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L); // Disable progress meter
-    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
-                     ""); // Allow curl to handle encoding (like gzip)
-
-    // 3. Perform API Call (Fetch HTML)
-    CURLcode res = curl_easy_perform(curl);
-
-    if (res != CURLE_OK) {
-      return "Error: DuckDuckGo search network request failed: " +
-             std::string(curl_easy_strerror(res));
-    }
-
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
-    if (http_code != 200) {
-      std::stringstream errMsg;
-      errMsg << "Error: DuckDuckGo search returned HTTP status " << http_code
-             << ".";
-      if (!readBuffer.empty()) {
-        errMsg << " Response snippet: " << readBuffer.substr(0, 200) << "...";
-      }
-      return errMsg.str();
-    }
-
-  } catch (const std::exception &e) {
-    return "Error: Exception during DuckDuckGo network operation: " +
-           std::string(e.what());
-  }
-  // curl handle cleaned up automatically by unique_ptr
-
-  // 4. Parse HTML (Basic and Fragile String Searching)
-  std::stringstream output;
-  output << "DuckDuckGo Search Results for '" << query << "':\n";
-  int results_found = 0;
-  size_t current_pos = 0;
-
-  // Markers often used by DDG HTML results (these WILL change over time)
-  const std::string result_block_start =
-      "result--web"; // Often a class on a containing div
-  const std::string link_marker = "result__a"; // Class for the main result link
-  const std::string snippet_marker =
-      "result__snippet"; // Class for the description snippet
-  const std::string href_marker = "href=\"";
-
-  while (results_found < max_results) {
-    // Find the start of the next result block
-    size_t block_start = readBuffer.find(result_block_start, current_pos);
-    if (block_start == std::string::npos) {
-      break; // No more result blocks found
-    }
-
-    // Find the link within this block
-    size_t link_start = readBuffer.find(link_marker, block_start);
-    if (link_start == std::string::npos) {
-      current_pos =
-          block_start + result_block_start.length(); // Move past this block
-      continue;
-    }
-
-    // Extract URL
-    size_t href_start = readBuffer.find(href_marker, link_start);
-    std::string url = "N/A";
-    if (href_start != std::string::npos) {
-      href_start += href_marker.length();
-      size_t href_end = readBuffer.find('"', href_start);
-      if (href_end != std::string::npos) {
-        // DDG URLs might be relative redirects, need cleaning
-        url = readBuffer.substr(href_start, href_end - href_start);
-        size_t uddg_param = url.find("uddg=");
-        if (uddg_param != std::string::npos) {
-          std::string encoded_target =
-              url.substr(uddg_param + 5); // Length of "uddg="
-          // Basic URL decode might be needed here, but often works without it
-          url = ddgUrlEncode(
-              encoded_target); // Re-use encode fn name, but it does decode %XX
-          // Basic decode of %XX hex codes
-          std::string decoded_url;
-          CURL *temp_curl = curl_easy_init();
-          int outlen;
-          char *decoded = curl_easy_unescape(temp_curl, encoded_target.c_str(),
-                                             encoded_target.length(), &outlen);
-          if (decoded) {
-            decoded_url.assign(decoded, outlen);
-            curl_free(decoded);
-            url = decoded_url;
-          }
-          curl_easy_cleanup(temp_curl);
-        }
-        url = basicHtmlDecode(url); // Decode entities like &
-      }
-    }
-
-    // Extract Title (usually the link text)
-    std::string title = extractText(readBuffer, link_start);
-    if (title.empty())
-      title = "N/A";
-
-    // Find and Extract Snippet
-    size_t snippet_start =
-        readBuffer.find(snippet_marker, link_start); // Search after link
-    std::string snippet = "N/A";
-    if (snippet_start != std::string::npos) {
-      // Find the actual text content after the snippet marker tag closes
-      size_t tag_end = readBuffer.find('>', snippet_start);
-      if (tag_end != std::string::npos) {
-        size_t text_start = tag_end + 1;
-        size_t text_end =
-            readBuffer.find('<', text_start); // Find start of next tag
-        if (text_end != std::string::npos) {
-          snippet = readBuffer.substr(text_start, text_end - text_start);
-          // Trim leading/trailing whitespace often present
-          snippet.erase(0, snippet.find_first_not_of(" \t\n\r"));
-          snippet.erase(snippet.find_last_not_of(" \t\n\r") + 1);
-          snippet = basicHtmlDecode(snippet);
-        }
-      }
-    }
-
-    // Append formatted result
-    output << "\n---\n";
-    output << "Title: " << title << "\n";
-    output << "URL: " << url << "\n";
-    output << "Snippet: " << snippet << "\n";
-    results_found++;
-
-    // Move position past the current snippet to find the next block
-    current_pos = (snippet_start != std::string::npos)
-                      ? (snippet_start + snippet_marker.length())
-                      : (link_start + link_marker.length());
-
-  } // End while loop
-
-  if (results_found == 0) {
-    output << "\n(No results found or failed to parse HTML)\n";
-  }
-
-  std::cout << "[TOOL_DEBUG] duckduckgoSearchTool: Found and formatted "
-            << results_found << " results." << std::endl;
-  return output.str();
 }
 ```
 
@@ -2890,110 +4406,6 @@ std::string calculate(const Json::Value &params) {
 }
 ```
 
-### File: externals/search.cpp
-```cpp
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <curl/curl.h>
-#include "json/json.h"
-
-// --- Helper: libcurl Write Callback ---
-static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    ((std::string *)userp)->append((char *)contents, size * nmemb);
-    return size * nmemb;
-}
-
-// --- Helper: URL Encode ---
-std::string urlEncode(const std::string &value) {
-    CURL *curl = curl_easy_init();
-    if (!curl) return "";
-    char *output = curl_easy_escape(curl, value.c_str(), static_cast<int>(value.length()));
-    if (!output) {
-        curl_easy_cleanup(curl);
-        return "";
-    }
-    std::string result(output);
-    curl_free(output);
-    curl_easy_cleanup(curl);
-    return result;
-}
-
-// --- Tool Implementation ---
-std::string webSearchTool(const Json::Value &params) {
-    // 1. Validate Parameters
-    if (!params.isObject()) {
-        return "Error: webSearchTool requires a JSON object as input.";
-    }
-    if (!params.isMember("query") || !params["query"].isString() || params["query"].asString().empty()) {
-        return "Error: Missing or invalid required non-empty string parameter 'query'.";
-    }
-
-    std::string query = params["query"].asString();
-    int num_results = 3; // Default
-    if (params.isMember("num_results") && params["num_results"].isInt()) {
-        num_results = params["num_results"].asInt();
-        if (num_results <= 0) {
-            num_results = 3;
-        }
-    }
-    std::string search_engine = "google";
-    if (params.isMember("search_engine") && params["search_engine"].isString()) {
-        search_engine = params["search_engine"].asString();
-    }
-    std::string url;
-    if (search_engine == "google") {
-        url = "https://www.google.com/search?q=" + urlEncode(query);
-    } else if (search_engine == "duckduckgo") {
-        url = "https://html.duckduckgo.com/html/?q=" + urlEncode(query);
-    } else {
-        return "Error: Invalid search engine: " + search_engine + ". Supported engines: google, duckduckgo";
-    }
-    CURL *curl = curl_easy_init();
-    if (!curl) {
-        return "Error: Failed to initialize libcurl.";
-    }
-    std::string readBuffer;
-
-    try {
-        // Set CURL options
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-
-        // Perform the request
-        CURLcode res = curl_easy_perform(curl);
-        if (res != CURLE_OK) {
-            curl_easy_cleanup(curl);
-            return "Error: Web search failed: " + std::string(curl_easy_strerror(res));
-        }
-
-        long http_code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-        if (http_code != 200) {
-            curl_easy_cleanup(curl);
-            return "Error: Web search returned HTTP " + std::to_string(http_code);
-        }
-
-        curl_easy_cleanup(curl);
-
-        // Basic result parsing (This will need improvement!)
-        std::stringstream output;
-        output << "Web Search Results for '" << query << "':\n";
-        output << "Retrieved from: " << url << "\n";
-        output << "Raw response (first 200 chars):\n" << readBuffer.substr(0, 200) << "...\n"; // For debugging
-        return output.str();
-
-    } catch (const std::exception &e) {
-        curl_easy_cleanup(curl);
-        return "Error: Exception during web search: " + std::string(e.what());
-    }
-}
-```
-
 ### File: externals/sway.cpp
 ```cpp
 // externals/sway_control.cpp
@@ -3230,6 +4642,11 @@ std::string writeFileTool(const Json::Value& params) {
     std::cout << "[TOOL_DEBUG] writeFileTool successfully wrote to '" << path_str << "'" << std::endl;
     return "Success [writeFile]: Content successfully written to file '" + path_str + "'";
 }
+```
+
+### File: frontend.log
+```
+172.18.0.2 - - [24/Apr/2025 15:14:57] "GET / HTTP/1.1" 304 -
 ```
 
 ### File: GOALS.md
@@ -4492,6 +5909,10 @@ private:
 };
 ```
 
+### File: inc/Utils.hpp
+```cpp
+```
+
 ### File: main.cpp
 ```cpp
 // main.cpp
@@ -4950,7 +6371,7 @@ CXX := clang++
 # CXX := g++
 
 # Target Executable Names
-TARGET_BIN := bin
+TARGET_BIN := agent-bin
 TARGET_SERVER := agent-server # *** RENAMED the server executable ***
 
 # Directories
@@ -5415,7 +6836,7 @@ echo "$AGREGATED_FILES" > ../cpp-agent-mk1/context.md
 /*   By: AI Assistant <ai@assistant.com>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 22:39:30 by mlamkadm          #+#    #+#             */
-/*   Updated: 2025/04/23 01:30:00 by AI Assistant      ###   ########.fr       */
+/*   Updated: 2025/04/24 14:30:00 by AI Assistant      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -5425,31 +6846,39 @@ echo "$AGREGATED_FILES" > ../cpp-agent-mk1/context.md
 #include "../inc/modelApi.hpp" // For ApiError
 #include "httplib.h"           // HTTP server library
 #include <cstdlib>             // For std::getenv
-#include <ctime>               // For time functions
+#include <ctime>               // For time functions, std::time, std::localtime, std::strftime
 #include <iostream>
 #include <json/json.h> // JSON library
-#include <memory>      // For std::unique_ptr
-#include <stdexcept>
+#include <memory>      // For std::unique_ptr, std::make_unique
+#include <stdexcept>   // For std::runtime_error, std::exception
+#include <string>
 #include <vector>      // For storing tool unique_ptrs
 #include <curl/curl.h> // For curl_global_init/cleanup
 
 // --- Forward Declarations for External Tool Functions ---
-// (Ensure these match functions DEFINED in the corresponding .cpp files)
 extern std::string executeBashCommandReal(const Json::Value &params);
 extern std::string calendarTool(const Json::Value &params);
-extern std::string duckduckgoSearchTool(const Json::Value &params);
-extern std::string fileTool(const Json::Value &params); // Assumes the robust version
+extern std::string fileTool(const Json::Value &params);
 extern std::string getTime(const Json::Value &params);
 extern std::string calculate(const Json::Value &params);
-extern std::string webSearchTool(const Json::Value &params);
-extern std::string localSearchTool(const Json::Value&params); // Define if using
-extern std::string writeFileTool(const Json::Value &params); // Often redundant if fileTool is used
+// extern std::string localSearchTool(const Json::Value¶ms); // Define if using
+// extern std::string writeFileTool(const Json::Value ¶ms); // Often redundant
 extern std::string swayControlTool(const Json::Value& params); // If using sway
 
 // --- Simple Logger ---
-void serverLog(const std::string &level, const std::string &message, const std::string& details = "") {
+void serverLog(const std::string &level, const std::string &message, const std::string& details = ""){
     std::time_t now = std::time(nullptr);
-    std::tm *tm_local = std::localtime(&now);
+    // Use thread-safe localtime_r or localtime_s
+    std::tm tm_local_buf;
+    #ifdef _WIN32
+        localtime_s(&tm_local_buf, &now);
+        std::tm* tm_local = &tm_local_buf;
+    #else
+        std::tm* tm_local = localtime_r(&now, &tm_local_buf);
+    #endif
+
+    if (!tm_local) { std::cerr << "Error getting time!" << std::endl; return; }
+
     char time_buffer[20]; // HH:MM:SS
     std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", tm_local);
 
@@ -5485,6 +6914,276 @@ struct CurlGlobalCleanupGuard {
     CurlGlobalCleanupGuard() = default;
 };
 
+// ============================================================================
+// == Agent & Tool Setup Functions                                         ==
+// ============================================================================
+
+// Creates and configures the NoteMaster Agent
+std::unique_ptr<Agent> setupNoteMasterAgent(
+    const std::string& apiKey,
+    std::vector<std::unique_ptr<Tool>>& managedTools)
+{
+    serverLog("INFO", "--- Setting up NoteMaster Agent ---");
+    // Create API client first because Agent takes it by reference
+    auto noteApiClient = std::make_unique<MiniGemini>(apiKey);
+    serverLog("INFO", "NoteMaster API client initialized.");
+
+    auto noteAgent = std::make_unique<Agent>(*noteApiClient); // Pass API client reference
+    noteAgent->setAgentName("NoteMaster");
+    noteAgent->setAgentDescription("Specialized agent for managing notes (in workspace) and calendar events.");
+    noteAgent->setIterationCap(5); // Example: Lower iteration cap
+
+    // Updated NoteMaster System Prompt (using new schema)
+    noteAgent->setSystemPrompt(R"(SYSTEM PROMPT: NoteMaster Agent
+
+Role: Manage notes within the workspace and calendar events. Execute specific tasks given by the Orchestrator.
+
+Interaction Model:
+Respond ONLY with a single JSON object containing:
+- thoughts (array of strings): Reasoning about the file/calendar action.
+- DIRECTIVE (string): e.g., "FILE_OPERATION", "CALENDAR_UPDATE", "TASK_COMPLETE", "TASK_FAILED".
+- state_metadata (object | null): Optional confidence, urgency, completion %. (Usually confidence=1.0 for direct tasks).
+- context_assessment (object | null): Optional. Note if required path/details are missing.
+- knowledge_query (object | null): Set to null. Do not query memory unless explicitly asked.
+- execution (array of objects | null): REQUIRED if executing. Contains ONLY 'file' or 'calendar' tool calls. Format: {step_id, action_type: "TOOL_CALL", tool_name, params}. NULL if task complete/failed definitively.
+- execution_mode (string | null): Usually "SEQUENTIAL_STOP_ON_FAIL".
+- expected_outcome (string | null): Goal of the file/calendar action.
+- is_done (boolean): True ONLY when the specific file/calendar task is fully completed or has definitively failed.
+- response (string | null): Confirmation/result message for the Orchestrator (e.g., "Success: File content retrieved.", "Success: Event added.", "Error: File '...' not found."). ONLY populate if is_done is true.
+
+Guidelines:
+- Focus: Use 'file' and 'calendar' tools based on the Orchestrator's request. Assume relative paths.
+- Execution: Follow instructions precisely. Do NOT ask for clarification; report failure if instructions are unclear/impossible.
+- Error Handling: If a tool call fails, set DIRECTIVE to TASK_FAILED, is_done to true, and provide an error message in 'response'.
+)");
+    serverLog("INFO", "System prompt set for NoteMaster.");
+
+    // Register Tools for NoteMaster (using existing external functions)
+    auto fileToolInstance = std::make_unique<Tool>(
+        "file",
+        "File system operations (read, write, list, info, delete, mkdir). Params: {'action': string, 'path': string (RELATIVE ONLY), 'content': string? for write}",
+        fileTool);
+    noteAgent->addTool(fileToolInstance.get()); // Add raw pointer to agent
+    managedTools.push_back(std::move(fileToolInstance)); // Store owner pointer
+
+    auto calendarToolInstance = std::make_unique<Tool>(
+        "calendar",
+        "Manages calendar events (add, list). Params: {'action': 'add'|'list', 'date': 'YYYY-MM-DD', 'time': 'HH:MM'?, 'description': string?}",
+        calendarTool);
+    noteAgent->addTool(calendarToolInstance.get());
+    managedTools.push_back(std::move(calendarToolInstance));
+
+    serverLog("INFO", "Tools registered with NoteMaster.");
+    serverLog("INFO", "--- NoteMaster Agent Setup Complete ---");
+    // Transfer ownership of the API client to the agent if Agent class manages it,
+    // otherwise, the API client needs to be managed separately (e.g., in main).
+    // Assuming Agent DOES NOT take ownership here. The caller (main) needs to keep noteApiClient alive.
+    // If Agent DOES take ownership: noteAgent->setApiClient(std::move(noteApiClient));
+    return noteAgent; // Return the unique_ptr
+}
+
+// Creates and configures the Orchestrator Agent
+std::unique_ptr<Agent> setupOrchestratorAgent(
+    const std::string& apiKey,
+    Agent* noteMasterAgentPtr, // Pass raw pointer to NoteMaster
+    std::vector<std::unique_ptr<Tool>>& managedTools)
+{
+    serverLog("INFO", "--- Setting up Orchestrator Agent ---");
+    // Create API client first
+    auto orchestratorApiClient = std::make_unique<MiniGemini>(apiKey);
+    orchestratorApiClient->setModel("gemini-1.5-flash-latest"); // Or another capable model
+    serverLog("INFO", "Orchestrator API client initialized.");
+
+    auto orchestratorAgent = std::make_unique<Agent>(*orchestratorApiClient); // Pass API client reference
+    orchestratorAgent->setAgentName("Orchestrator");
+    orchestratorAgent->setAgentDescription("Top-level agent coordinating tasks and delegating to sub-agents like NoteMaster.");
+    orchestratorAgent->setIterationCap(15); // Higher cap for coordinator
+
+    // Updated Orchestrator System Prompt (using new schema)
+    orchestratorAgent->setSystemPrompt(R"(SYSTEM PROMPT: Orchestrator Agent (Named: Demurge)
+
+Role: Central coordinator. Decompose user goals into plans, manage context, query knowledge, execute local tools, or delegate tasks to specialized agents (e.g., 'NoteMaster').
+
+Interaction Model:
+Respond ONLY with a single JSON object containing:
+- thoughts (array of strings): Decompose the goal, analyze results, plan next step(s).
+- DIRECTIVE (string): Current phase (e.g., "PLANNING", "CONTEXT_ASSESSMENT", "KNOWLEDGE_RETRIEVAL", "DELEGATING_TASK", "TOOL_EXECUTION", "PROCESSING_RESULTS", "RESPONSE_GENERATION", "TASK_COMPLETE", "TASK_FAILED").
+- state_metadata (object | null): Confidence, urgency, completion %.
+- context_assessment (object | null): Assess required context (keys/info) vs available context. Set 'missing_critical_info' to true if needed before proceeding.
+- knowledge_query (object | null): If internal information (from memory/history) is needed FIRST, specify {query_string, target_memory, max_results}. Execution MUST be null if this is present.
+- execution (array of objects | null): Actions for THIS agent (bash, web search, etc.) OR delegation calls using 'promptAgent'. Format: {step_id, action_type: "TOOL_CALL", tool_name, params}. NULL if querying knowledge or finishing. Use 'promptAgent' tool here to delegate to sub-agents like NoteMaster.
+- execution_mode (string | null): How to run 'execution' array (e.g., "SEQUENTIAL_STOP_ON_FAIL", "SEQUENTIAL_BEST_EFFORT").
+- expected_outcome (string | null): Goal of the knowledge query or execution block.
+- is_done (boolean): True ONLY when the overall user goal is fully achieved.
+- response (string | null): Final response TO THE USER (only populate if is_done is true).
+
+Guidelines:
+- Planning: Use 'thoughts' to break down the user's request into logical steps.
+- Context: Use 'context_assessment' to check if you have needed info. Use 'knowledge_query' to retrieve info from memory BEFORE deciding on tools/delegation.
+- Tools vs Delegation: Use local tools ('time', 'calc', 'web', 'ddg_search', 'file' [if essential & not notes], 'bash' [rarely]) for simple tasks. For note/calendar tasks, DELEGATE using the 'promptAgent' tool within 'execution', targeting 'NoteMaster'. Provide a clear task description in 'promptAgent' params.
+- Synthesis: After knowledge query or execution results appear in history, analyze them in your next 'thoughts' to decide the subsequent step.
+- Completion: Only set 'is_done' to true and populate 'response' when the *entire* user request is satisfied. Intermediate confirmations/results should be processed internally via 'thoughts'.
+- Error Handling: If a local tool, knowledge query, or delegation fails (check history), note it in 'thoughts', set appropriate DIRECTIVE (e.g., ERROR_RECOVERY), and decide whether to retry, use an alternative, or report failure to the user (setting is_done:true, response:error message).
+)");
+    serverLog("INFO", "System prompt set for Orchestrator.");
+
+    // Register Tools for Orchestrator
+    auto timeToolInstance = std::make_unique<Tool>("time", "Get current system date/time. Params: {}", getTime);
+    orchestratorAgent->addTool(timeToolInstance.get());
+    managedTools.push_back(std::move(timeToolInstance));
+
+    auto calcToolInstance = std::make_unique<Tool>("calc", "Calculate simple expression. Params: {\"expression\": \"string\"}", calculate);
+    orchestratorAgent->addTool(calcToolInstance.get());
+    managedTools.push_back(std::move(calcToolInstance));
+
+
+
+    // Find the file tool added by NoteMaster setup
+    Tool* fileToolPtr = nullptr;
+    for(const auto& tool : managedTools) {
+        if(tool && tool->getName() == "file") {
+            fileToolPtr = tool.get();
+            break;
+        }
+    }
+    if (fileToolPtr) {
+        // Decide if Orchestrator needs direct file access. Usually better to delegate.
+        // orchestratorAgent->addTool(fileToolPtr);
+        // serverLog("INFO", "Shared 'file' tool potentially available to Orchestrator (use delegation preferably).");
+    } else {
+        serverLog("WARN", "Could not find 'file' tool instance to potentially share with Orchestrator.");
+    }
+
+    auto bashToolInstance = std::make_unique<Tool>("bash", "Execute Bash command. CAUTION ADVISED. Params: {\"command\": \"string\"}", executeBashCommandReal);
+    orchestratorAgent->addTool(bashToolInstance.get());
+    managedTools.push_back(std::move(bashToolInstance));
+
+    // Register NoteMaster as a sub-agent if provided
+    if (noteMasterAgentPtr) {
+        orchestratorAgent->registerSubAgent(noteMasterAgentPtr); // Use correct method name
+        serverLog("INFO", "Registered 'NoteMaster' with Orchestrator.");
+    } else {
+        serverLog("WARN", "NoteMaster agent pointer was null, could not register as sub-agent.");
+    }
+
+    serverLog("INFO", "--- Orchestrator Agent Setup Complete ---");
+    // Again, assuming Agent doesn't take ownership of the API client ptr.
+    return orchestratorAgent;
+}
+
+// ============================================================================
+// == HTTP Server Setup & Run Functions                                      ==
+// ============================================================================
+
+// Configures the httplib::Server instance passed by reference
+void setupHttpServer(httplib::Server& svr, Agent& agent) { // Takes svr by reference
+
+    // --- Define Endpoints ---
+
+    // CORS Preflight Handler
+    svr.Options("/prompt", [](const httplib::Request &, httplib::Response &res) {
+        // TODO: Make origin configurable
+        // res.set_header("Access-Control-Allow-Origin", "http://localhost:8000");
+         res.set_header("Access-Control-Allow-Origin", "https://test.clevo.ddnsgeek.com"); // Example domain
+        res.set_header("Access-Control-Allow-Headers", "Content-Type, Accept"); // Added Accept
+        res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
+        res.status = 204;
+        serverLog("REQUEST", "OPTIONS /prompt (CORS preflight)");
+    });
+
+    // Main Prompt Endpoint
+    // Capture agent by reference
+    svr.Post("/prompt", [&](const httplib::Request &req, httplib::Response &res) {
+        // TODO: Make origin configurable
+        // res.set_header("Access-Control-Allow-Origin", "http://localhost:8000");
+         res.set_header("Access-Control-Allow-Origin", "https://test.clevo.ddnsgeek.com"); // Example domain
+
+        serverLog("REQUEST", "POST /prompt from " + req.remote_addr);
+
+        // 1. Parse Request JSON
+        Json::Value requestJson;
+        Json::CharReaderBuilder readerBuilder;
+        std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
+        std::string errors;
+        if (!reader->parse(req.body.c_str(), req.body.c_str() + req.body.length(), &requestJson, &errors)) {
+            serverLog("ERROR", "Failed to parse request JSON", errors);
+            res.status = 400; // Bad Request
+            // Use .c_str() for valueToQuotedString
+            res.set_content("{\"error\": \"Invalid JSON format\", \"details\": " + Json::valueToQuotedString(errors.c_str()) + "}", "application/json");
+            return;
+        }
+
+        // 2. Extract User Prompt
+        if (!requestJson.isMember("prompt") || !requestJson["prompt"].isString()) {
+            serverLog("ERROR", "Missing or invalid 'prompt' field");
+            res.status = 400; // Bad Request
+            res.set_content("{\"error\": \"'prompt' field (string) is required\"}", "application/json");
+            return;
+        }
+        std::string userPrompt = requestJson["prompt"].asString();
+        serverLog("INFO", "User prompt received", userPrompt.substr(0, 100) + (userPrompt.length() > 100 ? "..." : ""));
+
+        // 3. Interact with the Agent (using the captured reference)
+        std::string agentFinalResponse;
+        try {
+            agentFinalResponse = agent.processPrompt(userPrompt); // Use correct method name
+            serverLog("DEBUG", "Agent final response generated", agentFinalResponse.substr(0, 200) + (agentFinalResponse.length() > 200 ? "..." : ""));
+        } catch (const ApiError& e) {
+            serverLog("ERROR", "Agent API error processing prompt", e.what());
+            res.status = 500; // Internal Server Error
+            res.set_content("{\"error\": \"Agent API interaction failed\", \"details\": " + Json::valueToQuotedString(e.what()) + "}", "application/json");
+            return;
+        } catch (const std::exception &e) {
+            serverLog("ERROR", "Agent processing error", e.what());
+            res.status = 500; // Internal Server Error
+            res.set_content("{\"error\": \"Agent interaction failed\", \"details\": " + Json::valueToQuotedString(e.what()) + "}", "application/json");
+            return;
+        } catch (...) {
+            serverLog("ERROR", "Unknown agent processing error");
+            res.status = 500; // Internal Server Error
+            res.set_content("{\"error\": \"Unknown agent interaction failed\"}", "application/json");
+            return;
+        }
+
+        // 4. Format and Send Response
+        Json::Value responseJson;
+        responseJson["response"] = agentFinalResponse; // Key expected by frontend
+        Json::StreamWriterBuilder writerBuilder;
+        writerBuilder["indentation"] = ""; // Compact JSON for API
+        std::string responseBody = Json::writeString(writerBuilder, responseJson);
+
+        res.status = 200; // OK
+        res.set_content(responseBody, "application/json");
+        serverLog("RESPONSE", "Sent 200 OK for /prompt");
+    });
+
+    // Health Check Endpoint
+    svr.Get("/health", [](const httplib::Request &, httplib::Response &res) {
+        res.set_header("Access-Control-Allow-Origin", "*"); // Allow from anywhere
+        res.status = 200;
+        res.set_content("{\"status\": \"OK\"}", "application/json");
+        serverLog("REQUEST", "GET /health");
+    });
+
+    // No return needed as svr is modified by reference
+}
+
+// Starts the HTTP server listening loop
+bool startHttpServer(httplib::Server& svr, const std::string& host, int port) {
+    serverLog("INFO", "Starting server on " + host + ":" + std::to_string(port));
+    if (!svr.listen(host.c_str(), port)) {
+        serverLog("FATAL", "Failed to start server on " + host + ":" + std::to_string(port));
+        return false;
+    }
+    // svr.listen blocks until stopped
+    serverLog("INFO", "Server has stopped listening.");
+    return true;
+}
+
+// ============================================================================
+// == Main Function                                                          ==
+// ============================================================================
+
 int main() {
     // --- Global Initialization ---
     CURLcode curl_global_res = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -5503,254 +7202,66 @@ int main() {
     }
     std::string apiKey(apiKeyEnv);
     serverLog("INFO", "API Key loaded from environment variable.");
-    const std::string host = "0.0.0.0";
-    const int port = 7777; // Make sure this matches the port in app.js API_ENDPOINT
+    const std::string host = "0.0.0.0"; // Listen on all interfaces
+    const int port = 7777;
 
     // --- Agent and Tool Storage ---
-    std::unique_ptr<MiniGemini> orchestratorApiClient;
-    std::unique_ptr<Agent> orchestratorAgent;
-    std::unique_ptr<MiniGemini> noteApiClient;
+    // unique_ptrs manage the lifetime of agents and owned tools
+    std::vector<std::unique_ptr<Tool>> managedTools;
+    // API Clients need to outlive the Agents that use them by reference
+    std::unique_ptr<MiniGemini> noteApiClientPtr;
+    std::unique_ptr<MiniGemini> orchestratorApiClientPtr;
     std::unique_ptr<Agent> noteMasterAgent;
-    std::vector<std::unique_ptr<Tool>> managedTools; // RAII for tools
+    std::unique_ptr<Agent> orchestratorAgent;
+    // Create server object here, setup happens later
+    httplib::Server svr;
 
     try {
-        // --- Initialize NoteMaster Agent (Mirrors main.cpp setup) ---
-        serverLog("INFO", "--- Setting up NoteMaster Agent ---");
-        noteApiClient = std::make_unique<MiniGemini>(apiKey);
-        serverLog("INFO", "NoteMaster API client initialized.");
+        // --- Setup Agents & Tools ---
+        // Create API clients first (will be passed by reference to agents)
+        noteApiClientPtr = std::make_unique<MiniGemini>(apiKey);
+        orchestratorApiClientPtr = std::make_unique<MiniGemini>(apiKey);
 
-        noteMasterAgent = std::make_unique<Agent>(*noteApiClient);
-        noteMasterAgent->setName("NoteMaster");
-        noteMasterAgent->setDescription("Specialized agent for managing notes ($NOTES) and calendar events.");
-        // Use the AGENT_WORKSPACE env var used by the robust fileTool, or set it here
-        // setenv("AGENT_WORKSPACE", "/home/mlamkadm/notes", 1); // Uncomment to force workspace
-        // noteMasterAgent->addEnvVar("NOTES", "/home/mlamkadm/notes"); // Redundant if fileTool uses AGENT_WORKSPACE
-        serverLog("INFO", "Agent 'NoteMaster' created.");
+        // Now setup agents, passing the API client references
+        noteMasterAgent = setupNoteMasterAgent(apiKey, managedTools); // apiKey is redundant if client passed? Maybe refactor setup funcs
+        orchestratorAgent = setupOrchestratorAgent(apiKey, noteMasterAgent.get(), managedTools);
 
-        noteMasterAgent->setSystemPrompt(R"(SYSTEM PROMPT: NoteMaster Agent
-Role: Automated agent managing notes and calendar events within the designated workspace (usually AGENT_WORKSPACE).
-Core Interaction Model: Respond ONLY with a single JSON object: {"thought": string, "tool_calls": array|null, "final_response": string|null}.
-Focus: Primarily use the 'file' tool for notes and 'calendar' tool for events. Use relative paths.
-Execution: Execute requests precisely. Infer intent. Avoid clarification.
-Tool Format: Use STRICT {"tool_name": "...", "params": { ... }} format in 'tool_calls'.
-Response: 'final_response' is ONLY for task completion. If calling tools, it MUST be null.
-Error Handling: Note tool failures in 'thought', inform caller via 'final_response' if task cannot proceed.
-)");
-        serverLog("INFO", "System prompt set for NoteMaster.");
-
-        // Register Tools for NoteMaster
-        auto fileToolInstance = std::make_unique<Tool>(
-            "file",
-            "File system operations (read, write, list, info, delete, mkdir) within the agent's workspace. "
-            "Params: {'action': string, 'path': string (RELATIVE path ONLY), 'content': string? for write}. ",
-            fileTool); // Use the secure version
-        noteMasterAgent->addTool(fileToolInstance.get());
-        managedTools.push_back(std::move(fileToolInstance));
-
-        auto calendarToolInstance = std::make_unique<Tool>(
-            "calendar",
-            "Manages calendar events (add, list). Params: {'action': 'add'|'list', 'date': 'YYYY-MM-DD', 'time': 'HH:MM'?, 'description': string?}",
-            calendarTool);
-        noteMasterAgent->addTool(calendarToolInstance.get());
-        managedTools.push_back(std::move(calendarToolInstance));
-
-        serverLog("INFO", "Tools registered with NoteMaster.");
-
-        // --- Initialize Orchestrator Agent (Mirrors main.cpp setup) ---
-        serverLog("INFO", "--- Setting up Orchestrator Agent ---");
-        orchestratorApiClient = std::make_unique<MiniGemini>(apiKey);
-        orchestratorApiClient->setModel("gemini-1.5-flash-latest");
-        serverLog("INFO", "Orchestrator API client initialized.");
-
-        orchestratorAgent = std::make_unique<Agent>(*orchestratorApiClient);
-        orchestratorAgent->setName("Orchestrator");
-        orchestratorAgent->setDescription("Top-level agent coordinating tasks and delegating to sub-agents like NoteMaster.");
-        serverLog("INFO", "Agent 'Orchestrator' created.");
-
-        orchestratorAgent->setSystemPrompt(R"(SYSTEM PROMPT: Orchestrator Agent (Named: Demurge)
-Role: Central coordinator agent. Translate high-level goals into workflows using sub-agents and tools. Serve the Master (CleverLord).
-Core Interaction Model: Respond ONLY with a single JSON object: {"thought": string, "tool_calls": array|null, "final_response": string|null}.
-Guidelines:
-- Decomposition: Break down complex requests.
-- Tool Usage: Use available tools (`time`, `calc`, `web`, `ddg_search`, `file`, `bash`) via `tool_calls`. Use `bash` cautiously. Use `help`.
-- Delegation: Use `promptAgent` tool to delegate tasks to agents (e.g., `NoteMaster`). Provide clear context. Delegate complex/specialized tasks, use direct tools for simple ones.
-- Synthesis: Analyze history/tool results in `thought` to plan next step or `final_response`.
-- Context & Inference: Use history/memory to infer details. Minimize clarification.
-- Workflow Control: Use `tool_calls` for actions, set `final_response` to `null`. Results appear in history. `skip` is rarely needed.
-- Error Handling: Analyze tool failures in `thought`, retry/alternative/inform via `final_response`.
-Format: STRICT JSON response format mandatory.
-)");
-        serverLog("INFO", "System prompt set for Orchestrator.");
-
-        // Register Tools for Orchestrator
-        auto timeToolInstance = std::make_unique<Tool>("time", "Get current system date/time. Params: {}", getTime);
-        orchestratorAgent->addTool(timeToolInstance.get());
-        managedTools.push_back(std::move(timeToolInstance));
-
-        auto calcToolInstance = std::make_unique<Tool>("calc", "Calculate simple expression. Params: {\"expression\": \"string\"}", calculate);
-        orchestratorAgent->addTool(calcToolInstance.get());
-        managedTools.push_back(std::move(calcToolInstance));
-
-        auto webSearchToolInstance = std::make_unique<Tool>("web", "Web search. Params: {\"query\": string, \"num_results\": int?, \"search_engine\": \"google\"|\"duckduckgo\"?}", webSearchTool);
-        orchestratorAgent->addTool(webSearchToolInstance.get());
-        managedTools.push_back(std::move(webSearchToolInstance));
-
-        auto ddgSearchToolInstance = std::make_unique<Tool>("ddg_search", "[Alt Web Search] HTML scraping. Params: {\"query\": string, \"num_results\": int?}", duckduckgoSearchTool);
-        orchestratorAgent->addTool(ddgSearchToolInstance.get());
-        managedTools.push_back(std::move(ddgSearchToolInstance));
-
-        // Add the shared fileTool instance pointer to Orchestrator
-        Tool* fileToolPtr = nullptr;
-        for(const auto& tool : managedTools) {
-            if(tool->getName() == "file") {
-                fileToolPtr = tool.get();
-                break;
-            }
+        if (!orchestratorAgent) {
+             throw std::runtime_error("Failed to initialize Orchestrator Agent.");
         }
-        if (fileToolPtr) {
-            orchestratorAgent->addTool(fileToolPtr);
-            serverLog("INFO", "Shared 'file' tool registered with Orchestrator.");
-        } else {
-            serverLog("WARN", "Could not find 'file' tool instance to share with Orchestrator.");
-        }
-
-        auto bashToolInstance = std::make_unique<Tool>("bash", "Execute Bash command. CAUTION ADVISED. Params: {\"command\": \"string\"}", executeBashCommandReal);
-        orchestratorAgent->addTool(bashToolInstance.get());
-        managedTools.push_back(std::move(bashToolInstance));
-
-        // Add localSearch if needed
-        // auto localSearchToolInstance = std::make_unique<Tool>("localSearch", "Searches text in local files. Params: {'query': string, 'base_path': string}", localSearchTool);
-        // orchestratorAgent->addTool(localSearchToolInstance.get());
-        // managedTools.push_back(std::move(localSearchToolInstance));
-
-        // --- Link Agents ---
-        orchestratorAgent->addAgent(noteMasterAgent.get());
-        serverLog("INFO", "Registered 'NoteMaster' with Orchestrator.");
-
         serverLog("INFO", "All agents initialized successfully.");
 
-        // --- Initialize HTTP Server ---
-        httplib::Server svr;
-
-        // --- Define Endpoints ---
-
-        // == CORS Preflight Handler (OPTIONS) ==
-        // Handles browser checks before the actual POST request is sent from a different origin.
-        svr.Options("/prompt", [](const httplib::Request &, httplib::Response &res) {
-            // Allow requests specifically from the frontend server origin
-            res.set_header("Access-Control-Allow-Origin", "http://localhost:8000");
-            // Allow the Content-Type header (needed for sending JSON)
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-            // Allow the POST method (and OPTIONS itself)
-            res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
-            res.status = 204; // Standard success response for OPTIONS preflight
-            serverLog("REQUEST", "OPTIONS /prompt (CORS preflight)");
-        });
-
-        // == Main Prompt Endpoint (POST) ==
-        // Processes the actual user prompts sent from the frontend.
-        svr.Post("/prompt", [&](const httplib::Request &req, httplib::Response &res) {
-            // Allow requests specifically from the frontend server origin for the actual request
-            res.set_header("Access-Control-Allow-Origin", "http://localhost:8000");
-            // If you need broader access during development, uncomment the line below and comment out the line above
-            // res.set_header("Access-Control-Allow-Origin", "*");
-
-            serverLog("REQUEST", "POST /prompt from " + req.remote_addr);
-
-            // 1. Parse Request
-            Json::Value requestJson;
-            Json::CharReaderBuilder readerBuilder; // Using CharReaderBuilder for modern jsoncpp
-            std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
-            std::string errors;
-
-            if (!reader->parse(req.body.c_str(), req.body.c_str() + req.body.length(), &requestJson, &errors)) {
-                serverLog("ERROR", "Failed to parse request JSON", errors);
-                res.status = 400;
-                res.set_content("{\"error\": \"Invalid JSON format\"}", "application/json");
-                return;
-            }
-
-            // 2. Extract Prompt
-            if (!requestJson.isMember("prompt") || !requestJson["prompt"].isString()) {
-                serverLog("ERROR", "Missing or invalid 'prompt' field");
-                res.status = 400;
-                res.set_content("{\"error\": \"'prompt' field (string) is required\"}", "application/json");
-                return;
-            }
-            std::string userPrompt = requestJson["prompt"].asString();
-            serverLog("INFO", "User prompt received", userPrompt.substr(0, 100) + (userPrompt.length() > 100 ? "..." : ""));
-
-            // 3. Interact with Orchestrator Agent
-            std::string agentFinalResponse;
-            try {
-                // Ensure the agent pointer is valid before calling
-                if (!orchestratorAgent) {
-                    throw std::runtime_error("Orchestrator agent is not initialized.");
-                }
-                agentFinalResponse = orchestratorAgent->prompt(userPrompt);
-                serverLog("DEBUG", "Agent final response generated", agentFinalResponse.substr(0, 200) + (agentFinalResponse.length() > 200 ? "..." : ""));
-            } catch (const ApiError& e) {
-                 serverLog("ERROR", "Agent API error processing prompt", e.what());
-                 res.status = 500;
-                 // Use Json::valueToQuotedString for safe JSON string embedding
-                 res.set_content("{\"error\": \"Agent API interaction failed\", \"details\": " + Json::valueToQuotedString(e.what()) + "}", "application/json");
-                 return;
-            } catch (const std::exception &e) {
-                serverLog("ERROR", "Agent processing error", e.what());
-                res.status = 500;
-                res.set_content("{\"error\": \"Agent interaction failed\", \"details\": " + Json::valueToQuotedString(e.what()) + "}", "application/json");
-                return;
-            } catch (...) {
-                serverLog("ERROR", "Unknown agent processing error");
-                res.status = 500;
-                res.set_content("{\"error\": \"Unknown agent interaction failed\"}", "application/json");
-                return;
-            }
-
-            // 4. Format and Send Response
-            Json::Value responseJson;
-            responseJson["response"] = agentFinalResponse; // Ensure 'response' key matches RESPONSE_KEY in app.js
-            Json::StreamWriterBuilder writerBuilder; // Use StreamWriterBuilder for modern jsoncpp
-            writerBuilder["indentation"] = ""; // Optional: Use "" for compact output, or "  " for pretty print
-            std::string responseBody = Json::writeString(writerBuilder, responseJson);
-
-            res.status = 200;
-            res.set_content(responseBody, "application/json");
-            serverLog("RESPONSE", "Sent 200 OK for /prompt");
-        });
-
-        // == Health Check Endpoint ==
-        svr.Get("/health", [](const httplib::Request &, httplib::Response &res) {
-            // Allow requests from anywhere for health check
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.status = 200;
-            res.set_content("{\"status\": \"OK\"}", "application/json");
-            serverLog("REQUEST", "GET /health");
-        });
+        // --- Setup HTTP Server ---
+        // Pass orchestratorAgent by reference
+        setupHttpServer(svr, *orchestratorAgent);
+        serverLog("INFO", "HTTP server configured.");
 
         // --- Start Server ---
-        serverLog("INFO", "Starting server on " + host + ":" + std::to_string(port));
-        if (!svr.listen(host.c_str(), port)) {
-            serverLog("FATAL", "Failed to start server on " + host + ":" + std::to_string(port));
-            return 1;
+        // This call will block until the server is stopped (e.g., Ctrl+C)
+        if (!startHttpServer(svr, host, port)) {
+            return 1; // Exit if server fails to start
         }
 
     } catch (const ApiError &e) {
-        serverLog("FATAL", "API Error during initialization", e.what());
+        serverLog("FATAL", "API Error during initialization or runtime", e.what());
+        // unique_ptrs will handle cleanup on exit
         return 1;
     } catch (const std::exception &e) {
-        serverLog("FATAL", "Initialization failed", e.what());
+        serverLog("FATAL", "Standard Exception during initialization or runtime", e.what());
+         // unique_ptrs will handle cleanup on exit
         return 1;
     } catch (...) {
-        serverLog("FATAL", "Unknown initialization error.");
+        serverLog("FATAL", "Unknown error occurred.");
+         // unique_ptrs will handle cleanup on exit
         return 1;
     }
 
-    // Server runs until stopped (e.g., Ctrl+C)
-    serverLog("INFO", "Server stopped.");
-    // Resources managed by unique_ptr and curl_guard cleaned up automatically
+    // Server runs until stopped (e.g., Ctrl+C in startHttpServer -> svr.listen)
+    serverLog("INFO", "Server process ended.");
+    // Resources (agents via unique_ptr; tools via unique_ptr in vector; curl via RAII guard) cleaned up automatically
     return 0;
-} // <-- curl_guard destructor called here
+}
+
 ```
 
 ### File: server/vendor/httplib/httplib.h
@@ -16267,7 +17778,6 @@ inline SSL_CTX *Client::ssl_context() const {
 
 ### File: src/agent.cpp
 ```cpp
-
 #include "../inc/Agent.hpp"
 #include "../inc/MiniGemini.hpp"
 #include "../inc/Tool.hpp"
@@ -17936,4 +19446,245 @@ int main(){
     return 0;
 }
 EOF 2>&1
+```
+
+### File: voice-client.py
+```python
+#!/usr/bin/env python3
+import requests
+import json
+import argparse
+import sys
+import os # For model path check
+
+# Attempt to import voice libraries, provide guidance if missing
+try:
+    import speech_recognition as sr
+    vosk_available = True # Defined globally here
+except ImportError:
+    print("INFO: 'SpeechRecognition' library not found. Voice input disabled.", file=sys.stderr)
+    print("INFO: To enable voice input, run: pip install SpeechRecognition vosk", file=sys.stderr)
+    vosk_available = False # Or defined globally here
+except Exception as e:
+    print(f"ERROR: Unexpected error importing speech_recognition: {e}", file=sys.stderr)
+    vosk_available = False # Or defined globally here
+
+# --- Configuration ---
+DEFAULT_SERVER_URL = "http://localhost:7777"
+PROMPT_ENDPOINT = "/prompt"
+REQUEST_TIMEOUT = 60 # Increased timeout slightly for potentially longer agent processing
+DEFAULT_VOSK_MODEL_PATH = "vosk-model-small-en-us-0.15" # EXAMPLE path - USER MUST PROVIDE!
+
+# --- Existing Network Function ---
+def send_prompt_to_agent(server_url: str, user_prompt: str) -> str:
+    """Sends the user prompt to the agent API server and returns the response text."""
+    api_endpoint = server_url.rstrip('/') + PROMPT_ENDPOINT
+    payload = {"prompt": user_prompt}
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(
+            api_endpoint,
+            json=payload,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT
+        )
+        response.raise_for_status()
+        try:
+            response_json = response.json()
+        except json.JSONDecodeError:
+            raise ValueError(f"Server returned non-JSON response: {response.text[:100]}...")
+
+        if "response" in response_json and isinstance(response_json["response"], str):
+            return response_json["response"]
+        elif "error" in response_json:
+             error_details = response_json.get("details", "")
+             return f"Agent API Error: {response_json['error']} {f'({error_details})' if error_details else ''}"
+        else:
+            raise ValueError(f"Unexpected JSON structure in response: {response_json}")
+
+    except requests.exceptions.ConnectionError:
+        return f"[Error]: Could not connect to the agent server at {api_endpoint}. Is it running?"
+    except requests.exceptions.Timeout:
+        return f"[Error]: Request timed out connecting to {api_endpoint}."
+    except requests.exceptions.RequestException as e:
+        status_code = e.response.status_code if e.response is not None else "N/A"
+        error_body = e.response.text[:200] if e.response is not None else "No Response Body"
+        return f"[Error]: HTTP Error {status_code} from server: {error_body}..."
+    except ValueError as e:
+        return f"[Error]: Invalid response from server: {e}"
+    except Exception as e:
+        return f"[Error]: An unexpected error occurred: {e}"
+
+# --- NEW Voice Handling Function ---
+def handle_voice_input(recognizer, microphone, model_path) -> str | None:
+    """Captures audio, transcribes using Vosk, returns text or None on error."""
+    global vosk_available # Need global here too if modifying it on error
+    if not vosk_available:
+        print("[Error]: Voice libraries not available.", file=sys.stderr)
+        return None
+    if not os.path.isdir(model_path):
+         print(f"[Error]: Vosk model not found at path: {model_path}", file=sys.stderr)
+         print(f"INFO: Download a model (e.g., small English) from https://alphacephei.com/vosk/models", file=sys.stderr)
+         print(f"INFO: And place it at '{model_path}' or specify path with --vosk-model.", file=sys.stderr)
+         return None
+
+    try:
+        with microphone as source:
+            print("Adjusting for ambient noise...")
+            try:
+                 # Duration helps prevent cutting off noise adjustment too soon
+                 recognizer.adjust_for_ambient_noise(source, duration=0.5)
+            except Exception as e:
+                 print(f"Warning: Failed ambient noise adjustment: {e}. Continuing...", file=sys.stderr)
+
+            print("Listening... (Speak clearly and pause when finished)")
+            try:
+                # Listen until a pause is detected
+                # timeout: max seconds of silence before considering phrase complete
+                # phrase_time_limit: max seconds to record before stopping
+                audio = recognizer.listen(source, timeout=5, phrase_time_limit=15)
+            except sr.WaitTimeoutError:
+                print("No speech detected within timeout.", file=sys.stderr)
+                return None
+            except Exception as e:
+                 print(f"Error during listening: {e}", file=sys.stderr)
+                 return None
+
+        print("Transcribing...")
+        try:
+            # Use recognize_vosk for local transcription
+            # *** IMPORTANT: Provide the model_path to recognize_vosk ***
+            text_result = json.loads(recognizer.recognize_vosk(audio, model_path=model_path))
+            text = text_result.get("text", "") # Extract text field from Vosk JSON result
+            if not text:
+                print("Vosk transcription returned empty text.", file=sys.stderr)
+                return None
+            print(f"Heard: '{text}'")
+            return text
+        except sr.UnknownValueError:
+            print("Vosk could not understand audio", file=sys.stderr)
+            return None
+        except sr.RequestError as e:
+            # This might indicate issues loading the model or with the Vosk installation
+            print(f"Vosk error: {e}", file=sys.stderr)
+            return None
+        except json.JSONDecodeError:
+            print("Error: Vosk returned non-JSON result.", file=sys.stderr)
+            return None
+        except Exception as e:
+            # Catch other potential errors during transcription
+            print(f"An unexpected error occurred during transcription: {e}", file=sys.stderr)
+            return None
+
+    except AttributeError:
+        print("[Error]: SpeechRecognition or Microphone object not initialized correctly.", file=sys.stderr)
+        return None
+    except OSError as e:
+         print(f"[Error]: Microphone OS error: {e}. Is a microphone connected and configured?", file=sys.stderr)
+         vosk_available = False # Modify global if mic fails persistently
+         return None
+    except Exception as e:
+        print(f"[Error]: An unexpected error occurred in voice handling: {e}", file=sys.stderr)
+        return None
+
+
+# --- Modified Main Loop ---
+def main_loop(server_url: str, vosk_model_path: str):
+    """Runs the main interactive command-line loop with voice option."""
+    # *** ADD global DECLARATION HERE ***
+    global vosk_available
+
+    print(f"Connecting to Agent API at: {server_url}")
+    print("Type your prompt and press Enter.")
+    if vosk_available: # Reads the global variable
+        print("Type '/v' or '/voice' then Enter to use voice input.")
+    print("Type 'exit' or 'quit' to quit.")
+
+    recognizer = None
+    microphone = None
+    if vosk_available: # Reads the global variable
+        try:
+            recognizer = sr.Recognizer()
+            # Optional: Adjust energy threshold if needed
+            # recognizer.energy_threshold = 4000
+            microphone = sr.Microphone()
+            print("Microphone initialized.") # Add confirmation
+        except AttributeError:
+             print("\n[WARN]: Failed to initialize SpeechRecognition/Microphone. Voice input unavailable.", file=sys.stderr)
+             vosk_available = False # Modifies the global variable
+        except OSError as e:
+             print(f"\n[WARN]: Failed to access Microphone ({e}). Voice input unavailable.", file=sys.stderr)
+             vosk_available = False # Modifies the global variable
+        except Exception as e:
+             print(f"\n[WARN]: Unknown error initializing voice components ({e}). Voice input unavailable.", file=sys.stderr)
+             vosk_available = False # Modifies the global variable
+
+
+    while True:
+        user_input_trigger = ""
+        try:
+            user_input_trigger = input("\n> ")
+        except EOFError:
+            print("\nExiting (EOF received).")
+            break # Exit loop on Ctrl+D
+        except KeyboardInterrupt:
+             print("\nExiting (Interrupted by user).")
+             break
+
+        user_input_final = ""
+
+        if user_input_trigger.lower() in ["exit", "quit"]:
+            print("Exiting.")
+            break
+        elif user_input_trigger.lower() in ["/v", "/voice"]:
+            if vosk_available and recognizer and microphone: # Reads global + checks local vars
+                transcribed_text = handle_voice_input(recognizer, microphone, vosk_model_path)
+                if transcribed_text:
+                    user_input_final = transcribed_text
+                else:
+                    print("(Voice input failed or cancelled)")
+                    continue # Skip sending empty prompt
+            else:
+                print("[Error]: Voice input is not available or not initialized.", file=sys.stderr)
+                continue
+        elif not user_input_trigger.strip():
+             continue # Ignore empty text input
+        else:
+            user_input_final = user_input_trigger # Use typed text
+
+        if not user_input_final.strip():
+            continue # If voice failed and resulted in empty, skip
+
+        # Send the final input (either text or transcribed voice)
+        agent_response = send_prompt_to_agent(server_url, user_input_final)
+        print(f"\nAgent: {agent_response}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="CLI Client for the C++ Agent API with Voice Input.")
+    parser.add_argument(
+        "--url",
+        type=str,
+        default=DEFAULT_SERVER_URL,
+        help=f"Base URL of the agent API server (default: {DEFAULT_SERVER_URL})"
+    )
+    parser.add_argument(
+        "--vosk-model",
+        type=str,
+        default=DEFAULT_VOSK_MODEL_PATH,
+        help=f"Path to the Vosk language model directory (default: {DEFAULT_VOSK_MODEL_PATH})"
+    )
+    args = parser.parse_args()
+
+    # Check Vosk availability again before starting main loop if voice is intended
+    # This reads the global vosk_available which might have been set False during import
+    if not vosk_available:
+        print("\n--- VOICE INPUT DISABLED (Import Failed) ---", file=sys.stderr)
+        print("Install libraries ('pip install SpeechRecognition vosk') and ensure microphone access.", file=sys.stderr)
+        # Optional: Exit if voice is strictly required, but better to allow text fallback
+        # sys.exit(1)
+
+
+    main_loop(args.url, args.vosk_model)
 ```

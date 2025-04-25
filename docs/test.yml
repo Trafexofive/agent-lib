@@ -1,0 +1,184 @@
+# --- Orchestration Schema: MK1 (Refined Draft) ---
+version: MK1
+name: "schema-building-workflow-refined"
+description: "Workflow demonstrating imports, definitions, settings, and inline configurations. Features commented for clarity."
+
+# --- Import Section ---
+# Defines external resources to load before workflow execution.
+# FUTURE: Define precise loading order and conflict resolution (e.g., if multiple files define the same agent name).
+import:
+  workflows:
+    # - ./common_error_handler.yaml # FUTURE: Load entire workflows or sub-workflows to be called.
+  agents:
+    # Load agent profiles from YAML files. The 'name' field *within* the agent's YAML file will be used for referencing.
+    - ./agents/response_formatter.yaml # Load a specific agent profile. Its internal 'name' is the reference key.
+    - ./agents/data_validators/ # FUTURE: Implement loading all *.yaml from a directory. Agent names from files used as keys.
+  defines:
+    # - ./standard_steps.yaml # FUTURE: Import definitions (steps, tools, agents) from shared files.
+  # tools: # FUTURE: Import tool definitions separately? Or are they always part of agent/workflow defines? TBD.
+    # - ./common_tools.yaml
+  scripts: # again, single file or all files from folder
+    - type: file
+      path: ./scripts/standard/aggregate-folder.sh # scripts and files  will be parsed to extract the name by removing the extention (or could Override by using name:)
+    - type: file
+      path: ./scripts/standard/test.sh
+      name: exp-tool
+    - type: folder
+      path: ./scripts/boost-standard
+      name: boost # now we have a boost namespace to access the rest eg. boost.sendRequest (from boost-standard/sendRequest.py (also, runtime will be infered from extention for now we will stick to .sh .zsh .py)) the same logic will apply to folders and file in the context section
+  context: # global.context.cpp-ref
+    - type: file
+      path: ./.resources/repo-cpp-code-refrences.md
+      name: cpp-ref #if not specified, auto extraction will happen so its name would be repo-cpp-code-refrences and it would be accessed at global.context.repo-cpp-code-refrences
+      # var: global.code
+    - type: file
+      path: ./.context # file that does exist is created
+      append: # "./.context.old" | "simple text context to insert to the file" we could even make these stackble together for effective and blazing fast context loading and prototyping.
+        
+    - type: file
+      path: ./scripts/standard/aggregate-folder.sh
+      content:
+
+    
+      
+
+
+# --- Initial State / Entrypoint ---
+# Defines the starting data context for the workflow.
+initial_state:
+  query: "Find articles about AI in healthcare from the last month."
+  search_result_count: 3
+  user_id: "user123"
+# entrypoint: step_id_start_here # FUTURE: Define a specific step ID to begin execution, overriding sequential start.
+
+# --- Workflow Settings ---
+# Global configurations affecting the execution environment.
+settings:
+  default_timeout: "60s" # Default maximum duration for a step. Parsed into duration (e.g., 60 seconds).
+  max_concurrent_steps: 1 # CURRENT: Assume sequential. FUTURE: Allow > 1 for parallel steps.
+  state_persistence: "none" # FUTURE: Configure saving/loading workflow state ("none", "local_file:<path>", "redis:<conn_string>").
+  error_handling_strategy: "fail_fast" # CURRENT: Stop on first error. FUTURE: Add "continue", "jump_to_error_handler".
+  # default_error_handler_step: "global_error_handler" # FUTURE: ID of a defined step to jump to on unhandled errors.
+  debug_level: INFO # Logging level for orchestrator messages (e.g., DEBUG, INFO, WARN, ERROR).
+
+# --- Definitions ---
+# Declare reusable components (agents, tools, steps) that can be referenced by ID/name later.
+# These are parsed but not executed unless referenced in the main 'workflow' section.
+defines:
+  agents:
+    # Defines a reusable agent configuration accessible via the key 'StandardSummarizer'.
+    StandardSummarizer:
+      # Agent configuration fields are the same as in agent profile YAMLs (name, system_prompt, etc.)
+      name: "StdSummarizer_Defined" # This name should ideally match the key for clarity.
+      system_prompt: "Provide a concise summary of the input text."
+      iteration_cap: 3
+      # tools: [...] # FUTURE: Define tools expected/available for this defined agent.
+  tools:
+    # Defines a reusable tool configuration accessible via the key 'BashExecutor'.
+    BashExecutor:
+      name: "bash" # Internal name used when attaching to agents.
+      description: "Executes a bash command provided as input."
+      type: "code" # Specifies this tool is implemented via code. FUTURE: Add "api", "service".
+      runtime: "bash" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
+      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
+      #   command: { type: "string", description: "The bash command to execute." }
+      code: | # The actual code to execute. Input mapping TBD (e.g., via parameters).
+        #!/bin/bash
+        echo "Executing command: $1" >&2 # Example logging
+        eval "$1" # WARNING: Security risk! Needs sandboxing/safer execution. Placeholder only.
+  steps:
+    # Defines a reusable step accessible via the key 'LogStartStep'.
+    LogStartStep:
+      # Step configuration fields are the same as in the main workflow steps.
+      # 'id' within defines is primarily for internal reference; it gets a new unique 'id' when used in the workflow.
+      type: transform
+      description: "Log the start of the workflow with the query."
+      expression: "'Workflow starting for query: ' + {state.query}" # CURRENT: Simple string concat. FUTURE: More complex expression language.
+      output: state.log.start_message # Variable path where the output is stored in the workflow state.
+
+# --- Execution Rules ---
+# Defines how the workflow behaves overall.
+rules:
+  execution_mode: "auto" # CURRENT: Start from the first step in the 'workflow' list. FUTURE: Add "explicit" (requires entrypoint).
+  sink: # Defines where step outputs/logs/final results are sent.
+    - type: stdout # CURRENT: Print final result/logs to standard output.
+    # - type: stderr # FUTURE: Send specific logs/errors to standard error.
+    # - type: file # FUTURE: Append outputs/logs to a specified file.
+    #   path: /logs/workflow_run.log
+    # - type: http # FUTURE: POST results/logs to a webhook URL.
+    #   url: http://example.com/api/webhook
+    #   headers: { ... }
+    # - type: client # FUTURE: Stream outputs/logs to a connected UI/client panel via websocket/other protocol.
+
+# --- Main Workflow Steps ---
+# The sequence of steps to be executed.
+workflow:
+  # Example using a defined step. It inherits the definition from 'defines.steps.LogStartStep'.
+  - id: start_logging # REQUIRED: Unique ID for this instance of the step within the workflow.
+    ref: LogStartStep # References the defined step by its key.
+  - id: execute_search_query
+    type: agent # Specifies the step type. Orchestrator calls agent execution logic.
+    description: "Execute a refined web search using an inline agent and tools."
+    exec: #parallel | scale (step x times) | schedule | live-loop, exec ovveride
+    timeout: "90s" # Overrides the default timeout from 'settings'.
+    depends_on: # FUTURE: Define execution dependencies. Requires DAG scheduler.
+      - start_logging # This step waits for 'start_logging' to complete successfully.
+    agent: # Agent configuration for this step.
+      define: # Define the agent inline, specifically for this step.
+        # Agent configuration fields (name, system_prompt, etc.)
+        name: "WebSearcher_Inline" # Name for this temporary, inline agent instance.
+        system_prompt: |
+          You are a web search assistant. Execute the search query precisely.
+          Query: {input.search_query}
+          Max Results: {input.max_results}
+          Return URLs and snippets. Use available tools if needed.
+        iteration_cap: 5 # Override default if needed
+        tools: # Define tools available *only* to this inline agent instance.
+          define: # Define tools inline.
+            - name: "URLValidator" # Name of the tool.
+              description: "Checks if a URL is reachable."
+              type: "code" # Tool implementation type.
+              runtime: "python" # Runtime for the code.
+              # parameters: # FUTURE: Define expected parameters.
+              #   url: string
+              code: | # Inline code block (requires runtime support in orchestrator).
+                import requests
+                def validate(url):
+                  # ... (validation logic) ...
+                  return {"valid": is_valid}
+                def run(params): # Assumed entry point function name.
+                  return validate(params.get('url', ''))
+          internal: # List names of tools expected to be available from defines/global scope.
+            - "bash" # References the 'bash' tool defined in 'defines.tools.BashExecutor'.
+          # external: # FUTURE: Reference externally hosted tools/APIs.
+            # - name: "GoogleSearchAPI"
+            #   endpoint: "..."
+            #   auth: "..."
+
+    input: # Define mapping from workflow state to this step's input context.
+      search_query: "{state.query}" # Access 'query' from the main 'state'.
+      max_results: "{state.search_result_count}"
+    output: state.search_results # Store the agent's final response in 'state.search_results'.
+
+  - var: global_query=state.query #global references to expand on the references idea
+
+  - id: summarize_results
+    type: agent
+    description: "Summarize the search results using a defined agent."
+    agent:
+      ref: StandardSummarizer # Reference the agent defined in 'defines.agents.StandardSummarizer'.
+    input: "{state.search_results}" # Use the output from the previous step as input.
+    output: state.summary
+    IO: "{state.search_results}": state.summary # use this in favor of input: ouput:
+
+
+  - id: present_results
+    type: transform # A step that manipulates data without calling an LLM agent.
+    description: "Format final results combining search and summary."
+    depends_on: # FUTURE: Specify dependencies.
+      - execute_search_query # Depends on both search and summarize finishing.
+      - summarize_results
+    # expression: # The operation to perform (requires an expression evaluator).
+      # "'Found Results (' + len({state.search_results}) + '):\\n' + {state.summary}" # Example: String formatting and length check (needs list support).
+    expression: "'Summary: ' + {state.summary}" # Simpler example for now
+    output: final_output # Special target indicating the final result of the entire workflow.
