@@ -99,8 +99,8 @@ std::unique_ptr<Agent> setupNoteMasterAgent(
     serverLog("INFO", "NoteMaster API client initialized.");
 
     auto noteAgent = std::make_unique<Agent>(*noteApiClient); // Pass API client reference
-    noteAgent->setAgentName("NoteMaster");
-    noteAgent->setAgentDescription("Specialized agent for managing notes (in workspace) and calendar events.");
+    noteAgent->setName("NoteMaster");
+    noteAgent->setDescription("Specialized agent for managing notes (in workspace) and calendar events.");
     noteAgent->setIterationCap(5); // Example: Lower iteration cap
 
     // Updated NoteMaster System Prompt (using new schema)
@@ -165,8 +165,8 @@ std::unique_ptr<Agent> setupOrchestratorAgent(
     serverLog("INFO", "Orchestrator API client initialized.");
 
     auto orchestratorAgent = std::make_unique<Agent>(*orchestratorApiClient); // Pass API client reference
-    orchestratorAgent->setAgentName("Orchestrator");
-    orchestratorAgent->setAgentDescription("Top-level agent coordinating tasks and delegating to sub-agents like NoteMaster.");
+    orchestratorAgent->setName("Orchestrator");
+    orchestratorAgent->setDescription("Top-level agent coordinating tasks and delegating to sub-agents like NoteMaster.");
     orchestratorAgent->setIterationCap(15); // Higher cap for coordinator
 
     // Updated Orchestrator System Prompt (using new schema)
@@ -230,7 +230,7 @@ Guidelines:
 
     // Register NoteMaster as a sub-agent if provided
     if (noteMasterAgentPtr) {
-        orchestratorAgent->registerSubAgent(noteMasterAgentPtr); // Use correct method name
+        orchestratorAgent->addAgent(noteMasterAgentPtr); // Use correct method name
         serverLog("INFO", "Registered 'NoteMaster' with Orchestrator.");
     } else {
         serverLog("WARN", "NoteMaster agent pointer was null, could not register as sub-agent.");
@@ -296,7 +296,7 @@ void setupHttpServer(httplib::Server& svr, Agent& agent) { // Takes svr by refer
         // 3. Interact with the Agent (using the captured reference)
         std::string agentFinalResponse;
         try {
-            agentFinalResponse = agent.processPrompt(userPrompt); // Use correct method name
+            agentFinalResponse = agent.prompt(userPrompt); // Use correct method name
             serverLog("DEBUG", "Agent final response generated", agentFinalResponse.substr(0, 200) + (agentFinalResponse.length() > 200 ? "..." : ""));
         } catch (const ApiError& e) {
             serverLog("ERROR", "Agent API error processing prompt", e.what());

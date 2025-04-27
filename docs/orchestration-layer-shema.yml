@@ -27,6 +27,7 @@ rules: #rules for the workflow execution maybe: auto/explicit (enforce entrypoin
 workflow: 
   - id: execute_search_query
     type: agent # This agent call has steps before and after it 
+  
     description: "Prepare, execute, and refine a web search."
     agent: # Structured agent key
       define: # Defining inline
@@ -49,7 +50,7 @@ workflow:
           external: #could have external api for tools (could just use python for example)
             - 
     input: # Define input for the main agent call
-      search_query: "{state.refined_query}" # Comes from pre_step
+      search_query: "$(state.refined_query)" # Comes from pre_step
       max_results: "{state.search_result_count}"
     output: state.raw_search_results # Output from the main agent call
     pre_steps: # Steps execute *before* the main agent call above
