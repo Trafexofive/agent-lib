@@ -1,201 +1,286 @@
 #pragma once
 
-#include "File.hpp"
-#include "MiniGemini.hpp"
-#include "Tool.hpp"
-#include <algorithm>
-#include <chrono>
-#include <cstddef>
-#include <cstdlib>
-#include <ctime>
-// #include <curl/curl.h> // Include if needed
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <json/json.h>
-// #include <json/value.h> // Included by json/json.h
+#include "File.hpp" // Forward declare if only pointers/refs used, include if values/size needed
+#include "MiniGemini.hpp" // Forward declare if only pointers/refs used
+#include "Tool.hpp"       // Forward declare if only pointers/refs used
+
+#include <cerrno>
+#include <chrono>  // For timestamp generation
+#include <iomanip> // For timestamp formatting
 #include <map>
-#include <memory> // For std::unique_ptr if used elsewhere
-#include <sstream>
-#include <stdexcept>
+#include <stdexcept> // For std::runtime_error
 #include <string>
 #include <vector>
 
-// Forward declarations
-namespace Json { class Value; }
-// namespace YAML { class Node; } // Only needed if Agent methods take YAML nodes directly
+// Needed for ActionInfo struct and some method parameters
+#include <json/json.h> // Includes json/value.h
+                       //
+
+// Forward declarations (if full definitions aren't needed in this header)
+namespace Json {
+class Value;
+}
 class MiniGemini;
 class Tool;
 class File;
 
+// Typedefs
 typedef std::vector<File> fileList;
 typedef std::vector<std::pair<std::string, std::string>> StrkeyValuePair;
 
+// Logging Enum
 enum class LogLevel {
-    DEBUG, INFO, WARN, ERROR, TOOL_CALL, TOOL_RESULT, PROMPT
+  DEBUG,
+  INFO,
+  WARN,
+  ERROR,
+  TOOL_CALL,
+  TOOL_RESULT,
+  PROMPT
 };
 
-void logMessage(LogLevel level, const std::string &message, const std::string &details = "");
+// Logging Function Prototype (Implementation likely in agent.cpp or logging
+// util)
+void logMessage(LogLevel level, const std::string &message,
+                const std::string &details = "");
 
-// --- MOVED TO PUBLIC ---
-// Needs to be accessible outside the Agent class for configuration/loading.
-struct AgentDirective { // Renamed slightly to avoid ambiguity if Agent has a member named directive
-    enum Type { BRAINSTORMING, AUTONOMOUS, NORMAL, EXECUTE, REPORT };
-    Type type = NORMAL;
-    std::string description;
-    std::string format;
+// --- Struct Definitions for LLM Interaction (NEW/UPDATED) ---
+
+struct StructuredThought {
+  std::string type;    // e.g., PLAN, OBSERVATION, QUESTION, NORM, etc.
+  std::string content; // The text of the thought
 };
 
+struct ActionInfo {
+  std::string action; // Identifier (tool name, function name, script name)
+  std::string type;   // Category (tool, script, internal_function, output,
+                      // workflow_control)
+  Json::Value
+      params; // Parameters for the action (ensure json/json.h is included)
+  double confidence = 1.0;           // Optional confidence score
+  std::vector<std::string> warnings; // Optional warnings
 
+  // Default constructor might be needed depending on usage
+  ActionInfo() = default;
+};
+
+// --- Struct Definition for Directive (PUBLIC) ---
+struct AgentDirective {
+  enum Type { BRAINSTORMING, AUTONOMOUS, NORMAL, EXECUTE, REPORT };
+  Type type = NORMAL;
+  std::string description;
+  std::string format;
+};
+
+namespace types {
+
+// dealing with runtime data context
+typedef enum {
+  FILE,
+  FOLDER,
+  EXECUTABLE, // could be  script
+  STRING,
+} VarType;
+
+} // namespace types
+
+#define FILE_EXT_ALLOWED                                                       \
+  {".txt", ".csv", ".json", ".xml", ".yaml", ".yml", ".md", ".log"}
+
+class CONTEXT_ITEM {
+private:
+  unsigned long id; // will just index them for now, imma look into how to
+                    // porperly implement uuid  later.
+
+  std::string name; //  in this case it is refering to the varname inside the
+                    //  yaml file
+  types::VarType type;
+  std::string path;
+  std::string content;
+
+  std::string runtime; // for executable type only.
+
+  bool loaded;
+};
+
+// --- Agent Class Definition ---
 class Agent {
-public: // Make sure this is the public section
-    // --- MOVED/ADDED TO PUBLIC for profile loading/saving ---
-    using DIRECTIVE = AgentDirective; // Add using alias for convenience if preferred
+public:
+  // Public alias for the directive struct
+  using DIRECTIVE = AgentDirective;
 
+  // Struct for OLD tool call format (potentially deprecated)
+  struct ToolCallInfo {
+    std::string toolName;
+    Json::Value params;
+  };
 
-    struct ToolCallInfo {
-        std::string toolName;
-        Json::Value params;
-    };
+  // --- Constructor ---
+  Agent(MiniGemini &api);
 
-    // --- Constructor ---
-    Agent(MiniGemini &api);
+  // --- Static Factory (Optional) ---
+  // static std::unique_ptr<Agent> loadFromYaml(const std::string& yamlPath,
+  // MiniGemini& api);
 
-    // --- Static Factory for YAML Loading (if you have one) ---
-    // static std::unique_ptr<Agent> loadFromYaml(const std::string& yamlPath, MiniGemini& api);
+  // --- Configuration (Public Setters - Now including Directive/Task/Command)
+  // ---
+  void setSystemPrompt(const std::string &prompt);
+  void setName(const std::string &name);
+  void setDescription(const std::string &description);
+  void setIterationCap(int cap);
+  void setDirective(const DIRECTIVE &dir);            // MADE PUBLIC
+  void addTask(const std::string &task);              // MADE PUBLIC
+  void addInitialCommand(const std::string &command); // MADE PUBLIC
+  void setSchema(const std::string &schema);
+  void setExample(const std::string &example) { this->example = example; }
 
-    // --- Configuration (Public Setters) ---
-    void setSystemPrompt(const std::string &prompt);
-    void setName(const std::string &name);
-    void setDescription(const std::string &description);
-    void setIterationCap(int cap);
-    // --- MADE PUBLIC ---
-    void setDirective(const DIRECTIVE &dir);
+  // --- Tool Management ---
+  void addTool(Tool *tool);
+  void removeTool(const std::string &toolName);
+  Tool *getTool(const std::string &toolName) const;
+  Tool *getRegisteredTool(const std::string &toolName) const;
+  std::string getInternalToolDescription(const std::string &toolName) const;
 
-    // --- Tool Management ---
-    void addTool(Tool *tool);
-    void removeTool(const std::string &toolName);
-    Tool *getTool(const std::string &toolName) const;
-    Tool *getRegisteredTool(const std::string& toolName) const;
-    std::string getInternalToolDescription(const std::string &toolName) const;
+  // finds a tool by name then add it as a built-in
+  void addBuiltin(const std::string &toolName);
 
-    // --- Core Agent Loop ---
-    void reset();
-    std::string prompt(const std::string &userInput);
-    void run();
+  // --- Core Agent Loop ---
+  void reset();
+  std::string prompt(const std::string &userInput);
+  void run();
 
-    // --- Agent Interaction (Orchestration) ---
-    void addAgent(Agent *agent);
-    std::string agentInstance(const std::string &name);
+  // --- Agent Interaction (Orchestration) ---
+  void addAgent(Agent *agent);
+  std::string
+  agentInstance(const std::string &name); // Gets sub-agent name (simple check)
 
-    // --- Manual Operations ---
-    std::string manualToolCall(const std::string &toolName, const Json::Value &params);
+  // --- Manual Operations ---
+  std::string manualToolCall(const std::string &toolName,
+                             const Json::Value &params);
 
-    // --- Public Getters (Ensure these exist and are const) ---
-    const std::string getName() const;
-    const std::string getDescription() const;
-    MiniGemini &getApi(); // Cannot be const if MiniGemini methods aren't const
-    fileList getFiles() const; // Assuming File is copyable or returned appropriately
-    const std::vector<std::pair<std::string, std::string>>& getHistory() const;
+  // --- Public Getters (Ensure const correctness and existence) ---
+  const std::string getName() const;
+  const std::string getDescription() const;
+  MiniGemini &getApi(); // Cannot be const if MiniGemini methods aren't const
+  fileList getFiles() const;
+  const std::vector<std::pair<std::string, std::string>> &getHistory() const;
 
-    // --- ADDED/MODIFIED Getters needed for saveAgentProfile ---
-    const std::string& getSystemPrompt() const; // Return const ref
-    int getIterationCap() const;
-    const std::vector<std::pair<std::string, std::string>>& getEnv() const; // Return const ref
-    const std::vector<std::string>& getExtraPrompts() const; // Return const ref
-    const std::vector<std::string>& getTasks() const; // Return const ref
-    // --- MADE PUBLIC and CONST ---
-    const DIRECTIVE& getDirective() const; // Return const ref and mark method const
+  // --- Getters needed for saveAgentProfile (Added/Made Public/Const) ---
+  const std::string &getSystemPrompt() const;
+  int getIterationCap() const;
+  const std::vector<std::pair<std::string, std::string>> &getEnv() const;
+  const std::vector<std::string> &getExtraPrompts() const;
+  const std::vector<std::string> &getTasks() const;
+  const DIRECTIVE &getDirective() const; // MADE PUBLIC and CONST
 
-    // --- Memory & State (Public Modifiers) ---
-    void addMemory(const std::string &role, const std::string &content);
-    void removeMemory(const std::string &role, const std::string &content);
-    void addEnvVar(const std::string &key, const std::string &value);
-    void importEnvFile(const std::string &filePath);
-    void addPrompt(const std::string &prompt);
-    // --- MADE PUBLIC ---
-    void addTask(const std::string &task);
-    void addInitialCommand(const std::string &command); // MADE PUBLIC - Assuming needed
+  // --- Memory & State (Public Modifiers) ---
+  void addMemory(const std::string &role, const std::string &content);
+  void removeMemory(const std::string &role, const std::string &content);
+  void addEnvVar(const std::string &key, const std::string &value);
+  void importEnvFile(const std::string &filePath);
+  void addPrompt(const std::string &prompt); // Adds to extraPrompts
 
+  // --- Utilities ---
+  std::string generateStamp(void);
+  void addToHistory(const std::string &role, const std::string &content);
+  std::string wrapText(const std::string &text);
+  std::string wrapXmlLine(const std::string &content, const std::string &tag);
+  std::string wrapXmlBlock(const std::string &content, const std::string &tag);
+  void addBlockToSystemPrompt(const std::string &content,
+                              const std::string &tag);
 
-    // --- Utilities ---
-    std::string generateStamp(void); // Should this be static or member? Assuming member.
-    void addToHistory(const std::string &role, const std::string &content);
-    std::string wrapText(const std::string &text);
-    std::string wrapXmlLine(const std::string &content, const std::string &tag);
-    std::string wrapXmlBlock(const std::string &content, const std::string &tag);
-    void addBlockToSystemPrompt(const std::string &content, const std::string &tag);
-
+  void listAllAgentInfo() {
+    std::cout << "Agent Name: " << name << "\n"
+              << "Description: " << description << "\n"
+              << "System Prompt: " << systemPrompt << "\n"
+              << "Iteration Cap: " << iterationCap << "\n"
+              << "Current Iteration: " << iteration << "\n"
+              << "Schema: " << schema << "\n"
+              << "Tasks: ";
+    for (const auto &task : tasks) {
+      std::cout << task << ", ";
+    }
+    std::cout << "\n";
+  }
 
 private:
-    // --- Private Members ---
-    MiniGemini &api;
-    std::map<std::string, Tool *> tools;
-    std::map<std::string, std::string> internalToolDescriptions;
+  // --- Private Members (Clean Naming Scheme) ---
+  MiniGemini &api;
+  std::map<std::string, Tool *> tools;
+  std::map<std::string, std::string> internalToolDescriptions;
 
-    std::string systemPrompt;
-    std::vector<std::pair<std::string, std::string>> history;
-    int iteration = 0;
-    int iterationCap = 10;
-    bool skipFlowIteration = false;
-    std::vector<std::pair<std::string, std::string>> env;
-    fileList files;
-    std::string name;
-    std::string description;
-    std::vector<std::string> extraPrompts;
+  std::string systemPrompt;
+  std::vector<std::pair<std::string, std::string>> history;
 
-    std::vector<std::pair<std::string, Agent *>> subAgents;
+  int iteration = 0;
+  int iterationCap = 10;
+  bool skipFlowIteration = false;
 
-    StrkeyValuePair scratchpad;
-    StrkeyValuePair shortTermMemory;
-    StrkeyValuePair longTermMemory;
+  std::vector<std::pair<std::string, std::string>> env;
 
-    std::vector<std::string> tasks; // Made private data member
-    std::vector<std::string> initialCommands; // Made private data member
+  fileList files; // Assuming File class definition exists
+  std::string name;
+  std::string description;
 
-    // --- Private DIRECTIVE member ---
-    DIRECTIVE directive; // The member variable remains private
+  std::vector<std::string> extraPrompts;
 
-    // --- Private Methods ---
-    std::string buildFullPrompt() const;
-    std::vector<ToolCallInfo> extractToolCalls(const std::string &response);
-    std::string processToolCalls(const std::vector<ToolCallInfo> &toolCalls);
-    std::string handleToolExecution(const ToolCallInfo &call);
-    std::string executeApiCall(const std::string &fullPrompt);
-    void setSkipFlowIteration(bool skip);
+  std::vector<std::pair<std::string, Agent *>> subAgents;
 
-    bool parseStructuredLLMResponse(const std::string& jsonString, std::string& thought, std::vector<ToolCallInfo>& toolCalls, std::string& finalResponse);
+  StrkeyValuePair scratchpad;
+  StrkeyValuePair shortTermMemory;
+  StrkeyValuePair longTermMemory;
 
-    // --- Internal Tool Implementations (Remain Private) ---
-    std::string getHelp(const Json::Value &params);
-    std::string skip(const Json::Value &params);
-    std::string promptAgentTool(const Json::Value &params);
-    std::string summerizeTool(const Json::Value &params); // Typo preserved
-    std::string summarizeHistory(const Json::Value &params);
-    std::string getWeather(const Json::Value &params);
-    std::string reportTool(const Json::Value &params);
-    std::string generateCode(const Json::Value &params);
+  std::vector<std::string> tasks;
+  std::vector<std::string> initialCommands;
 
-    // --- Task Execution Helpers (Remain Private) ---
-    std::string executeTask(const std::string &task, const Json::Value &format);
-    std::string executeTask(const std::string &task);
-    std::string executeTask(const std::string &task, const std::string &format);
-    std::string auditResponse(const std::string &response);
+  DIRECTIVE directive; // Private member instance192.168.1.101
 
-    // --- Getters/Setters for Private Members (Remove public versions if they were just examples) ---
-    // The public versions added above handle access now.
-    // DIRECTIVE &getDirective(); // Keep private if needed internally
-    // void setDirective(const DIRECTIVE &dir); // Keep private if needed internally
-    // void addTask(const std::string &task); // Keep private if needed internally
-    // void addInitialCommand(const std::string &command); // Keep private if needed internally
+  std::string schema;
+  std::string example;
+
+  // std::vector<std::string, CONTEXT_ITEM> context;
+  std::map<std::string, CONTEXT_ITEM> contextMap;
+  // --- Private Helper Methods ---
+  std::string buildFullPrompt() const;
+  // --- UPDATED parseStructuredLLMResponse declaration ---
+  bool parseStructuredLLMResponse(
+      const std::string &jsonString,
+      std::string &status,                      // Changed
+      std::vector<StructuredThought> &thoughts, // Changed
+      std::vector<ActionInfo> &actions,         // Changed
+      std::string &finalResponse);
+
+  // --- ADDED declarations for new private helpers ---
+  std::string processActions(const std::vector<ActionInfo> &actions);
+  std::string processAction(const ActionInfo &actionInfo);
+  std::string directiveTypeToString(
+      Agent::DIRECTIVE::Type type) const; // Helper for buildFullPrompt
+
+  // --- Potentially Deprecated Fallback/Old Methods ---
+  std::vector<ToolCallInfo>
+  extractToolCalls(const std::string &response); // Deprecated?
+  std::string
+  processToolCalls(const std::vector<ToolCallInfo> &toolCalls); // Deprecated?
+  std::string handleToolExecution(const ToolCallInfo &call);    // Deprecated?
+
+  std::string executeApiCall(const std::string &fullPrompt);
+  void setSkipFlowIteration(bool skip);
+
+  // --- Internal Tool Implementations (Remain Private) ---
+  std::string getHelp(const Json::Value &params);
+  std::string skip(const Json::Value &params);
+  std::string promptAgentTool(const Json::Value &params);
+  std::string summerizeTool(const Json::Value &params); // Typo preserved
+  std::string summarizeHistory(const Json::Value &params);
+  std::string getWeather(const Json::Value &params);
+  std::string reportTool(const Json::Value &params);
+  std::string generateCode(const Json::Value &params);
+
+  // --- Task Execution Helpers (Remain Private) ---
+  std::string
+  executeTask(const std::string &task,
+              const Json::Value &format); // Needs Json::Value variant if used
+  std::string executeTask(const std::string &task);
+  std::string executeTask(const std::string &task, const std::string &format);
+  std::string auditResponse(const std::string &response);
 };
-
-// --- Implementation for new/modified getters (in Agent.cpp) ---
-/*
-inline const std::string& Agent::getSystemPrompt() const { return systemPrompt; }
-inline int Agent::getIterationCap() const { return iterationCap; }
-inline const std::vector<std::pair<std::string, std::string>>& Agent::getEnv() const { return env; }
-inline const std::vector<std::string>& Agent::getExtraPrompts() const { return extraPrompts; }
-inline const std::vector<std::string>& Agent::getTasks() const { return tasks; }
-inline const Agent::DIRECTIVE& Agent::getDirective() const { return directive; }
-*/

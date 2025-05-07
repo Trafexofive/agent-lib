@@ -58,7 +58,7 @@ void logMessageMain(LogLevel level, const std::string &message,
 
   switch (level) {
   case LogLevel::DEBUG:
-    prefix = "[DEBUG] ";
+    prefix = "[DEBUG] ";/
     color_start = "\033[36m";
     break;
   case LogLevel::INFO:
@@ -289,8 +289,8 @@ int main() {
 
 Role: Automated agent managing notes and calendar events within the $NOTES directory.
 
-Core Interaction Model:
-You MUST respond with a single JSON object containing the following fields:
+    Core Interaction Model:
+    You MUST respond with a single JSON object containing the following fields:
 
 thought: (String) Your reasoning about the request and plan.
 

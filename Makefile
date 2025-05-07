@@ -43,7 +43,7 @@ LDFLAGS := -lcurl -ljsoncpp -pthread $(YAML_CPP_LIBS)
 # Source files - use recursive wildcard to find all source files
 rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-MAIN_SRC := main.cpp
+MAIN_SRC := import.main.cpp
 SERVER_SRC := $(SERVER_DIR)/server.cpp
 
 # Recursively find all source files in src/ and externals/

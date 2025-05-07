@@ -14,189 +14,215 @@
 #include <sstream>
 #include <stdexcept>
 
-std::string Agent::prompt(const std::string &userInput) {
-  addToHistory("Master", userInput);
-  logMessage(LogLevel::INFO, "User Input received by Agent '" + name + "'",
-             userInput);
+// --- JSON Parsing (NEW Structure) ---
+bool Agent::parseStructuredLLMResponse(const std::string &jsonString,
+                                       std::string &status,
+                                       std::vector<StructuredThought> &thoughts,
+                                       std::vector<ActionInfo> &actions,
+                                       std::string &finalResponse) {
+  status = "ERROR_INTERNAL";
+  thoughts.clear();
+  actions.clear();
+  finalResponse = "";
+  Json::Value root;
+  Json::Reader reader;
+  std::stringstream ss(jsonString);
 
-  std::string rawLLMResponse = "";
-  std::string finalResponseToUser = "";
-  std::string thought = "";
-
-  std::vector<std::string> extraPrompts;
-  std::vector<std::string> thoughts;
-
-  std::vector<ToolCallInfo> toolCalls;
-  bool taskComplete = false;
-
-  iteration = 0; // Reset iteration count for new prompt
-
-  // --- Enhanced Agent Loop ---
-  for (; iteration < iterationCap && !taskComplete; ++iteration) {
-    logMessage(LogLevel::DEBUG, "Agent '" + name + "' - Iteration " +
-                                    std::to_string(iteration + 1) + "/" +
-                                    std::to_string(iterationCap));
-
-    // --- Context Management Phase ---
-    // TODO (Phase 2+): Summarize history, retrieve memories, build working
-    // memory
-
-    // --- Prompt Building Phase ---
-    std::string currentPrompt = buildFullPrompt();
-
-    // --- LLM Call Phase ---
-    try {
-      rawLLMResponse = executeApiCall(currentPrompt);
-    } catch (const std::exception &e) {
-      logMessage(LogLevel::ERROR,
-                 "Failed to execute API call in iteration " +
-                     std::to_string(iteration + 1),
-                 e.what());
-      finalResponseToUser =
-          "[SYSTEM] Error: Failed to communicate with the language model.";
-      taskComplete = true;
-      break;
-    }
-    // Add raw response BEFORE attempting to parse/extract
-    addToHistory(this->name, rawLLMResponse);
-
-    // --- Extraction Phase (Handles ```json ... ```) ---
-    std::string jsonToParse = rawLLMResponse; // Start with raw
-    std::string startMarker = "```json";
-    std::string endMarker = "```";
-
-    size_t startPos = rawLLMResponse.find(startMarker);
-    if (startPos != std::string::npos) {
-      // Found start marker, look for actual JSON start '{'
-      size_t jsonStart =
-          rawLLMResponse.find('{', startPos + startMarker.length());
-      if (jsonStart != std::string::npos) {
-        // Found '{', now find end marker '```' after it
-        size_t endPos = rawLLMResponse.find(endMarker, jsonStart);
-        if (endPos != std::string::npos) {
-          // Found end marker, find last '}' before it
-          size_t jsonEnd = rawLLMResponse.rfind('}', endPos);
-          if (jsonEnd != std::string::npos && jsonEnd >= jsonStart) {
-            // Extract the likely JSON object content
-            jsonToParse =
-                rawLLMResponse.substr(jsonStart, jsonEnd - jsonStart + 1);
-            logMessage(LogLevel::DEBUG,
-                       "Extracted JSON block for parsing:", jsonToParse);
-          } else {
-            logMessage(LogLevel::WARN,
-                       "Could not find matching '}' within JSON code block. "
-                       "Attempting parse on block content.",
-                       rawLLMResponse.substr(jsonStart, endPos - jsonStart));
-            jsonToParse = rawLLMResponse.substr(jsonStart,
-                                                endPos - jsonStart); // Fallback
-          }
-        } else {
-          logMessage(LogLevel::WARN,
-                     "Found ```json and '{' but no closing ``` marker. "
-                     "Attempting parse from '{'.",
-                     rawLLMResponse);
-          jsonToParse =
-              rawLLMResponse.substr(jsonStart); // Fallback: parse from '{'
-        }
-      } else {
-        logMessage(LogLevel::WARN,
-                   "Found ```json but no opening '{' found after it. "
-                   "Attempting parse on raw response.",
-                   rawLLMResponse);
-        jsonToParse = rawLLMResponse; // Fallback: parse raw (likely fail)
-      }
-    } else {
-      logMessage(LogLevel::WARN,
-                 "LLM response did not contain ```json marker. Attempting to "
-                 "parse raw response.",
-                 rawLLMResponse);
-      // Fallback: attempt to parse the raw response directly
-      jsonToParse = rawLLMResponse;
-    }
-
-    // Trim whitespace from the string we intend to parse
-    jsonToParse.erase(0, jsonToParse.find_first_not_of(" \t\r\n"));
-    jsonToParse.erase(jsonToParse.find_last_not_of(" \t\r\n") + 1);
-
-    // --- Response Parsing Phase ---
-    toolCalls.clear();
-    finalResponseToUser = ""; // Reset final response for this iteration
-    thought = "";             // Reset thought
-    bool parseSuccess = parseStructuredLLMResponse(
-        jsonToParse, thought, toolCalls, finalResponseToUser);
-
-    if (!parseSuccess) {
-      logMessage(LogLevel::ERROR,
-                 "Failed to parse extracted JSON. Aborting task.",
-                 "Attempted to parse: " + jsonToParse);
-      // Provide a more informative error, including the raw response if parsing
-      // failed completely
-      finalResponseToUser =
-          "[SYSTEM] Error: Internal issue processing language model response "
-          "format. Raw response was:\n" +
-          rawLLMResponse;
-      taskComplete = true;
-      break;
-    }
-
-    if (!thought.empty()) {
-      logMessage(LogLevel::DEBUG, "LLM Thought:", thought);
-    }
-
-    // --- Task Completion Check ---
-    if (!finalResponseToUser.empty()) {
-      logMessage(LogLevel::INFO, "LLM provided final response. Task complete.");
-      taskComplete = true;
-      break;
-    }
-
-    // --- Tool Execution Phase ---
-    if (toolCalls.empty()) {
-      logMessage(LogLevel::WARN, "LLM provided no tool calls and no final "
-                                 "response. Agent may be stuck.");
-      finalResponseToUser =
-          "[SYSTEM] Agent process inconclusive. The language model did not "
-          "provide a final answer or request further actions. Last thought: " +
-          (thought.empty() ? "(None)" : thought);
-      taskComplete = true;
-      break;
-    } else {
-      logMessage(LogLevel::INFO, std::to_string(toolCalls.size()) +
-                                     " tool call(s) requested. Executing...");
-      std::string toolResultsString = processToolCalls(toolCalls);
-      addToHistory("tool", toolResultsString);
-
-      if (skipFlowIteration) {
-        std::string notice =
-            "[SYSTEM] Tool execution finished, skip requested. Review results.";
-        logMessage(LogLevel::INFO,
-                   "Skipping next LLM call as requested by a tool.");
-        finalResponseToUser = notice;
-        taskComplete = true;
-        skipFlowIteration = false;
-        break;
-      }
-    }
-  } // End of iteration loop
-
-  // --- Post-Loop Finalization ---
-  if (!taskComplete && iteration >= iterationCap) {
-    logMessage(LogLevel::WARN, "Agent '" + name + "' reached iteration cap (" +
-                                   std::to_string(iterationCap) + ").");
-    finalResponseToUser = "[SYSTEM] Reached maximum interaction depth (" +
-                          std::to_string(iterationCap) +
-                          "). Task may be incomplete. Last thought: " +
-                          (thought.empty() ? "(None)" : thought);
-  } else if (!taskComplete && finalResponseToUser.empty()) {
-    logMessage(LogLevel::ERROR, "Loop finished unexpectedly without task "
-                                "completion or final response.");
-    finalResponseToUser =
-        "[SYSTEM] An unexpected error occurred in the agent processing loop.";
+  if (!reader.parse(ss, root, false)) {
+    logMessage(LogLevel::ERROR,
+               "Failed to parse LLM response as JSON for agent '" + name + "'",
+               reader.getFormattedErrorMessages());
+    finalResponse = jsonString;
+    return false;
   }
 
-  logMessage(LogLevel::INFO, "Final response generated by Agent '" + name +
-                                 "' after " + std::to_string(iteration) +
-                                 " iteration(s).");
-  return finalResponseToUser;
+  if (root.isMember("status") && root["status"].isString()) {
+    status = root["status"].asString();
+  } else {
+    logMessage(LogLevel::ERROR,
+               "LLM JSON missing required 'status' field for agent '" + name +
+                   "'.",
+               jsonString);
+  }
+
+  if (root.isMember("thoughts") && root["thoughts"].isArray()) {
+    for (const auto &tv : root["thoughts"]) {
+      if (tv.isObject() && tv.isMember("type") && tv["type"].isString() &&
+          tv.isMember("content") && tv["content"].isString()) {
+        thoughts.push_back({tv["type"].asString(), tv["content"].asString()});
+      } else {
+        logMessage(LogLevel::WARN,
+                   "Malformed thought object in LLM JSON for agent '" + name +
+                       "'. Skipping.",
+                   tv.toStyledString());
+      }
+    }
+  } else {
+    logMessage(LogLevel::ERROR,
+               "LLM JSON missing required 'thoughts' array for agent '" + name +
+                   "'.",
+               jsonString);
+  }
+
+  if (root.isMember("actions") && root["actions"].isArray()) {
+    for (const auto &av : root["actions"]) {
+      if (av.isObject() && av.isMember("action") && av["action"].isString() &&
+          av.isMember("type") && av["type"].isString() &&
+          av.isMember("params") && av["params"].isObject()) {
+        ActionInfo ai;
+        ai.action = av["action"].asString();
+        ai.type = av["type"].asString();
+        ai.params = av["params"];
+        if (av.isMember("confidence") && av["confidence"].isNumeric()) {
+          ai.confidence = av["confidence"].asDouble();
+        }
+        if (av.isMember("warnings") && av["warnings"].isArray()) {
+          for (const auto &w : av["warnings"]) {
+            if (w.isString())
+              ai.warnings.push_back(w.asString());
+          }
+        }
+        actions.push_back(ai);
+      } else {
+        logMessage(LogLevel::WARN,
+                   "Malformed action object in LLM JSON for agent '" + name +
+                       "'. Skipping.",
+                   av.toStyledString());
+      }
+    }
+  } else {
+    logMessage(LogLevel::ERROR,
+               "LLM JSON missing required 'actions' array for agent '" + name +
+                   "'.",
+               jsonString);
+  }
+
+  if (root.isMember("final_response") && root["final_response"].isString()) {
+    finalResponse = root["final_response"].asString();
+  } else if (root.isMember("final_response") &&
+             root["final_response"].isNull()) {
+    finalResponse = "";
+  } else {
+    logMessage(LogLevel::DEBUG, "LLM JSON missing 'final_response' field or "
+                                "not string/null for agent '" +
+                                    name + "'.");
+  }
+
+  if (status == "SUCCESS_FINAL" && !actions.empty()) {
+    logMessage(LogLevel::WARN,
+               "LLM JSON: Status SUCCESS_FINAL but actions array not empty for "
+               "agent '" +
+                   name + "'.",
+               jsonString);
+  }
+  if ((status == "REQUIRES_ACTION" || status == "REQUIRES_CLARIFICATION") &&
+      actions.empty()) {
+    logMessage(LogLevel::WARN,
+               "LLM JSON: Status requires action/clarification but actions "
+               "array empty for agent '" +
+                   name + "'.",
+               jsonString);
+  }
+
+  return true;
 }
 
+// --- Action Processing (NEW Structure) ---
+std::string Agent::processActions(const std::vector<ActionInfo> &actions) {
+  std::stringstream resultsStream;
+  resultsStream << "<action_results>\n";
+  for (const auto &actionInfo : actions) {
+    logMessage(LogLevel::TOOL_CALL, "Processing action '" + actionInfo.action +
+                                        "' (type: " + actionInfo.type + ")");
+    if (!actionInfo.warnings.empty()) {
+      for (const auto &warn : actionInfo.warnings)
+        logMessage(LogLevel::WARN, "Action Warning:", warn);
+    }
+    if (actionInfo.confidence < 0.95)
+      logMessage(LogLevel::DEBUG,
+                 "Action Confidence:", std::to_string(actionInfo.confidence));
+    std::string result = processAction(actionInfo);
+    logMessage(LogLevel::TOOL_RESULT,
+               "Action result for '" + actionInfo.action + "'", result);
+    resultsStream << "\t<action_result action=\"" << actionInfo.action
+                  << "\" type=\"" << actionInfo.type << "\">\n";
+    std::stringstream ss_result(result);
+    std::string line;
+    while (std::getline(ss_result, line)) {
+      resultsStream << "\t\t" << line << "\n";
+    }
+    resultsStream << "\t</action_result>\n";
+  }
+  resultsStream << "</action_results>";
+  return resultsStream.str();
+}
+
+std::string Agent::processAction(const ActionInfo &actionInfo) {
+  if (actionInfo.type == "tool") {
+    Tool *tool = getRegisteredTool(actionInfo.action);
+    if (tool) {
+      try {
+        return tool->execute(actionInfo.params);
+      } catch (const std::exception &e) {
+        logMessage(LogLevel::ERROR, "Tool Exception: " + actionInfo.action,
+                   e.what());
+        return "Error: Tool Exception: " + std::string(e.what());
+      } catch (...) {
+        logMessage(LogLevel::ERROR, "Unknown Tool Exception",
+                   actionInfo.action);
+        return "Error: Unknown Tool Exception.";
+      }
+    } else {
+      logMessage(LogLevel::ERROR, "Tool not found", actionInfo.action);
+      return "Error: Tool '" + actionInfo.action + "' not registered.";
+    }
+  } else if (actionInfo.type == "internal_function") {
+    if (actionInfo.action == "help")
+      return getHelp(actionInfo.params);
+    if (actionInfo.action == "skip")
+      return skip(actionInfo.params);
+    if (actionInfo.action == "promptAgent")
+      return promptAgentTool(actionInfo.params);
+    if (actionInfo.action == "summarizeTool")
+      return summerizeTool(actionInfo.params); // Typo kept
+    if (actionInfo.action == "summarizeHistory")
+      return summarizeHistory(actionInfo.params);
+    if (actionInfo.action == "getWeather")
+      return getWeather(actionInfo.params);
+    logMessage(LogLevel::ERROR, "Unknown internal function", actionInfo.action);
+    return "Error: Unknown internal function '" + actionInfo.action + "'.";
+  } else if (actionInfo.type == "script") {
+    logMessage(LogLevel::WARN, "Script execution not implemented",
+               actionInfo.action);
+    return "Error: Script execution not supported.";
+  } else if (actionInfo.type == "http_request") {
+    logMessage(LogLevel::WARN, "HTTP request execution not implemented",
+               actionInfo.action);
+    return "Error: Direct HTTP requests not supported.";
+  } else if (actionInfo.type == "output") {
+    if (actionInfo.action == "send_response") {
+      if (actionInfo.params.isMember("text") &&
+          actionInfo.params["text"].isString()) {
+        logMessage(LogLevel::INFO, "Executing send_response (text)",
+                   actionInfo.params["text"].asString());
+        return actionInfo.params["text"].asString();
+      } // Add file_path, variable handling here (FUTURE)
+      else {
+        logMessage(LogLevel::ERROR, "Invalid params for send_response",
+                   actionInfo.params.toStyledString());
+        return "Error: Invalid params for send_response.";
+      }
+    } else {
+      logMessage(LogLevel::ERROR, "Unknown output action", actionInfo.action);
+      return "Error: Unknown output action '" + actionInfo.action + "'.";
+    }
+  } else if (actionInfo.type == "workflow_control") {
+    logMessage(LogLevel::DEBUG, "Workflow control action handled by main loop",
+               actionInfo.action);
+    return "Action '" + actionInfo.action + "' acknowledged.";
+  } else {
+    logMessage(LogLevel::ERROR, "Unsupported action type",
+               actionInfo.type + " for " + actionInfo.action);
+    return "Error: Unsupported action type '" + actionInfo.type + "'.";
+  }
+}

@@ -1,0 +1,180 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    standard.yaml                                      :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: mlamkadm <mlamkadm@student.42.fr>          +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2025/05/04 17:28:44 by mlamkadm          #+#    #+#              #
+#    Updated: 2025/05/04 17:28:44 by mlamkadm         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+# --- Standard Agent Profile ---
+# Use this as a base template for creating more specialized agents.
+# It defines a general-purpose assistant configuration loadable by
+# the current loadAgentProfile function.
+
+version: "agent-1.1"
+
+# --- Core Identity & Configuration ---
+
+variables:
+  - sample_description: "$(description.md)" #using the var name should be operational we could have the name extracted and default to it. having an explicit config style also 
+  - tmp: "hello"
+  - blank: ""
+  - scalar: |
+      hello im winning
+  - folder-test: ./context-files-mk1 #will load all files from the folder name && ref them by extracting the extension
+
+
+name: "StandardAgent"
+description: |
+  A general-purpose assistant agent.
+  Designed to understand user requests, follow instructions,
+  potentially use available tools via actions, and provide helpful responses.
+  Lives In a HomeLab, Talks in pure JSON.
+  *This is the standard base profile.*
+
+system_prompt: | # ill try to make these loadable from a file as well. since they could get bigger. also for a more zen/focus.
+  You are a helpful and versatile AI assistant.
+  Your goal is to understand the user's request provided via the conversation history ..., and respond appropriately.
+
+  [IMPORTANT] Adhere strictly to this JSON format provided.
+
+agents:
+  - 
+  # - refer and load other profiles link them to thwe appropriate class in runtime. prob same with tools. for them we do need the MVP first.
+tools:
+    # Defines a reusable tool configuration accessible via the key 'BashExecutor'.
+    BashExecutor:
+      name: "bash" # Internal name used when attaching to agents.
+      description: "Executes a bash command provided as input."
+      type: "code" # Specifies this tool i  s implemented via code. FUTURE: Add "api", "service", file
+      runtime: "bash" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
+      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
+      #   command: { type: "string", description: "The bash command to execute." }
+      code: | # The actual code to execute. Input mapping TBD (e.g., via parameters).
+        #!/bin/bash
+        echo "Executing command: $1" >&2 # Example logging
+        eval "$1" # WARNING: Security risk! Needs sandboxing/safer execution. Placeholder only.
+    websearch:
+      name: "websearch" # Internal name used when attaching to agents.
+      description: "Searches the web."
+      type: "file" # do we even need this, it could just be infered through the addition of path
+      path: "./script/standard/websearch.py"
+      runtime: "python" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
+      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
+      # command: { type: "string", description: "The bash command to execute." }
+      
+ # context: # global.context.cpp-ref
+ #    - type: file
+ #      path: ./.resources/repo-cpp-code-refrences.md
+ #      name: cpp-ref #if not specified, auto extraction will happen so its name would be repo-cpp-code-refrences and it would be accessed at global.context.repo-cpp-code-refrences
+ #      # var: global.code
+ #    - type: file
+ #      path: ./.context # file that does exist is created
+ #      append: # "./.context.old" | "simple text context to insert to the file" we could even make these stackble together for effective and blazing fast context loading and prototyping.
+
+
+
+iteration_cap: 10 # A standard default iteration limit.
+
+# --- Environment Variables ---
+environment: # Empty by default, add specific variables for specialized agents.
+  DEFAULT_LANGUAGE: "en-US"
+
+sub-agents:
+  note:
+   environment:
+     # - Overrides 
+# --- Additional Instructions & Guidance ---
+
+schema: |
+  {
+    status: string (REQUIRED, enum: SUCCESS_FINAL | REQUIRES_ACTION | REQUIRES_CLARIFICATION | ERROR_INTERNAL),
+    thoughts: array<object> (REQUIRED, object: { type: string (REQUIRED, enum: DECISION| LONG_TERM | SHORT_TERM| PLAN | OBSERVATION | QUESTION | NORM | ASSUMPTION | GOAL | HYPOTHESIS | CRITIQUE), content: string (REQUIRED) }),
+    actions: array<object> (REQUIRED, object: { action: string (REQUIRED), type: string (REQUIRED, enum: tool | script | http_request | internal_function | output | workflow_control), params: object (REQUIRED, structure depends on action/type), confidence?: float (0.0-1.0), warnings?: array<string> }),
+    response: string | null | bool (clarify/wait for user reply)
+  }
+
+
+  # {
+  #       "type": "ADJUST",
+  #       "content": "content for behavioral change (auto learn)"
+  #     },
+# {
+ 
+
+example: |
+  "User said 'hello'. The following is the raw llm reply that was Generated: "
+  {
+    "status": "DONE",
+    "thoughts": [
+      {
+        "type": "OBSERVATION",
+        "content": "Looks like the user is saying hello."
+      },
+      {
+        "type": "DECISION",
+        "content": "Lets be nice, and say and hello back."
+      },
+      {
+        "type": "LONG_TERM",
+        "content": "Determine and gather context to achieve the users request."
+      },
+      {
+        "type": "SHORT_TERM",
+        "content": "Ask a follow up question, since the user doesnt seem to be requesting anything right now."
+      },
+      {
+        "type": "DECISION",
+        "content": "Say hello back. Proceed with asking about asking the user and listing some of the things I can help with. Maybe Suggest A few from the habit information available about the user"
+      },
+    ],
+    "actions": [],
+    "response": 
+    {
+      "type": "REPLY",
+      "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
+    }
+    {
+      "type": "WAIT", // seems unnecessary
+      "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
+    }
+    {
+      "type": "CLI", // output routing maybe array of outputs, dashboard.
+      "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
+    }
+
+  }
+  
+
+
+
+
+
+extra_prompts:
+  - "Be polite and helpful in your responses."
+  - "If a request is ambiguous or lacks necessary details, ask clarifying questions before proceeding."
+  - "Break down complex tasks into smaller steps in your 'thoughts' plan."
+
+# tasks: # General conceptual workflow for the agent
+#   - "Analyze the user's request and conversation history."
+#   - "Formulate a plan (document in 'thoughts')."
+#   - "Identify if clarification or tool/action use is needed."
+#   - "Execute required actions OR request clarification OR formulate final response."
+#   - "Ensure the final output is in the correct JSON structure."
+
+# --- Agent Directive ---
+
+# directive: # Default operational mode
+#   type: "NORMAL"
+#   description: "Assist the user with their requests in a standard conversational manner."
+#   format: "" # No specific format constraint by default.
+
+# --- Note ---
+# This standard profile does NOT define specific tools, sub-agents,
+# memory configurations, or initial history. These should be added
+# or overridden in the YAML profiles of more specialized agents
+# or configured programmatically via the Orchestrator/Agent instances.

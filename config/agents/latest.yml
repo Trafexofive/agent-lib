@@ -1,0 +1,102 @@
+# --- Agent Profile Schema (Based on Current C++ loadAgentProfile) ---
+# This describes the fields currently understood by the basic loadAgentProfile function.
+# Fields not listed here (like history, memory state, registered tool objects)
+# are not loaded from this YAML profile using the current simple loader.
+
+version: "agent-1.1" # Optional: Version marker for the profile format itself.
+
+# --- Core Identity & Configuration ---
+
+name: "string"
+# Optional. Sets the agent's name via agent.setName().
+# If missing, the agent retains its default name or previously set name.
+# Example: "MySpecificAgent"
+
+description: "string"
+# Optional. Sets the agent's description via agent.setDescription().
+# Use YAML multi-line strings (| or >) for longer descriptions.
+# Example: |
+#   An agent designed to process specific data types
+#   and utilize the 'data_processor' tool.
+
+system_prompt: "string"
+# Optional. Sets the agent's core system prompt via agent.setSystemPrompt().
+# Use YAML multi-line strings (| or >). If missing, the agent uses its default prompt.
+# Example: |
+#   You are a helpful assistant. Respond clearly.
+
+iteration_cap: integer
+# Optional. Sets the maximum iterations per user prompt via agent.setIterationCap().
+# Must be a positive integer. If missing or invalid, the agent uses its default/previous cap.
+# Example: 15
+
+# --- Environment Variables ---
+
+environment:
+  # Optional. A map of key-value string pairs.
+  # Each pair is added/updated via agent.addEnvVar(key, value).
+  # Keys and values must be strings.
+  KEY_1: "value1"
+  ANOTHER_KEY: "some setting"
+  # ...
+
+# --- Additional Instructions & Guidance ---
+
+extra_prompts:
+  # Optional. A list of strings.
+  # Each string is added to the agent's extra prompts via agent.addPrompt().
+  - "Always ask for clarification if the request is ambiguous."
+  - "Prefer using metric units unless specified otherwise."
+  # ...
+
+tasks:
+  # Optional. A list of strings representing conceptual tasks for the agent.
+  # Each string is added via agent.addTask(). Primarily for guidance/prompting.
+  - "Understand user request."
+  - "Identify required tools."
+  - "Execute tools sequentially."
+  - "Format final response."
+  # ...
+
+# --- Agent Directive ---
+
+directive:
+  # Optional. A map defining the agent's default operating mode/goal.
+  # Sets the directive via agent.setDirective().
+  type: "string"
+  # Optional. The type of directive. Must be one of:
+  # NORMAL, BRAINSTORMING, AUTONOMOUS, EXECUTE, REPORT
+  # Defaults to NORMAL if missing or invalid.
+  # Example: "EXECUTE"
+
+  description: "string"
+  # Optional. Textual description of the directive's goal.
+  # Example: "Execute the primary task described in the user prompt."
+
+  format: "string"
+  # Optional. Description of the expected output format for this directive.
+  # Example: "Provide the output as a JSON object with 'result' and 'confidence' keys."
+
+# --- Sections NOT Loaded by current simple loadAgentProfile ---
+# The following sections might exist in more advanced schemas but are
+# ignored by the basic loader described previously:
+#
+# tools:
+#   # List of expected tool names/references. Tool *instances* must be added programmatically.
+#   - ref: "MyToolName"
+#
+# sub_agents:
+#   # List of expected sub-agent names/references. Agent *instances* must be added programmatically.
+#   - ref: "MySubAgent"
+#
+# memory:
+#   # Configuration for loading initial/persistent memory states.
+#
+# history:
+#   # Configuration for loading initial conversation history.
+#
+# api_config:
+#   # Agent-specific overrides for LLM API configuration.
+#
+# persistence:
+#   # Settings for saving/loading the agent's full runtime state.

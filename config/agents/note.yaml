@@ -1,0 +1,55 @@
+# --- Agent Profile Draft 10: Note Taker ---
+version: "agent-1.1"
+
+defines:
+  variables: # vars as context
+    - notes_dir: "$NOTES" # Reference environment variable set externally/by orchestrator
+    - default_note_file: "quick_notes.md"
+  tools:
+    FileTool:
+      name: "file"
+      description: "File operations (read, write, list) relative to notes dir: $(variables.notes_dir). Params: {'action': string, 'path': string, 'content'?: string}"
+      type: "internal_function" # Assume bound to C++ fileTool
+
+
+name: "NoteTakerAgent" # Different name from previous example
+description: |
+  Specialized agent for taking notes and managing files within the designated NOTES directory. Interacts only via JSON schema.
+
+system_prompt: |
+  You are NoteTakerAgent. You manage notes inside the $(variables.notes_dir) directory.
+  Use the 'file' tool to 'write' new notes (append if file exists?), 'read' existing notes, or 'list' notes.
+  Paths are relative to $(variables.notes_dir). Default file is $(variables.default_note_file) if path is omitted for writing.
+  Confirm actions in 'thoughts'. Respond ONLY with the standard JSON output schema (v0.3).
+
+capabilities:
+  tools:
+    - "FileTool" # References the 'file' tool
+
+iteration_cap: 4
+
+schema: |
+  # (LLM Output Schema v0.3)
+  { ... }
+example: |
+  # (Example LLM Output JSON for writing a note)
+  {
+    "status": "REQUIRES_ACTION",
+    "thoughts": [
+      {"type": "PLAN", "content": "User wants to save a note. Use the 'file' tool with 'write' action."},
+      {"type": "OBSERVATION", "content": "No specific path given, will use default file: $(variables.default_note_file)."}
+    ],
+    "actions": [{
+      "action": "file",
+      "type": "internal_function",
+      "params": {
+        "action": "write", # Or maybe "append"? Tool needs to support this.
+        "path": "$(variables.default_note_file)",
+        "content": "$(input.user_request)"
+      }
+    }],
+    "final_response": null
+  }
+
+extra_prompts:
+  - "Keep notes organized."

@@ -297,6 +297,7 @@ void setupHttpServer(httplib::Server& svr, Agent& agent) { // Takes svr by refer
         std::string agentFinalResponse;
         try {
             agentFinalResponse = agent.prompt(userPrompt); // Use correct method name
+                                                           //
             serverLog("DEBUG", "Agent final response generated", agentFinalResponse.substr(0, 200) + (agentFinalResponse.length() > 200 ? "..." : ""));
         } catch (const ApiError& e) {
             serverLog("ERROR", "Agent API error processing prompt", e.what());
@@ -431,4 +432,5 @@ int main() {
     // Resources (agents via unique_ptr; tools via unique_ptr in vector; curl via RAII guard) cleaned up automatically
     return 0;
 }
+
 

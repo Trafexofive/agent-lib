@@ -15,7 +15,6 @@ class Value;
 typedef std::string (*ToolCallback)(const Json::Value &params);
 typedef std::string (*ToolCallbackWithAgent)(const Json::Value &params,
                                              Agent &agent);
-// PureTextToolCallback removed
 
 class Tool {
 public:
@@ -88,6 +87,7 @@ public:
   void addUseCase(const std::string &use_case, const std::string &example) {
     m_use_cases[use_case] = example;
   }
+
   std::string getUseCase(const std::string &use_case) const {
     auto it = m_use_cases.find(use_case);
     if (it != m_use_cases.end()) {
@@ -128,22 +128,6 @@ public:
     return all_use_cases;
   }
 
-  // --- Memory and Storage Management (Simple Key-Value) ---
-  void addMemory(const std::string &key, const std::string &value) {
-    m_memory_stack[key] = value;
-  }
-  std::string getMemory(const std::string &key) const {
-    auto it = m_memory_stack.find(key);
-    if (it != m_memory_stack.end()) {
-      return it->second;
-    } else {
-      // Return empty string or throw? Empty is safer.
-      return "";
-      // throw std::runtime_error("Memory key not found: " + key);
-    }
-  }
-  void clearMemory() { m_memory_stack.clear(); }
-
 private:
   std::string m_name;
   std::string m_description;
@@ -151,13 +135,16 @@ private:
   ToolCallback m_callback = nullptr; // Standard callback (expects JSON)
   ToolCallbackWithAgent m_builtin_callback =
       nullptr; // Callback needing agent context (expects JSON)
+  enum {
+    // Tool types can be defined here if needed
+    // e.g., EXTERNAL, BUILTIN, etc.
+    TOOL_TYPE_EXTERNAL,
+    TOOL_TYPE_BUILTIN
+  } type = TOOL_TYPE_EXTERNAL;
 
   std::map<std::string, std::string>
       m_use_cases; // Map of purpose -> example JSON params string
-  std::map<std::string, std::string>
-      m_memory_stack; // Simple key-value store for tool state
 
-  Agent *m_agent =
-      nullptr; // Pointer to the agent using this tool (for builtin callbacks)
-               // PureTextToolCallback removed
+  Agent *m_agent = nullptr; // Pointer to the agent using this tool (for builtin
+                            // callbacks) PureTextToolCallback removed
 };
