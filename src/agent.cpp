@@ -1,164 +1,119 @@
-#include "../inc/Agent.hpp"      // Make sure this path is correct
-#include "../inc/MiniGemini.hpp" // Make sure this path is correct
-#include "../inc/Tool.hpp"       // Make sure this path is correct
-#include "../inc/modelApi.hpp"   // For ApiError (ensure this exists)
+#include "../inc/Agent.hpp" // Adjust path as necessary
+#include <algorithm>        // For std::remove_if, std::find_if
+#include <cstdlib>          // For std::getenv (importEnvironmentFile)
+#include <fstream>          // For file operations (importEnvironmentFile)
+#include <iostream>         // For std::cout, std::cin, std::cerr
+#include <sstream>          // For std::stringstream
 
-#include <algorithm> // For std::find_if, std::remove_if
-#include <chrono>    // For timestamp
-#include <cstdlib>   // For system, getenv
-#include <ctime>
-#include <fstream> // For file operations
-#include <iomanip> // For formatting time
-#include <iostream>
-#include <json/json.h> // Includes reader, writer, value
-#include <map>
-#include <memory> // For unique_ptr if used elsewhere
-#include <sstream>
-#include <stdexcept>
-#include <vector>
-
-// Simple colored logging function (assuming it's defined correctly, e.g., like
-// previous versions) void logMessage(LogLevel level, const std::string
-// &message, const std::string &details = "");
-// --- Logging Function Placeholder ---
-// Replace with your actual logging implementation
+// --- Logging Function Implementation (Example) ---
 void logMessage(LogLevel level, const std::string &message,
                 const std::string &details) {
-  auto now = std::chrono::system_clock::now();
-  auto now_c = std::chrono::system_clock::to_time_t(now);
-  std::tm now_tm = *std::localtime(&now_c);
-  char time_buffer[20];
-  std::strftime(time_buffer, sizeof(time_buffer), "%H:%M:%S", &now_tm);
+  auto nowChrono = std::chrono::system_clock::now();
+  auto nowTimeT = std::chrono::system_clock::to_time_t(nowChrono);
+  std::tm nowTm = *std::localtime(&nowTimeT);
+  char timeBuffer[20];
+  std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &nowTm);
+
   std::string prefix;
-  std::string color_start = "";
-  std::string color_end = "\033[0m";
+  std::string colorStart = "";
+  std::string colorEnd = "\033[0m"; // ANSI Reset
+
   switch (level) {
   case LogLevel::DEBUG:
     prefix = "[DEBUG] ";
-    color_start = "\033[36m";
-    break;
+    colorStart = "\033[36m";
+    break; // Cyan
   case LogLevel::INFO:
     prefix = "[INFO]  ";
-    color_start = "\033[32m";
-    break;
+    colorStart = "\033[32m";
+    break; // Green
   case LogLevel::WARN:
     prefix = "[WARN]  ";
-    color_start = "\033[33m";
-    break;
+    colorStart = "\033[33m";
+    break; // Yellow
   case LogLevel::ERROR:
     prefix = "[ERROR] ";
-    color_start = "\033[1;31m";
-    break;
+    colorStart = "\033[1;31m";
+    break; // Bold Red
   case LogLevel::TOOL_CALL:
     prefix = "[TOOL CALL] ";
-    color_start = "\033[1;35m";
-    break;
+    colorStart = "\033[1;35m";
+    break; // Bold Magenta
   case LogLevel::TOOL_RESULT:
     prefix = "[TOOL RESULT] ";
-    color_start = "\033[35m";
-    break;
+    colorStart = "\033[35m";
+    break; // Magenta
   case LogLevel::PROMPT:
     prefix = "[PROMPT] ";
-    color_start = "\033[34m";
-    break;
+    colorStart = "\033[34m";
+    break; // Blue
   }
-  std::ostream &out = (level == LogLevel::ERROR || level == LogLevel::WARN)
-                          ? std::cerr
-                          : std::cout;
-  out << color_start << std::string(time_buffer) << " " << prefix << message
-      << color_end << std::endl;
+  std::ostream &outStream =
+      (level == LogLevel::ERROR || level == LogLevel::WARN) ? std::cerr
+                                                            : std::cout;
+  outStream << colorStart << std::string(timeBuffer) << " " << prefix << message
+            << colorEnd << std::endl;
   if (!details.empty()) {
-    const size_t max_detail_len = 500;
-    std::string truncated_details = details.substr(0, max_detail_len);
-    if (details.length() > max_detail_len)
-      truncated_details += "... (truncated)";
-    out << color_start << "  " << truncated_details << color_end << std::endl;
+    const size_t MAX_DETAIL_LEN = 500;
+    std::string truncatedDetails = details.substr(0, MAX_DETAIL_LEN);
+    if (details.length() > MAX_DETAIL_LEN)
+      truncatedDetails += "... (truncated)";
+    outStream << colorStart << "  " << truncatedDetails << colorEnd
+              << std::endl;
   }
 }
-// --- End Logging Function ---
+// --- End Logging ---
 
-// --- Agent Implementation ---
-
-Agent::Agent(MiniGemini &apiRef)
-    : api(apiRef), systemPrompt(R"(SYSTEM PROMPT: Base Agent
-
-**Role:** Process user requests, utilize tools via actions, and provide responses.
-
-**Interaction Model:**
-You MUST respond with a single JSON object containing the following fields:
-1.  `status`: (String - REQUIRED) Outcome hint: 'SUCCESS_FINAL', 'REQUIRES_ACTION', 'REQUIRES_CLARIFICATION', 'ERROR_INTERNAL'.
-2.  `thoughts`: (Array of Objects - REQUIRED) Your structured reasoning, each object as `{"type": "TYPE", "content": "..."}`. Can be `[]`.
-3.  `actions`: (Array of Objects - REQUIRED) Actions to execute now, each as `{"action": "...", "type": "...", "params": { ... }}`. MUST be `[]` if status is 'SUCCESS_FINAL'.
-4.  `final_response`: (String | null - DEPRECATED?) Primarily use `send_response` action. Use this field ONLY if status is 'SUCCESS_FINAL' and 'actions' is `[]`. Set to `null` or `""` otherwise.
-
-Adhere strictly to this JSON format (LLM Output Schema v0.3).
-)"),
-      iteration(0), iterationCap(10), skipFlowIteration(false),
-      name("default_agent") {
-  // Initialize internal tool descriptions
-  internalToolDescriptions["help"] =
+Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
+    : api(apiRef), agentName(agentNameVal), currentIteration(0),
+      iterationLimit(10), skipNextFlowIteration(false) {
+  logMessage(LogLevel::DEBUG, "Agent instance created", "Name: " + agentName);
+  // Initialize descriptions for internal functions
+  internalFunctionDescriptions["help"] =
       "Provides descriptions of available tools/actions. Parameters: "
       "{\"action_name\": \"string\" (optional)}";
-  internalToolDescriptions["skip"] =
-      "Skips the final response generation for the current turn. Parameters: "
-      "null (action implies skipping)";
-  internalToolDescriptions["promptAgent"] =
+  internalFunctionDescriptions["skip"] = "Skips the final response generation "
+                                         "for the current turn. No parameters.";
+  internalFunctionDescriptions["promptAgent"] =
       "Sends a prompt to another registered agent. Parameters: "
       "{\"agent_name\": \"string\", \"prompt\": \"string\"}";
-  internalToolDescriptions["summarizeTool"] =
+  internalFunctionDescriptions["summarizeText"] =
       "Summarizes provided text content. Parameters: {\"text\": \"string\"}";
-  internalToolDescriptions["summarizeHistory"] =
-      "Summarizes the current conversation history. Parameters: {}";
-  internalToolDescriptions["getWeather"] =
+  internalFunctionDescriptions["summarizeHistory"] =
+      "Summarizes the current conversation history. No parameters.";
+  internalFunctionDescriptions["getWeather"] =
       "Fetches current weather. Parameters: {\"location\": \"string\"}";
-  // Add others as needed...
-  logMessage(LogLevel::DEBUG, "Agent instance created", "Name: " + name);
+}
+
+Agent::~Agent() {
+  logMessage(LogLevel::DEBUG, "Agent instance destroyed, cleaning up tools.",
+             "Name: " + agentName);
+  for (auto &pair : registeredTools) {
+    delete pair.second; // Delete tools agent owns
+  }
+  registeredTools.clear();
 }
 
 // --- Configuration Setters ---
+void Agent::setName(const std::string &newName) { agentName = newName; }
+void Agent::setDescription(const std::string &newDescription) {
+  agentDescription = newDescription;
+}
 void Agent::setSystemPrompt(const std::string &prompt) {
   systemPrompt = prompt;
-  // Optional: Add reminder check
-  //   if (systemPrompt.find("\"status\"") == std::string::npos ||
-  //       systemPrompt.find("\"thoughts\"") == std::string::npos ||
-  //       systemPrompt.find("\"actions\"") == std::string::npos) {
-  //     systemPrompt += R"(
-  //
-  // // Reminder: ALWAYS respond with a single JSON object matching the required
-  // schema (status, thoughts, actions, final_response).
-  // )";
-  //   }
 }
-void Agent::setName(const std::string &newName) { name = newName; }
-void Agent::setDescription(const std::string &newDescription) {
-  description = newDescription;
+void Agent::setSchema(const std::string &schema) { llmResponseSchema = schema; }
+void Agent::setExample(const std::string &example) {
+  llmResponseExample = example;
 }
-void Agent::setIterationCap(int cap) { iterationCap = (cap > 0) ? cap : 1; }
-void Agent::setDirective(const DIRECTIVE &dir) { directive = dir; }
+void Agent::setIterationCap(int cap) { iterationLimit = (cap > 0) ? cap : 1; }
+void Agent::setDirective(const AgentDirective &directive) {
+  currentDirective = directive;
+}
 void Agent::addTask(const std::string &task) { tasks.push_back(task); }
 void Agent::addInitialCommand(const std::string &command) {
   initialCommands.push_back(command);
 }
-
-// --- Public Getters ---
-const std::string Agent::getName() const { return name; }
-const std::string Agent::getDescription() const { return description; }
-MiniGemini &Agent::getApi() { return api; }
-fileList Agent::getFiles() const { return files; }
-const std::vector<std::pair<std::string, std::string>> &
-Agent::getHistory() const {
-  return history;
-}
-const std::string &Agent::getSystemPrompt() const { return systemPrompt; }
-int Agent::getIterationCap() const { return iterationCap; }
-const std::vector<std::pair<std::string, std::string>> &Agent::getEnv() const {
-  return env;
-}
-const std::vector<std::string> &Agent::getExtraPrompts() const {
-  return extraPrompts;
-}
-const std::vector<std::string> &Agent::getTasks() const { return tasks; }
-const Agent::DIRECTIVE &Agent::getDirective() const { return directive; }
 
 // --- Tool Management ---
 void Agent::addTool(Tool *tool) {
@@ -169,628 +124,762 @@ void Agent::addTool(Tool *tool) {
   const std::string &toolName = tool->getName();
   if (toolName.empty()) {
     logMessage(LogLevel::WARN, "Attempted to add a tool with an empty name.");
+    delete tool; // Clean up if not added
     return;
   }
-  if (tools.count(toolName) || internalToolDescriptions.count(toolName)) {
+  if (registeredTools.count(toolName) ||
+      internalFunctionDescriptions.count(toolName)) {
     logMessage(LogLevel::WARN,
-               "Attempted to add tool/action with duplicate name: '" +
-                   toolName + "'. Ignoring.");
+               "Agent '" + agentName +
+                   "': Tool/internal function name conflict for '" + toolName +
+                   "'. Ignoring new tool.");
+    delete tool;
   } else {
-    tools[toolName] = tool; // Use map assignment
-    internalToolDescriptions[toolName] =
-        tool->getDescription(); // Store description
+    registeredTools[toolName] = tool;
     logMessage(LogLevel::INFO,
-               "Agent '" + name + "' added tool: '" + toolName + "'");
+               "Agent '" + agentName + "' registered tool: '" + toolName + "'");
   }
 }
 
 void Agent::removeTool(const std::string &toolName) {
-  if (tools.erase(toolName)) {
-    internalToolDescriptions.erase(toolName);
+  auto it = registeredTools.find(toolName);
+  if (it != registeredTools.end()) {
+    delete it->second;
+    registeredTools.erase(it);
     logMessage(LogLevel::INFO,
-               "Agent '" + name + "' removed tool: '" + toolName + "'");
+               "Agent '" + agentName + "' removed tool: '" + toolName + "'");
   } else {
     logMessage(LogLevel::WARN,
-               "Agent '" + name + "' attempted to remove non-existent tool: '" +
-                   toolName + "'");
+               "Agent '" + agentName +
+                   "' attempted to remove non-existent tool: '" + toolName +
+                   "'");
   }
 }
 
 Tool *Agent::getTool(const std::string &toolName) const {
-  auto it = tools.find(toolName);
-  return (it != tools.end()) ? it->second : nullptr;
+  auto it = registeredTools.find(toolName);
+  return (it != registeredTools.end()) ? it->second : nullptr;
 }
 
-Tool *Agent::getRegisteredTool(const std::string &toolName) const {
-  auto it = tools.find(toolName);
-  return (it != tools.end()) ? it->second : nullptr;
-}
-
-std::string
-Agent::getInternalToolDescription(const std::string &toolName) const {
-  auto it_internal = internalToolDescriptions.find(toolName);
-  if (it_internal != internalToolDescriptions.end()) {
-    return it_internal->second;
-  }
-  auto it_external = tools.find(toolName);
-  if (it_external != tools.end() && it_external->second) {
-    return it_external->second->getDescription();
-  }
-  return "";
-}
-
-// --- Core Agent Logic ---
+// --- Core Agent Loop ---
 void Agent::reset() {
-  history.clear();
+  conversationHistory.clear();
   scratchpad.clear();
-  iteration = 0;
-  skipFlowIteration = false;
-  logMessage(LogLevel::INFO, "Agent '" + name + "' reset.");
+  shortTermMemory.clear();
+  // longTermMemory typically persists unless explicitly cleared
+  currentIteration = 0;
+  skipNextFlowIteration = false;
+  logMessage(LogLevel::INFO, "Agent '" + agentName + "' state reset.");
 }
 
-void Agent::setSchema(const std::string &schema) { this->schema = schema; }
+void Agent::run() {
+  logMessage(LogLevel::INFO,
+             "Agent '" + agentName + "' starting interactive loop.");
+  logMessage(LogLevel::INFO,
+             "Type 'exit' or 'quit' to stop, 'reset' to clear history.");
 
-std::string Agent::executeApiCall(const std::string &fullPrompt) {
-  logMessage(LogLevel::PROMPT,
-             "Sending prompt to API for agent '" + name + "'");
-  // logMessage(LogLevel::DEBUG, "Full Prompt:", fullPrompt); // Uncomment for
-  // debugging
-  try {
-    std::string response = api.generate(fullPrompt);
-    logMessage(LogLevel::DEBUG,
-               "Received API response for agent '" + name + "'");
-    return response;
-  } catch (const ApiError &e) {
-    logMessage(LogLevel::ERROR,
-               "API Error occurred for agent '" + name + "':", e.what());
-    throw;
-  } catch (const std::exception &e) {
-    logMessage(LogLevel::ERROR,
-               "Standard exception during API call for agent '" + name + "':",
-               e.what());
-    throw std::runtime_error("Error during API call: " + std::string(e.what()));
-  } catch (...) {
-    logMessage(LogLevel::ERROR,
-               "Unknown exception during API call for agent '" + name + "'.");
-    throw std::runtime_error("Unknown error during API call");
+  // Execute initial commands if any
+  if (!initialCommands.empty()) {
+    logMessage(LogLevel::INFO,
+               "Executing " + std::to_string(initialCommands.size()) +
+                   " initial commands for agent '" + agentName + "'...");
+    std::vector<std::string> commandsToRun =
+        initialCommands; // Copy to allow modification if needed
+    initialCommands
+        .clear(); // Clear so they don't run again on 'reset' then 'run'
+    for (const auto &command : commandsToRun) {
+      Json::Value bashParams;
+      bashParams["command"] =
+          command; // Assuming your bash tool takes {"command": "..."}
+      logMessage(LogLevel::INFO, "Running initial command:", command);
+      try {
+        // We need a way to call the bash tool. The 'bash' tool should be
+        // registered.
+        Tool *bashTool =
+            getTool("bash"); // Assumes a tool named "bash" is registered
+        if (bashTool) {
+          std::string result = bashTool->execute(bashParams);
+          logMessage(LogLevel::INFO, "Initial command result:", result);
+        } else {
+          logMessage(LogLevel::ERROR,
+                     "Initial command '" + command +
+                         "' requires 'bash' tool, but it's not registered.");
+        }
+      } catch (const std::exception &e) {
+        logMessage(
+            LogLevel::ERROR,
+            "Error running initial command '" + command + "':", e.what());
+      }
+    }
   }
-}
 
-// --- Deprecated / Fallback Methods ---
-std::vector<Agent::ToolCallInfo>
-Agent::extractToolCalls(const std::string &response) {
-  logMessage(LogLevel::WARN,
-             "Using fallback simple tool call extraction for agent '" + name +
-                 "'.");
-  std::vector<ToolCallInfo> calls;
-  std::string startDelimiter = "```tool:";
-  std::string endDelimiter = "```";
-  size_t startPos = response.find(startDelimiter);
-  while (startPos != std::string::npos) {
-    size_t endPos =
-        response.find(endDelimiter, startPos + startDelimiter.length());
-    if (endPos == std::string::npos)
+  std::string userInputText;
+  while (true) {
+    std::cout << "\nUser (" << agentName << ") > ";
+    if (!std::getline(std::cin, userInputText)) {
+      logMessage(LogLevel::INFO, "Input stream closed (EOF). Exiting agent '" +
+                                     agentName + "'.");
       break;
-    std::string toolBlock =
-        response.substr(startPos + startDelimiter.length(),
-                        endPos - (startPos + startDelimiter.length()));
-    // Basic parsing - assumes toolName\n{JSON_PARAMS}
-    size_t firstNewline = toolBlock.find('\n');
-    if (firstNewline == std::string::npos) {
-      startPos = response.find(startDelimiter, endPos);
+    }
+    userInputText.erase(
+        0, userInputText.find_first_not_of(" \t\r\n")); // Trim leading
+    userInputText.erase(userInputText.find_last_not_of(" \t\r\n") +
+                        1); // Trim trailing
+
+    if (userInputText == "exit" || userInputText == "quit") {
+      logMessage(LogLevel::INFO, "Exit command received. Goodbye from agent '" +
+                                     agentName + "'!");
+      break;
+    } else if (userInputText == "reset") {
+      reset();
+      logMessage(LogLevel::INFO, "Agent '" + agentName + "' has been reset.");
+      continue;
+    } else if (userInputText.empty()) {
       continue;
     }
-    ToolCallInfo callInfo;
-    callInfo.toolName = toolBlock.substr(0, firstNewline);
-    std::string jsonParamsStr = toolBlock.substr(firstNewline + 1);
-    Json::Value paramsJson;
-    Json::Reader reader;
-    if (reader.parse(jsonParamsStr, paramsJson)) {
-      callInfo.params = paramsJson;
-      calls.push_back(callInfo);
-    } // Fixed placeholder
-    else {
+
+    try {
+      std::string agentResponseText = prompt(userInputText);
+      std::cout << "\n" << agentName << ":\n" << agentResponseText << std::endl;
+      std::cout << "-----------------------------------------" << std::endl;
+    } catch (const std::runtime_error
+                 &e) { // Catch specific ApiError if you have one
       logMessage(LogLevel::ERROR,
-                 "Failed to parse JSON params in tool block (fallback)",
-                 reader.getFormattedErrorMessages());
-    }
-    startPos = response.find(startDelimiter, endPos);
-  }
-  return calls;
-}
-
-std::string
-Agent::processToolCalls(const std::vector<ToolCallInfo> &toolCalls) {
-  logMessage(LogLevel::WARN,
-             "Using deprecated processToolCalls for agent '" + name + "'.");
-  std::stringstream resultsStream;
-  resultsStream << "<tool_results>\n";
-  for (const auto &call : toolCalls) {
-    logMessage(LogLevel::TOOL_CALL, "Processing OLD tool call format",
-               call.toolName);
-    std::string result = handleToolExecution(call); // Delegate to old handler
-    logMessage(LogLevel::TOOL_RESULT, "OLD Tool result",
-               call.toolName + ": " + result);
-    resultsStream << "\t<tool_result tool_name=\"" << call.toolName << "\">\n";
-    std::stringstream ss_result(result);
-    std::string line;
-    while (std::getline(ss_result, line)) {
-      resultsStream << "\t\t" << line << "\n";
-    }
-    resultsStream << "\t</tool_result>\n";
-  }
-  resultsStream << "</tool_results>";
-  return resultsStream.str();
-}
-
-std::string Agent::handleToolExecution(const ToolCallInfo &call) {
-  logMessage(LogLevel::WARN,
-             "Using deprecated handleToolExecution for agent '" + name + "'.",
-             call.toolName);
-  ActionInfo actionInfo;
-  actionInfo.action = call.toolName;
-  actionInfo.params = call.params;
-  if (tools.count(call.toolName)) {
-    actionInfo.type = "tool";
-  } else if (internalToolDescriptions.count(call.toolName)) {
-    actionInfo.type = "internal_function";
-  } else {
-    actionInfo.type = "unknown";
-    logMessage(LogLevel::WARN, "Cannot determine type for fallback tool call",
-               call.toolName);
-  }
-  return processAction(actionInfo); // Delegate to new processor
-}
-
-// --- Internal Tool Implementations (Fixing signatures) ---
-
-std::string Agent::getHelp(const Json::Value &params) { // Added &
-  std::string targetAction = "";
-  if (params.isMember("action_name") && params["action_name"].isString()) {
-    targetAction = params["action_name"].asString();
-  }
-  std::stringstream help;
-  if (!targetAction.empty()) {
-    std::string desc = getInternalToolDescription(targetAction);
-    if (!desc.empty()) {
-      help << "Help for action '" << targetAction << "':\n" << desc;
-    } else {
-      help << "Error: No help found for action '" << targetAction << "'.";
-    }
-  } else {
-    help << "Available actions/tools:\n";
-    std::map<std::string, std::string> availableActions =
-        internalToolDescriptions;
-    for (const auto &pair : tools) {
-      if (pair.second) {
-        availableActions[pair.first] = pair.second->getDescription();
-      }
-    }
-    if (availableActions.empty()) {
-      help << "- No actions/tools currently registered.\n";
-    } else {
-      for (const auto &pair : availableActions) {
-        help << "- " << pair.first << ": " << pair.second << "\n";
-      }
+                 "Agent runtime error for '" + agentName + "':", e.what());
+      std::cout << "\n[Agent Error - Runtime]: " << e.what() << std::endl;
+    } catch (const std::exception &e) {
+      logMessage(LogLevel::ERROR,
+                 "General exception for agent '" + agentName + "':", e.what());
+      std::cout << "\n[Agent Error - General]: " << e.what() << std::endl;
     }
   }
-  return help.str();
-}
-
-std::string Agent::skip(const Json::Value &params) { // Added &
-  (void)params;
   logMessage(LogLevel::INFO,
-             "Skip action called for agent '" + name + "'. Ending turn.");
-  setSkipFlowIteration(true);
-  return "Skipping remainder of turn.";
+             "Agent '" + agentName + "' interactive loop finished.");
 }
 
-std::string Agent::promptAgentTool(const Json::Value &params) { // Added &
-  if (!params.isMember("agent_name") || !params["agent_name"].isString() ||
-      !params.isMember("prompt") || !params["prompt"].isString()) {
-    return "Error: promptAgent action requires 'agent_name' (string) and "
-           "'prompt' (string) parameters.";
-  }
-  std::string agentName = params["agent_name"].asString();
-  std::string userPrompt = params["prompt"].asString();
-  Agent *subAgent = nullptr;
-  for (const auto &pair : subAgents) {
-    if (pair.first == agentName) {
-      subAgent = pair.second;
-      break;
-    }
-  }
-  if (subAgent) {
-    logMessage(LogLevel::INFO,
-               "Agent '" + name + "' prompting sub-agent '" + agentName + "'");
-    return subAgent->prompt(userPrompt);
-  } else {
-    return "Error: Sub-agent '" + agentName + "' not found.";
-  }
-}
-
-std::string
-Agent::summerizeTool(const Json::Value &params) { // Added & - Typo preserved
-  if (!params.isMember("text") || !params["text"].isString()) {
-    return "Error: summarizeTool action requires 'text' (string) parameter.";
-  }
-  std::string textToSummarize = params["text"].asString();
-  logMessage(LogLevel::INFO, "Summarize tool called by agent '" + name + "'.");
-  std::string summarizationPrompt =
-      "Please summarize the following text concisely:\n\n" + textToSummarize;
-  try {
-    logMessage(LogLevel::WARN,
-               "Summarization uses placeholder implementation.");
-    return "Summary of: " + textToSummarize.substr(0, 30) +
-           "... (Placeholder implementation)";
-  } catch (const std::exception &e) {
-    logMessage(LogLevel::ERROR, "Summarization API call failed", e.what());
-    return "Error during summarization API call: " + std::string(e.what());
-  }
-}
-
-std::string
-Agent::summarizeHistory(const Json::Value &params) { // Added & and fixed name
-  (void)params;
-  logMessage(LogLevel::INFO,
-             "Summarize history tool called by agent '" + name + "'.");
-  std::stringstream historyStream;
-  for (const auto &entry : history) {
-    historyStream << entry.first << ": " << entry.second << "\n---\n";
-  }
-  std::string historyStr = historyStream.str();
-  if (historyStr.length() < 100) {
-    return "History is too short to summarize meaningfully.";
-  }
-  std::string summarizationPrompt = "Please summarize the key points of the "
-                                    "following conversation history:\n\n" +
-                                    historyStr;
-  try {
-    logMessage(LogLevel::WARN,
-               "History Summarization uses placeholder implementation.");
-    return "Summary of conversation history... (Placeholder implementation)";
-  } catch (const std::exception &e) {
-    logMessage(LogLevel::ERROR, "History summarization API call failed",
-               e.what());
-    return "Error during history summarization API call: " +
-           std::string(e.what());
-  }
-}
-
-std::string
-Agent::getWeather(const Json::Value &params) { // Added & and fixed name
-  if (!params.isMember("location") || !params["location"].isString()) {
-    return "Error: getWeather action requires 'location' (string) parameter.";
-  }
-  std::string location = params["location"].asString();
-  logMessage(LogLevel::INFO,
-             "Get weather tool called by agent '" + name + "' for", location);
-  logMessage(LogLevel::WARN, "Get weather uses placeholder implementation.");
-  return "Weather in " + location +
-         " is sunny, 25°C (Placeholder implementation).";
-}
-
-// --- Utility Methods (add*, remove*, import*, wrap*, run) remain largely the
-// same, using clean names ---
-// ... (Implementations for addToHistory, addMemory, removeMemory, addEnvVar,
-// importEnvFile, addPrompt, addAgent, agentInstance, setSkipFlowIteration, run)
-// ... (Ensure they use clean names like history, longTermMemory, env,
-// extraPrompts, subAgents internally) Example addToHistory already shown above
-// uses clean names.
-
+// --- Memory & State ---
 void Agent::addToHistory(const std::string &role, const std::string &content) {
-  const size_t max_history_content_len = 2500;
-  std::string processed_content = content.substr(0, max_history_content_len);
-  bool truncated = (content.length() > max_history_content_len);
+  const size_t MAX_HISTORY_CONTENT_LEN =
+      2500; // Prevent excessively long history entries
+  std::string processedContent = content.substr(0, MAX_HISTORY_CONTENT_LEN);
+  bool truncated = (content.length() > MAX_HISTORY_CONTENT_LEN);
   if (truncated)
-    processed_content += "... (truncated)";
-  history.push_back({role, processed_content});
-  logMessage(LogLevel::DEBUG, "Added to history for agent '" + name + "'",
+    processedContent += "... (truncated)";
+
+  conversationHistory.push_back({role, processedContent});
+  logMessage(LogLevel::DEBUG, "Added to history for agent '" + agentName + "'",
              "Role: " + role + (truncated ? " (Content Truncated)" : ""));
 }
-void Agent::addMemory(const std::string &role, const std::string &content) {
+void Agent::addScratchpadItem(const std::string &key,
+                              const std::string &value) {
+  scratchpad.push_back({key, value});
+} // Simple append, could be map
+void Agent::addShortTermMemory(const std::string &role,
+                               const std::string &content) {
+  shortTermMemory.push_back({role, content});
+}
+void Agent::addLongTermMemory(const std::string &role,
+                              const std::string &content) {
   longTermMemory.push_back({role, content});
-  logMessage(LogLevel::DEBUG,
-             "Added to LongTermMemory for agent '" + name + "'",
-             "Role: " + role);
 }
-void Agent::removeMemory(const std::string &role, const std::string &content) {
-  auto it = std::remove_if(longTermMemory.begin(), longTermMemory.end(),
-                           [&role, &content](const auto &p) {
-                             return p.first == role && p.second == content;
-                           });
-  if (it != longTermMemory.end()) {
-    longTermMemory.erase(it, longTermMemory.end());
+
+void Agent::addEnvironmentVariable(const std::string &key,
+                                   const std::string &value) {
+  // Update if exists, else add
+  auto it =
+      std::find_if(environmentVariables.begin(), environmentVariables.end(),
+                   [&key](const auto &pair) { return pair.first == key; });
+  if (it != environmentVariables.end()) {
+    it->second = value;
     logMessage(LogLevel::DEBUG,
-               "Removed from LongTermMemory for agent '" + name + "'",
-               "Role: " + role);
+               "Updated environment variable for agent '" + agentName + "'",
+               key + "=" + value);
+  } else {
+    environmentVariables.push_back({key, value});
+    logMessage(LogLevel::DEBUG,
+               "Added environment variable for agent '" + agentName + "'",
+               key + "=" + value);
   }
 }
-void Agent::addEnvVar(const std::string &key, const std::string &value) {
-  bool found = false;
-  for (auto &pair : env) {
-    if (pair.first == key) {
-      pair.second = value;
-      found = true;
-      logMessage(LogLevel::DEBUG, "Updated env var for agent '" + name + "'",
-                 key);
-      break;
-    }
-  }
-  if (!found) {
-    env.push_back({key, value});
-    logMessage(LogLevel::DEBUG, "Set env var for agent '" + name + "'", key);
-  }
-}
-void Agent::importEnvFile(const std::string &filePath) {
-  std::ifstream file(filePath);
-  if (!file.is_open()) {
+
+void Agent::importEnvironmentFile(const std::string &filePath) {
+  std::ifstream envFile(filePath);
+  if (!envFile.is_open()) {
     logMessage(LogLevel::ERROR,
-               "Agent '" + name + "' could not open env file:", filePath);
+               "Agent '" + agentName + "' could not open env file:", filePath);
     return;
   }
   std::string line;
   int count = 0;
-  while (std::getline(file, line)) {
-    line.erase(0, line.find_first_not_of(" \t"));
+  while (std::getline(envFile, line)) {
+    line.erase(0, line.find_first_not_of(" \t")); // Trim leading whitespace
     if (line.empty() || line[0] == '#')
-      continue;
-    size_t pos = line.find('=');
-    if (pos != std::string::npos) {
-      std::string key = line.substr(0, pos);
-      key.erase(key.find_last_not_of(" \t") + 1);
-      std::string value = line.substr(pos + 1);
-      value.erase(0, value.find_first_not_of(" \t"));
-      value.erase(value.find_last_not_of(" \t") + 1);
+      continue; // Skip empty lines and comments
+
+    size_t eqPos = line.find('=');
+    if (eqPos != std::string::npos) {
+      std::string key = line.substr(0, eqPos);
+      key.erase(key.find_last_not_of(" \t") +
+                1); // Trim trailing space from key
+
+      std::string value = line.substr(eqPos + 1);
+      value.erase(
+          0, value.find_first_not_of(" \t")); // Trim leading space from value
+      value.erase(value.find_last_not_of(" \t") + 1); // Trim trailing space
+
+      // Optional: remove quotes if value is quoted
       if (value.length() >= 2 &&
           ((value.front() == '"' && value.back() == '"') ||
            (value.front() == '\'' && value.back() == '\''))) {
         value = value.substr(1, value.length() - 2);
       }
       if (!key.empty()) {
-        addEnvVar(key, value);
+        addEnvironmentVariable(key, value);
         count++;
       }
     }
   }
-  file.close();
+  envFile.close();
   logMessage(LogLevel::INFO,
-             "Agent '" + name + "' imported " + std::to_string(count) +
-                 " env vars from:",
+             "Agent '" + agentName + "' imported " + std::to_string(count) +
+                 " environment variables from:",
              filePath);
 }
-void Agent::addPrompt(const std::string &prompt) {
-  extraPrompts.push_back(prompt);
-  logMessage(LogLevel::DEBUG, "Added extra prompt for agent '" + name + "'.");
-}
-void Agent::addAgent(Agent *agent) {
-  if (!agent) {
-    logMessage(LogLevel::WARN, "Attempted to add null agent.");
-    return;
-  }
-  if (agent == this) {
-    logMessage(LogLevel::WARN, "Agent '" + name + "' cannot add self.");
-    return;
-  }
-  for (const auto &pair : subAgents) {
-    if (pair.first == agent->getName()) {
-      logMessage(LogLevel::WARN, "Agent '" + name +
-                                     "' duplicate sub-agent name: '" +
-                                     agent->getName() + "'. Ignoring.");
-      return;
-    }
-  }
-  subAgents.push_back({agent->getName(), agent});
-  logMessage(LogLevel::INFO, "Agent '" + name + "' registered sub-agent: '" +
-                                 agent->getName() + "'");
-}
-std::string Agent::agentInstance(const std::string &agentName) {
-  for (const auto &pair : subAgents) {
-    if (pair.first == agentName)
-      return pair.second->getName();
-  }
-  return "";
-}
-void Agent::setSkipFlowIteration(bool skip) { skipFlowIteration = skip; }
-void Agent::run() {
-  logMessage(LogLevel::INFO, "Agent '" + name + "' starting interactive loop.");
-  logMessage(LogLevel::INFO,
-             "Type 'exit' or 'quit' to stop, 'reset' to clear history.");
-  std::string userInput;
-  if (!initialCommands.empty()) {
-    logMessage(LogLevel::INFO,
-               "Executing initial commands for agent '" + name + "'...");
-    Json::Value bashParams;
-    std::vector<std::string> commandsToRun = initialCommands;
-    initialCommands.clear();
-    for (const auto &command : commandsToRun) {
-      bashParams["command"] = command;
-      logMessage(LogLevel::INFO, "Running initial command:", command);
-      try {
-        std::string result = manualToolCall("bash", bashParams);
-        logMessage(LogLevel::INFO, "Initial command result:", result);
-      } catch (const std::exception &e) {
-        logMessage(
-            LogLevel::ERROR,
-            "Error running initial command '" + command + "':", e.what());
-      } catch (...) {
-        logMessage(LogLevel::ERROR,
-                   "Unknown error running initial command '" + command + "'");
-      }
-    }
-  }
-  while (true) {
-    std::cout << "\nUser (" << name << ") > ";
-    if (!std::getline(std::cin, userInput)) {
-      logMessage(LogLevel::INFO,
-                 "Input stream closed. Exiting agent '" + name + "'.");
-      break;
-    }
-    userInput.erase(0, userInput.find_first_not_of(" \t\r\n"));
-    userInput.erase(userInput.find_last_not_of(" \t\r\n") + 1);
-    if (userInput == "exit" || userInput == "quit") {
-      logMessage(LogLevel::INFO, "Exit command received. Goodbye!");
-      break;
-    } else if (userInput == "reset") {
-      reset();
-      continue;
-    } else if (userInput.empty()) {
-      continue;
-    }
-    try {
-      std::string response = prompt(userInput);
-      std::cout << "\n" << name << ":\n" << response << std::endl;
-      std::cout << "-----------------------------------------" << std::endl;
-    } catch (const ApiError &e) {
-      logMessage(LogLevel::ERROR, "API Error:", e.what());
-      std::cout << "\n[Agent Error - API]: " << e.what() << std::endl;
-      std::cout << "-----------------------------------------" << std::endl;
-    } catch (const std::exception &e) {
-      logMessage(LogLevel::ERROR, "General Error:", e.what());
-      std::cout << "\n[Agent Error - General]: " << e.what() << std::endl;
-      std::cout << "-----------------------------------------" << std::endl;
-    } catch (...) {
-      logMessage(LogLevel::ERROR, "Unknown Error.");
-      std::cout << "\n[Agent Error - Unknown]" << std::endl;
-      std::cout << "-----------------------------------------" << std::endl;
-    }
-  }
-  logMessage(LogLevel::INFO, "Agent '" + name + "' interactive loop finished.");
+
+void Agent::addExtraSystemPrompt(const std::string &promptFragment) {
+  extraSystemPrompts.push_back(promptFragment);
 }
 
-// --- executeTask method ---
-std::string Agent::executeTask(const std::string &task,
-                               const std::string &format) {
-  logMessage(LogLevel::DEBUG,
-             "Executing task with specific format for agent '" + name + "'",
-             "Task: " + task);
-  std::string taskPrompt = systemPrompt;
-  taskPrompt += "\n\n<current_task>\n";
-  taskPrompt += "\t<description>" + task + "</description>\n";
-  taskPrompt += "\t<required_format>" + format + "</required_format>\n";
-  taskPrompt += "</current_task>\n\n";
-  taskPrompt += "RESPONSE INSTRUCTIONS: Execute the task and respond ONLY with "
-                "the result in the specified format within 'final_response', "
-                "status='SUCCESS_FINAL', actions='[]'.";
-  try {
-    std::string llmResponseJson = executeApiCall(taskPrompt);
-    std::string status, finalResponse;
-    std::vector<StructuredThought> thoughts;
-    std::vector<ActionInfo> actions;
-    if (parseStructuredLLMResponse(llmResponseJson, status, thoughts, actions,
-                                   finalResponse) &&
-        (status == "SUCCESS_FINAL" || !finalResponse.empty())) {
-      return finalResponse;
-    } else {
-      logMessage(LogLevel::ERROR,
-                 "Task execution failed or yielded invalid response",
-                 llmResponseJson);
-      return "Error: Task execution failed to produce expected result.";
-    }
-  } catch (const std::exception &e) {
-    logMessage(LogLevel::ERROR, "Failed to execute task via API", e.what());
-    return "Error: Failed to execute task: " + std::string(e.what());
-  }
+// --- Getters ---
+const std::string &Agent::getName() const { return agentName; }
+const std::string &Agent::getDescription() const { return agentDescription; }
+const std::string &Agent::getSystemPrompt() const { return systemPrompt; }
+const std::string &Agent::getSchema() const { return llmResponseSchema; }
+const std::string &Agent::getExample() const { return llmResponseExample; }
+int Agent::getIterationCap() const { return iterationLimit; }
+const Agent::AgentDirective &Agent::getDirective() const {
+  return currentDirective;
 }
-// Overloads for executeTask (assuming Json::Value version might be needed by
-// tools)
-// std::string Agent::executeTask(const std::string &task) {
-//   return executeTask(task, "Provide the result directly as plain text.");
-// } // Default format
-std::string Agent::executeTask(const std::string &task,
-                               const Json::Value &format) {
-  return executeTask(task, format.toStyledString());
-} // Convert JSON format to string
+const std::vector<std::string> &Agent::getTasks() const { return tasks; }
+const StringKeyValuePair &Agent::getEnvironmentVariables() const {
+  return environmentVariables;
+}
+const std::vector<std::string> &Agent::getExtraSystemPrompts() const {
+  return extraSystemPrompts;
+}
+const std::vector<std::pair<std::string, std::string>> &
+Agent::getHistory() const {
+  return conversationHistory;
+}
 
-// --- manualToolCall (signature corrected) ---
-std::string
-Agent::manualToolCall(const std::string &toolName,
-                      const Json::Value &params) { // Added & and fixed name
+// --- Sub-Agent Management ---
+void Agent::addSubAgent(Agent *subAgentInstance) {
+  if (!subAgentInstance || subAgentInstance == this) {
+    logMessage(
+        LogLevel::WARN,
+        "Invalid sub-agent provided or self-addition attempt for agent '" +
+            agentName + "'.");
+    return;
+  }
+  // Check for duplicate name
+  if (std::find_if(subAgents.begin(), subAgents.end(), [&](const auto &pair) {
+        return pair.first == subAgentInstance->getName();
+      }) != subAgents.end()) {
+    logMessage(LogLevel::WARN, "Agent '" + agentName +
+                                   "' already has a sub-agent named '" +
+                                   subAgentInstance->getName() + "'.");
+    return;
+  }
+  subAgents.push_back({subAgentInstance->getName(), subAgentInstance});
+  logMessage(LogLevel::INFO, "Agent '" + agentName +
+                                 "' registered sub-agent: '" +
+                                 subAgentInstance->getName() + "'");
+}
+
+Agent *Agent::getSubAgent(const std::string &subAgentNameKey) const {
+  auto it =
+      std::find_if(subAgents.begin(), subAgents.end(), [&](const auto &pair) {
+        return pair.first == subAgentNameKey;
+      });
+  return (it != subAgents.end()) ? it->second : nullptr;
+}
+
+// --- Manual Tool Call ---
+std::string Agent::manualToolCall(const std::string &toolName,
+                                  const Json::Value &params) {
   logMessage(LogLevel::INFO, "Manually calling tool '" + toolName +
-                                 "' for agent '" + name + "'");
-  ActionInfo actionInfo;
-  actionInfo.action = toolName;
-  if (!params.isObject()) {
+                                 "' for agent '" + agentName + "'");
+  Action ai;
+  ai.action = toolName;
+  ai.type = "tool"; // Assume it's a registered tool
+  ai.params = params;
+  return processSingleAction(ai);
+}
+
+// --- Private Helper Methods ---
+
+std::string Agent::processActions(const std::vector<Action> &actions) {
+  std::stringstream resultsSs;
+  resultsSs << "<action_results>\n"; // XML-like wrapper for multiple results
+
+  for (const auto &actionInfo : actions) {
+    std::string singleResult = processSingleAction(actionInfo);
+    resultsSs << "\t<action_result action_name=\"" << actionInfo.action
+              << "\" type=\"" << actionInfo.type << "\">\n";
+    // Indent the result for readability
+    std::stringstream resultLines(singleResult);
+    std::string line;
+
+    while (std::getline(resultLines, line)) {
+      resultsSs << "\t\t" << line << "\n";
+    }
+
+    resultsSs << "\t</action_result>\n";
+  }
+
+  resultsSs << "</action_results>";
+  return resultsSs.str();
+}
+
+std::string Agent::processSingleAction(const Action &actionInfo) {
+  logMessage(LogLevel::TOOL_CALL,
+             "Agent '" + agentName +
+                 "' processing action: " + actionInfo.action,
+             "Type: " + actionInfo.type + ", Params: " +
+                 actionInfo.params.toStyledString().substr(0, 100) + "...");
+
+  try {
+    if (actionInfo.type == "tool") {
+      Tool *toolToRun = getTool(actionInfo.action);
+      if (toolToRun) {
+        return toolToRun->execute(actionInfo.params);
+      } else {
+        logMessage(LogLevel::ERROR, "Tool '" + actionInfo.action +
+                                        "' not found for agent '" + agentName +
+                                        "'.");
+        return "Error: Tool '" + actionInfo.action +
+               "' not registered or available.";
+      }
+    } else if (actionInfo.type == "internal_function") {
+      if (actionInfo.action == "help")
+        return internalGetHelp(actionInfo.params);
+      if (actionInfo.action == "skip")
+        return internalSkipIteration(actionInfo.params);
+      if (actionInfo.action == "promptAgent")
+        return internalPromptAgent(actionInfo.params);
+      if (actionInfo.action == "summarizeText")
+        return internalSummarizeText(actionInfo.params);
+      if (actionInfo.action == "summarizeHistory")
+        return internalSummarizeHistory(actionInfo.params);
+      if (actionInfo.action == "getWeather")
+        return internalGetWeather(actionInfo.params);
+      // Add other internal functions here
+      logMessage(LogLevel::ERROR, "Unknown internal function '" +
+                                      actionInfo.action + "' for agent '" +
+                                      agentName + "'.");
+      return "Error: Unknown internal function '" + actionInfo.action + "'.";
+    } else if (actionInfo.type == "output") {
+      if (actionInfo.action == "send_response") {
+        if (actionInfo.params.isMember("text") &&
+            actionInfo.params["text"].isString()) {
+          logMessage(LogLevel::INFO,
+                     "Agent '" + agentName +
+                         "' received 'send_response' output action.",
+                     actionInfo.params["text"].asString());
+          // This action type's "result" is effectively what it outputs.
+          // The main loop handles setting this as the finalAgentResponseToUser
+          // if appropriate.
+          return actionInfo.params["text"].asString();
+        } else {
+          logMessage(
+              LogLevel::ERROR,
+              "Invalid params for 'send_response' output action in agent '" +
+                  agentName + "'.",
+              actionInfo.params.toStyledString());
+          return "Error: Invalid parameters for 'send_response' action.";
+        }
+      }
+      logMessage(LogLevel::ERROR, "Unknown output action '" +
+                                      actionInfo.action + "' for agent '" +
+                                      agentName + "'.");
+      return "Error: Unknown output action '" + actionInfo.action + "'.";
+    } else if (actionInfo.type == "workflow_control") {
+      logMessage(LogLevel::DEBUG,
+                 "Workflow control action '" + actionInfo.action +
+                     "' acknowledged by agent '" + agentName +
+                     "'. Handled by main loop.",
+                 actionInfo.params.toStyledString());
+      return "Workflow action '" + actionInfo.action +
+             "' noted."; // Typically doesn't produce direct output for history
+    }
+    // Add script, http_request later if needed
+    logMessage(LogLevel::WARN, "Unsupported action type '" + actionInfo.type +
+                                   "' for action '" + actionInfo.action +
+                                   "' in agent '" + agentName + "'.");
+    return "Error: Unsupported action type '" + actionInfo.type + "'.";
+  } catch (const std::exception &e) {
     logMessage(LogLevel::ERROR,
-               "Manual tool call params not JSON object for agent '" + name +
-                   "'.",
-               params.toStyledString());
-    return "Error: Manual tool call params must be JSON object.";
+               "Exception during action '" + actionInfo.action +
+                   "' execution for agent '" + agentName + "'.",
+               e.what());
+    return "Error executing action '" + actionInfo.action +
+           "': " + std::string(e.what());
+  } catch (...) {
+    logMessage(LogLevel::ERROR,
+               "Unknown exception during action '" + actionInfo.action +
+                   "' execution for agent '" + agentName + "'.");
+    return "Error: Unknown exception executing action '" + actionInfo.action +
+           "'.";
   }
-  actionInfo.params = params;
-  if (tools.count(toolName)) {
-    actionInfo.type = "tool";
-  } else if (internalToolDescriptions.count(toolName)) {
-    actionInfo.type = "internal_function";
-  } else {
-    logMessage(LogLevel::WARN,
-               "Cannot determine type for manual tool call. Assuming 'tool'.",
-               toolName);
-    actionInfo.type = "tool";
-  }
-  return processAction(actionInfo);
 }
 
-// --- Other Wrappers / Placeholders ---
-std::string Agent::wrapText(const std::string &text) {
-  return "```\n" + text + "\n```";
-}
-std::string Agent::wrapXmlLine(const std::string &content,
-                               const std::string &tag) {
-  return "<" + tag + ">" + content + "</" + tag + ">\n";
-}
-std::string Agent::wrapXmlBlock(const std::string &content,
-                                const std::string &tag) {
-  return "<" + tag + ">\n\t" + content + "\n</" + tag + ">\n";
-}
-void Agent::addBlockToSystemPrompt(const std::string &content,
-                                   const std::string &tag) {
-  systemPrompt += "\n" + wrapXmlBlock(content, tag);
-}
-std::string Agent::reportTool(const Json::Value &params) {
-  (void)params;
-  logMessage(LogLevel::WARN,
-             "'reportTool' not implemented for agent '" + name + "'.");
-  return "Error: reportTool not implemented.";
-}
-std::string Agent::generateCode(const Json::Value &params) {
-  (void)params;
-  logMessage(LogLevel::WARN,
-             "'generateCode' not implemented for agent '" + name + "'.");
-  return "Error: generateCode not implemented.";
-}
-std::string Agent::auditResponse(const std::string &response) {
-  (void)response;
-  logMessage(LogLevel::WARN,
-             "'auditResponse' not implemented for agent '" + name + "'.");
-  return response;
+std::string Agent::executeApiCall(const std::string &fullPromptText) {
+  logMessage(LogLevel::PROMPT,
+             "Sending prompt to API for agent '" + agentName +
+                 "' (length: " + std::to_string(fullPromptText.length()) + ")");
+  // logMessage(LogLevel::DEBUG, "Full Prompt Text:", fullPromptText); //
+  // Uncomment for detailed debugging
+  try {
+    std::string response = api.generate(fullPromptText);
+    logMessage(LogLevel::DEBUG,
+               "Received API response for agent '" + agentName +
+                   "' (length: " + std::to_string(response.length()) + ")");
+    // logMessage(LogLevel::DEBUG, "API Raw Response:", response); // For
+    // debugging LLM output directly
+    return response;
+  } catch (const std::runtime_error &e) { // Catch ApiError if you have one
+    logMessage(LogLevel::ERROR,
+               "API Error occurred for agent '" + agentName + "':", e.what());
+    // Construct a JSON error response that the agent's parsing logic can handle
+    Json::Value errorJson;
+    errorJson["status"] = "ERROR_INTERNAL_API";
+    errorJson["thoughts"][0u]["type"] = "ERROR";
+    errorJson["thoughts"][0u]["content"] =
+        "API call failed: " + std::string(e.what());
+    errorJson["actions"] = Json::arrayValue;
+    errorJson["final_response"] = "I encountered an error communicating with "
+                                  "the language model. Please try again later.";
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, errorJson);
+  }
+  // Add catch for std::exception and (...) if needed, though MiniGemini should
+  // throw specific error or std::runtime_error
 }
 
-// --- Directive Type to String Helper ---
-std::string Agent::directiveTypeToString(Agent::DIRECTIVE::Type type) const {
+void Agent::setSkipNextFlowIteration(bool skip) {
+  skipNextFlowIteration = skip;
+  if (skip) {
+    logMessage(LogLevel::DEBUG,
+               "Agent '" + agentName +
+                   "' flow iteration will be skipped for the current turn.");
+  }
+}
+
+std::string Agent::directiveTypeToString(AgentDirective::Type type) const {
   switch (type) {
-  case DIRECTIVE::Type::BRAINSTORMING:
+  case AgentDirective::Type::BRAINSTORMING:
     return "BRAINSTORMING";
-  case DIRECTIVE::Type::AUTONOMOUS:
+  case AgentDirective::Type::AUTONOMOUS:
     return "AUTONOMOUS";
-  case DIRECTIVE::Type::NORMAL:
+  case AgentDirective::Type::NORMAL:
     return "NORMAL";
-  case DIRECTIVE::Type::EXECUTE:
+  case AgentDirective::Type::EXECUTE:
     return "EXECUTE";
-  case DIRECTIVE::Type::REPORT:
+  case AgentDirective::Type::REPORT:
     return "REPORT";
   default:
-    logMessage(LogLevel::WARN, "Unknown directive type encountered");
-    return "UNKNOWN";
+    return "UNKNOWN_DIRECTIVE_TYPE";
   }
 }
 
-// --- Timestamp Generation Utility ---
-std::string Agent::generateStamp(void) {
-  auto now = std::chrono::system_clock::now();
-  auto now_c = std::chrono::system_clock::to_time_t(now);
+// --- Internal "Tool-Like" Functions ---
+std::string Agent::internalGetHelp(const Json::Value &params) {
+  std::string targetActionName;
+  if (params.isMember("action_name") && params["action_name"].isString()) {
+    targetActionName = params["action_name"].asString();
+  }
+  std::stringstream helpSs;
+  if (!targetActionName.empty()) {
+    helpSs << "Help for action '" << targetActionName << "':\n";
+    bool found = false;
+    if (internalFunctionDescriptions.count(targetActionName)) {
+      helpSs << "- Type: Internal Function\n";
+      helpSs << "- Description & Params: "
+             << internalFunctionDescriptions.at(targetActionName);
+      found = true;
+    }
+    Tool *extTool = getTool(targetActionName);
+    if (extTool) {
+      if (found)
+        helpSs << "\n---\n"; // Separator if also internal
+      helpSs << "- Type: Registered Tool\n";
+      helpSs << "- Description: " << extTool->getDescription();
+      // Could add example params if Tool class stores them
+      found = true;
+    }
+    if (!found) {
+      helpSs << "Action '" << targetActionName
+             << "' not found or no help available.";
+    }
+  } else {
+    helpSs << "Available Actions for agent '" << agentName << "':\n";
+    helpSs << "--- Internal Functions ---\n";
+    if (internalFunctionDescriptions.empty())
+      helpSs << "(None)\n";
+    for (const auto &pair : internalFunctionDescriptions) {
+      helpSs << "- " << pair.first << ": " << pair.second << "\n";
+    }
+    helpSs << "\n--- Registered Tools ---\n";
+    if (registeredTools.empty())
+      helpSs << "(None)\n";
+    for (const auto &pair : registeredTools) {
+      if (pair.second)
+        helpSs << "- " << pair.second->getName() << ": "
+               << pair.second->getDescription() << "\n";
+    }
+    helpSs << "\nUse help with {\"action_name\": \"<action_name>\"} for "
+              "details on a specific action.";
+  }
+  return helpSs.str();
+}
+
+std::string Agent::internalSkipIteration(const Json::Value &params) {
+  (void)params; // No params expected
+  logMessage(LogLevel::INFO,
+             "Agent '" + agentName +
+                 "' is skipping the rest of this turn due to 'skip' action.");
+  setSkipNextFlowIteration(true);
+  return "Success: Final response generation for this turn will be skipped.";
+}
+
+std::string Agent::internalPromptAgent(const Json::Value &params) {
+  if (!params.isMember("agent_name") || !params["agent_name"].isString() ||
+      !params.isMember("prompt") || !params["prompt"].isString()) {
+    return "Error [promptAgent]: Requires string parameters 'agent_name' and "
+           "'prompt'.";
+  }
+  std::string targetAgentName = params["agent_name"].asString();
+  std::string subPromptText = params["prompt"].asString();
+
+  Agent *targetAgent = getSubAgent(targetAgentName);
+  if (targetAgent) {
+    logMessage(LogLevel::INFO, "Agent '" + agentName +
+                                   "' is prompting sub-agent '" +
+                                   targetAgentName + "'.");
+    try {
+      // Potentially prepend context that this is a sub-prompt
+      std::string contextualPrompt =
+          "Received from Agent '" + agentName + "':\n" + subPromptText;
+      std::string response =
+          targetAgent->prompt(contextualPrompt); // Recursive call
+      logMessage(LogLevel::INFO,
+                 "Received response from sub-agent '" + targetAgentName + "'.");
+      return "Response from Agent '" + targetAgentName + "':\n---\n" +
+             response + "\n---";
+    } catch (const std::exception &e) {
+      logMessage(LogLevel::ERROR,
+                 "Error prompting sub-agent '" + targetAgentName +
+                     "' from agent '" + agentName + "'.",
+                 e.what());
+      return "Error [promptAgent]: Exception while prompting '" +
+             targetAgentName + "': " + e.what();
+    }
+  } else {
+    logMessage(LogLevel::WARN, "Sub-agent '" + targetAgentName +
+                                   "' not found for prompting by agent '" +
+                                   agentName + "'.");
+    return "Error [promptAgent]: Sub-agent '" + targetAgentName +
+           "' not found.";
+  }
+}
+
+std::string Agent::internalSummarizeText(const Json::Value &params) {
+  if (!params.isMember("text") || !params["text"].isString()) {
+    return "Error [summarizeText]: Missing or invalid string parameter 'text'.";
+  }
+  std::string textToSummarize = params["text"].asString();
+  if (textToSummarize.length() < 50) { // Arbitrary short content check
+    return "Content is too short to summarize effectively.";
+  }
+  logMessage(LogLevel::DEBUG,
+             "Agent '" + agentName + "' summarizing text (length: " +
+                 std::to_string(textToSummarize.length()) + ")");
+  try {
+    // This is a simplified way to use the LLM for a sub-task.
+    // Could be more elaborate, creating a temporary directive.
+    std::string taskDescription =
+        "Provide a concise summary of the following text:\n\n" +
+        textToSummarize;
+    std::string format =
+        "{\"summary\": \"string (the concise summary of the text)\"}";
+
+    std::string llmTaskPrompt = systemPrompt; // Start with base system prompt
+    llmTaskPrompt += "\n\n<current_task_for_summarization>\n";
+    llmTaskPrompt += "\t<description>" + taskDescription + "</description>\n";
+    llmTaskPrompt += "\t<required_format>" + format + "</required_format>\n";
+    llmTaskPrompt += "</current_task_for_summarization>\n\n";
+    llmTaskPrompt += "RESPONSE INSTRUCTIONS: Execute the summarization task "
+                     "and respond ONLY with "
+                     "the JSON containing the 'summary' field as specified in "
+                     "'required_format'. "
+                     "Set status to 'SUCCESS_FINAL' and actions to '[]'.";
+
+    std::string llmSummaryJson = executeApiCall(llmTaskPrompt);
+
+    Json::Value summaryRoot;
+    Json::Reader reader;
+    if (reader.parse(llmSummaryJson, summaryRoot) && summaryRoot.isObject() &&
+        summaryRoot.isMember("final_response") &&
+        summaryRoot["final_response"].isString()) {
+      // Assuming the LLM correctly put the JSON summary *inside* the
+      // final_response string.
+      std::string finalResponseContent =
+          summaryRoot["final_response"].asString();
+      Json::Value actualSummaryJson;
+      if (reader.parse(finalResponseContent, actualSummaryJson) &&
+          actualSummaryJson.isMember("summary") &&
+          actualSummaryJson["summary"].isString()) {
+        return actualSummaryJson["summary"].asString();
+      } else {
+        logMessage(LogLevel::WARN,
+                   "Failed to parse JSON *from final_response* for "
+                   "summarizeText by agent '" +
+                       agentName + "'.",
+                   "Final Response: " + finalResponseContent);
+      }
+    }
+    logMessage(LogLevel::WARN,
+               "Failed to parse outer JSON or extract summary for "
+               "summarizeText by agent '" +
+                   agentName + "', returning raw-ish LLM response.",
+               "LLM Response: " + llmSummaryJson);
+    return llmSummaryJson; // Fallback
+  } catch (const std::exception &e) {
+    logMessage(LogLevel::ERROR,
+               "Error during summarization task execution for agent '" +
+                   agentName + "'.",
+               e.what());
+    return "Error [summarizeText]: Exception during summarization: " +
+           std::string(e.what());
+  }
+}
+
+std::string Agent::internalSummarizeHistory(const Json::Value &params) {
+  (void)params; // No params expected
+  if (conversationHistory.empty())
+    return "Conversation history is empty.";
+
+  std::stringstream historyTextSs;
+  historyTextSs << "Current Conversation History (to be summarized):\n";
+  for (const auto &entry : conversationHistory) {
+    historyTextSs << entry.first << ": " << entry.second.substr(0, 150)
+                  << (entry.second.length() > 150 ? "..." : "") << "\n";
+  }
+  Json::Value summarizeParams;
+  summarizeParams["text"] = historyTextSs.str();
+  return internalSummarizeText(summarizeParams); // Reuse the text summarizer
+}
+
+std::string Agent::internalGetWeather(const Json::Value &params) {
+  if (!params.isMember("location") || !params["location"].isString()) {
+    return "Error [getWeather]: Missing or invalid string parameter "
+           "'location'.";
+  }
+  std::string location = params["location"].asString();
+  std::string originalLocation = location; // For user-facing messages
+  // Sanitize location for URL? For wttr.in, spaces become '+'
+  std::replace(location.begin(), location.end(), ' ', '+');
+
+  // Use the global executeCommand utility
+  std::string command =
+      "curl -s -L \"https://wttr.in/" + location + "?format=3\"";
+  std::string weatherResultOutput;
+
+  logMessage(LogLevel::DEBUG,
+             "Agent '" + agentName +
+                 "' attempting to get weather for: " + originalLocation,
+             "Command: " + command);
+
+  // We need a 'bash' tool registered to use executeCommand through the agent's
+  // tool mechanism, OR call a global executeCommand directly if this internal
+  // function has such privilege. For now, let's assume it uses a registered
+  // 'bash' tool for consistency.
+  Tool *bashTool = getTool("bash");
+  if (!bashTool) {
+    logMessage(
+        LogLevel::ERROR,
+        "Agent '" + agentName +
+            "': 'bash' tool is required for getWeather but not registered.");
+    return "Error [getWeather]: The 'bash' tool is unavailable to fetch "
+           "weather data.";
+  }
+  Json::Value bashParams;
+  bashParams["command"] = command;
+  weatherResultOutput = bashTool->execute(bashParams);
+
+  // Basic result cleaning and validation
+  weatherResultOutput.erase(0,
+                            weatherResultOutput.find_first_not_of(" \t\r\n"));
+  weatherResultOutput.erase(weatherResultOutput.find_last_not_of(" \t\r\n") +
+                            1);
+
+  if (weatherResultOutput.empty() ||
+      weatherResultOutput.find("Unknown location") != std::string::npos ||
+      weatherResultOutput.find("ERROR") != std::string::npos ||
+      weatherResultOutput.find("Sorry, we are runnning into an issue") !=
+          std::string::npos) {
+    logMessage(
+        LogLevel::WARN,
+        "Failed to get weather using wttr.in for agent '" + agentName + "'.",
+        "Location: " + originalLocation + ", Output: " + weatherResultOutput);
+    return "Error [getWeather]: Could not retrieve weather information for '" +
+           originalLocation +
+           "'. The location might be invalid or the service unavailable.";
+  }
+  return "Current weather for " + originalLocation + ": " + weatherResultOutput;
+}
+
+// Utility
+std::string Agent::generateTimestamp() const {
+  auto nowChrono = std::chrono::system_clock::now();
+  auto nowTimeT = std::chrono::system_clock::to_time_t(nowChrono);
+  std::tm nowTm =
+      *std::localtime(&nowTimeT); // Use localtime for local timezone
   std::stringstream ss;
-  // Use std::localtime for local time formatting
-  ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+  ss << std::put_time(&nowTm, "%Y-%m-%dT%H:%M:%S%Z"); // ISO 8601 like format
   return ss.str();
+}
+
+void Agent::trimLLMResponse(std::string &responseText) {
+  // Finds ```json ... ``` or ``` ... ``` and extracts the content.
+  size_t startPos = responseText.find("```");
+  if (startPos == std::string::npos)
+    return; // No code block found
+
+  size_t contentStart = responseText.find_first_not_of(" \t\r\n", startPos + 3);
+  if (contentStart == std::string::npos)
+    return; // Empty after ```
+
+  // If it's ```json, skip 'json' part
+  if (responseText.substr(startPos + 3, 4) == "json") {
+    contentStart = responseText.find_first_not_of(" \t\r\n", startPos + 3 + 4);
+    if (contentStart == std::string::npos)
+      return;
+  }
+
+  size_t endPos = responseText.rfind("```");
+  if (endPos == std::string::npos || endPos <= contentStart)
+    return; // No closing ``` or it's before content
+
+  size_t contentEnd = responseText.find_last_not_of(" \t\r\n", endPos - 1);
+  if (contentEnd == std::string::npos ||
+      contentEnd < contentStart) { // Empty before ```
+    responseText = "";             // Or handle as error
+    return;
+  }
+
+  responseText =
+      responseText.substr(contentStart, contentEnd - contentStart + 1);
+  logMessage(LogLevel::DEBUG,
+             "Trimmed LLM response block for agent '" + agentName + "'.");
 }

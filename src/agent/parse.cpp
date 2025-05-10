@@ -1,110 +1,156 @@
-// #include "../../inc/Agent.hpp"
-// #include "../../inc/MiniGemini.hpp"
-// #include "../../inc/Tool.hpp"
-// #include <algorithm> // For std::find_if, std::remove_if
-// #include <cctype>    // For std::toupper
-// #include <chrono>    // For timestamp
-// #include <cstdio>    // For FILE, fgets
-// #include <cstdlib>   // For popen, pclose, system
-// #include <ctime>
-// #include <fstream> // For file operations
-// #include <iomanip> // For formatting time
-// #include <iostream>
-// #include <json/json.h>
-// #include <sstream>
-// #include <stdexcept>
-//
-// #include <string>
-// #include <sys/stat.h> // For file operations
-// #include <unistd.h>   // For getcwd
-//                       
-// // Helper function to parse the structured LLM response
-// bool Agent::parseStructuredLLMResponse(const std::string &jsonString,
-//                                        std::string &thought,
-//                                        std::vector<ToolCallInfo> &toolCalls,
-//                                        std::string &finalResponse) {
-//   Json::Value root;
-//   Json::CharReaderBuilder readerBuilder;
-//   std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
-//   std::string errs;
-//
-//   toolCalls.clear();
-//   finalResponse = "";
-//   thought = "";
-//
-//   if (!reader->parse(jsonString.c_str(),
-//                      jsonString.c_str() + jsonString.length(), &root, &errs)) {
-//     // Log the specific parsing error and the problematic string
-//     logMessage(LogLevel::ERROR, "JSON Parsing failed for LLM Response",
-//                "Errors: " + errs + "\nInput: " + jsonString);
-//     return false;
-//   }
-//
-//   if (!root.isObject()) {
-//     logMessage(LogLevel::ERROR, "LLM Response root is not a JSON object",
-//                jsonString);
-//     return false;
-//   }
-//
-//   // Extract fields safely
-//   if (root.isMember("thought") && root["thought"].isString()) {
-//     thought = root["thought"].asString();
-//   } else {
-//     logMessage(LogLevel::WARN,
-//                "LLM Response missing or invalid 'thought' field.");
-//   }
-//
-//   if (root.isMember("tool_calls")) {
-//     if (root["tool_calls"].isNull()) { /* Explicit null is fine */
-//     } else if (root["tool_calls"].isArray()) {
-//       for (const auto &callJson : root["tool_calls"]) {
-//         if (callJson.isObject() && callJson.isMember("tool_name") &&
-//             callJson["tool_name"].isString() && callJson.isMember("params") &&
-//             callJson["params"].isObject()) {
-//           ToolCallInfo info;
-//           info.toolName = callJson["tool_name"].asString();
-//           if (info.toolName.empty()) {
-//             logMessage(LogLevel::WARN,
-//                        "Empty 'tool_name' found in tool_calls object.",
-//                        callJson.toStyledString());
-//             continue;
-//           }
-//           info.params = callJson["params"];
-//           toolCalls.push_back(info);
-//         } else {
-//           logMessage(LogLevel::WARN,
-//                      "Malformed tool_call object in LLM response",
-//                      callJson.toStyledString());
-//         }
-//       }
-//     } else {
-//       logMessage(LogLevel::WARN,
-//                  "'tool_calls' field exists but is not an array or null.",
-//                  root["tool_calls"].toStyledString());
-//     }
-//   } else {
-//     logMessage(LogLevel::WARN, "LLM Response missing 'tool_calls' field.");
-//   }
-//
-//   if (root.isMember("final_response")) {
-//     if (root["final_response"].isNull()) { /* Explicit null is fine */
-//     } else if (root["final_response"].isString()) {
-//       finalResponse = root["final_response"].asString();
-//     } else {
-//       logMessage(LogLevel::WARN,
-//                  "'final_response' field exists but is not a string or null.",
-//                  root["final_response"].toStyledString());
-//     }
-//   } else {
-//     logMessage(LogLevel::WARN, "LLM Response missing 'final_response' field.");
-//   }
-//
-//   // Enforce: Cannot have both final_response and tool_calls
-//   if (!finalResponse.empty() && !toolCalls.empty()) {
-//     logMessage(LogLevel::WARN, "LLM provided both final_response and "
-//                                "tool_calls. Ignoring tool_calls.");
-//     toolCalls.clear();
-//   }
-//
-//   return true;
-// }
+#include "../../inc/Agent.hpp"
+#include "../../inc/MiniGemini.hpp"
+#include "../../inc/Tool.hpp"
+
+bool Agent::parseStructuredLLMResponse(const std::string &jsonString,
+                                       std::string &status,
+                                       std::vector<Thought> &thoughts,
+                                       std::vector<Action> &actions,
+                                       std::string &finalResponseField) {
+  status = "ERROR_INTERNAL_PARSE"; // Default status if parsing fails badly
+  thoughts.clear();
+  actions.clear();
+  finalResponseField = "";
+
+  Json::Value root;
+  Json::CharReaderBuilder readerBuilder;
+  std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
+
+  std::string parseErrors;
+
+  if (!reader->parse(jsonString.c_str(),
+                     jsonString.c_str() + jsonString.length(), &root,
+                     &parseErrors)) {
+    logMessage(LogLevel::ERROR,
+               "Failed to parse LLM response JSON for agent '" + agentName +
+                   "'.",
+               "Errors: " + parseErrors + "\nInput: " + jsonString);
+    finalResponseField = jsonString; // Fallback to raw response
+    return false;
+  }
+
+  if (!root.isObject()) {
+    logMessage(LogLevel::ERROR,
+               "LLM response root is not a JSON object for agent '" +
+                   agentName + "'.",
+               jsonString);
+    finalResponseField = jsonString;
+    return false;
+  }
+
+  // Status (Required)
+  if (root.isMember("status") && root["status"].isString()) {
+    status = root["status"].asString();
+  } else {
+    logMessage(LogLevel::ERROR,
+               "LLM JSON missing required 'status' (string) field for agent '" +
+                   agentName + "'.",
+               jsonString);
+    // status remains ERROR_INTERNAL_PARSE or could be set to a more specific
+    // missing field error
+    return false; // Critical field missing
+  }
+
+  // Thoughts (Required, can be empty array)
+  if (root.isMember("thoughts") && root["thoughts"].isArray()) {
+    for (const auto &thoughtVal : root["thoughts"]) {
+      if (thoughtVal.isObject() && thoughtVal.isMember("type") &&
+          thoughtVal["type"].isString() && thoughtVal.isMember("content") &&
+          thoughtVal["content"].isString()) {
+        thoughts.push_back(
+            {thoughtVal["type"].asString(), thoughtVal["content"].asString()});
+      } else {
+        logMessage(LogLevel::WARN,
+                   "Malformed thought object in LLM JSON for agent '" +
+                       agentName + "'. Skipping.",
+                   thoughtVal.toStyledString());
+      }
+    }
+  } else {
+    logMessage(
+        LogLevel::ERROR,
+        "LLM JSON missing required 'thoughts' (array) field for agent '" +
+            agentName + "'.",
+        jsonString);
+    return false; // Critical field missing
+  }
+
+  // Actions (Required, can be empty array)
+  if (root.isMember("actions") && root["actions"].isArray()) {
+    for (const auto &actionVal : root["actions"]) {
+      if (actionVal.isObject() && actionVal.isMember("action") &&
+          actionVal["action"].isString() && actionVal.isMember("type") &&
+          actionVal["type"].isString() && actionVal.isMember("params") &&
+          actionVal["params"].isObject()) {
+        Action ai;
+        ai.action = actionVal["action"].asString();
+        ai.type = actionVal["type"].asString();
+        ai.params = actionVal["params"];
+        if (actionVal.isMember("confidence") &&
+            actionVal["confidence"].isNumeric()) {
+          ai.confidence = actionVal["confidence"].asDouble();
+        }
+        if (actionVal.isMember("warnings") && actionVal["warnings"].isArray()) {
+          for (const auto &warnVal : actionVal["warnings"]) {
+            if (warnVal.isString())
+              ai.warnings.push_back(warnVal.asString());
+          }
+        }
+        actions.push_back(ai);
+      } else {
+        logMessage(LogLevel::WARN,
+                   "Malformed action object in LLM JSON for agent '" +
+                       agentName + "'. Skipping.",
+                   actionVal.toStyledString());
+      }
+    }
+  } else {
+    logMessage(LogLevel::ERROR,
+               "LLM JSON missing required 'actions' (array) field for agent '" +
+                   agentName + "'.",
+               jsonString);
+    return false; // Critical field missing
+  }
+
+  // Final Response (Optional: string or null)
+  if (root.isMember("final_response")) {
+    if (root["final_response"].isString()) {
+      finalResponseField = root["final_response"].asString();
+    } else if (root["final_response"].isNull()) {
+      finalResponseField = ""; // Represent null as empty string
+    } else {
+      logMessage(LogLevel::WARN,
+                 "LLM JSON 'final_response' field is present but not string or "
+                 "null for agent '" +
+                     agentName + "'.",
+                 root["final_response"].toStyledString());
+    }
+  } else {
+    logMessage(LogLevel::DEBUG,
+               "LLM JSON does not have a 'final_response' field for agent '" +
+                   agentName +
+                   "'. This is often normal if actions are present.");
+  }
+
+  // Consistency checks (optional, but good for debugging LLM behavior)
+  if (status == "SUCCESS_FINAL" && !actions.empty()) {
+    logMessage(LogLevel::WARN,
+               "LLM JSON: Status is SUCCESS_FINAL but 'actions' array is not "
+               "empty for agent '" +
+                   agentName + "'.",
+               jsonString);
+  }
+  if ((status == "REQUIRES_ACTION" || status == "REQUIRES_CLARIFICATION") &&
+      actions.empty() && finalResponseField.empty()) {
+    // If status needs action/clarification but there are no actions AND no
+    // final_response to ask the user, it's a problematic state.
+    logMessage(LogLevel::WARN,
+               "LLM JSON: Status '" + status +
+                   "' but 'actions' array is empty and 'final_response' is "
+                   "also empty for agent '" +
+                   agentName + "'.",
+               jsonString);
+  }
+
+  return true;
+}
