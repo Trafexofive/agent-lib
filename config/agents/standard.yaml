@@ -1,192 +1,117 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    standard.yaml                                      :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: mlamkadm <mlamkadm@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2025/05/04 17:28:44 by mlamkadm          #+#    #+#              #
-#    Updated: 2025/05/04 17:28:44 by mlamkadm         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
-# --- Standard Agent Profile ---
-# Use this as a base template for creating more specialized agents.
-# It defines a general-purpose assistant configuration loadable by
-# the current loadAgentProfile function.
+# --- Standard Agent Profile (v1.1 Base for Schema v0.3 LLM Output) ---
+# This is a foundational template for general-purpose agents.
+# It enforces the llm-json-output-draft-0.3 schema for LLM interactions.
 
 version: "agent-1.1"
 
 # --- Core Identity & Configuration ---
-
-variables:
-  - sample_description: "$(description.md)" #using the var name should be operational we could have the name extracted and default to it. having an explicit config style also 
-  - tmp: "hello"
-  - blank: ""
-  - scalar: |
-      hello im winning
-  - folder-test: ./context-files-mk1 #will load all files from the folder name && ref them by extracting the extension
-
-
 name: "StandardAgent"
 description: |
-  A general-purpose assistant agent.
-  Designed to understand user requests, follow instructions,
-  potentially use available tools via actions, and provide helpful responses.
-  Lives In a HomeLab, Talks in pure JSON.
-  *This is the standard base profile.*
+  A general-purpose assistant agent designed to understand user requests,
+  follow instructions, utilize available tools via structured actions,
+  and provide helpful responses. Operates within a self-hosted environment,
+  communicating strictly via the defined JSON schema.
+  This is the standard base profile.
 
-# system_prompt: | # ill try to make these loadable from a file as well. since they could get bigger. also for a more zen/focus.
-#   You are a helpful and versatile AI assistant.
-#   Your goal is to understand the user's request provided via the conversation history ..., and respond appropriately.
-#
-#   [IMPORTANT] Adhere strictly to this JSON format provided.
+# System prompt defining the expected LLM interaction model.
+# It's crucial this prompt accurately reflects llm-json-output-draft-0.3.
+system_prompt: "sysprompts/standard.md" # Path relative to this YAML file's location
 
-system_prompt: "sysprompts/sysprompt.md"
+# --- Default Iteration Cap ---
+iteration_cap: 10 # Standard limit for sequential thought/action cycles per user prompt.
 
-architype:  #dictates the personality traints.
-  - 
-
-
-agents:
-  - 
-  # - refer and load other profiles link them to thwe appropriate class in runtime. prob same with tools. for them we do need the MVP first.
-tools:
-    # Defines a reusable tool configuration accessible via the key 'BashExecutor'.
-    BashExecutor:
-      name: "bash" # Internal name used when attaching to agents.
-      description: "Executes a bash command provided as input."
-      type: "code" # Specifies this tool i  s implemented via code. FUTURE: Add "api", "service", file
-      runtime: "bash" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
-      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
-      #   command: { type: "string", description: "The bash command to execute." }
-      code: | # The actual code to execute. Input mapping TBD (e.g., via parameters).
-        #!/bin/bash
-        echo "Executing command: $1" >&2 # Example logging
-        eval "$1" # WARNING: Security risk! Needs sandboxing/safer execution. Placeholder only.
-    websearch:
-      name: "websearch" # Internal name used when attaching to agents.
-      description: "Searches the web."
-      type: "file" # do we even need this, it could just be infered through the addition of path
-      path: "./script/standard/websearch.py"
-      runtime: "python" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
-      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
-      # command: { type: "string", description: "The bash command to execute." }
-      
- # context: # global.context.cpp-ref
- #    - type: file
- #      path: ./.resources/repo-cpp-code-refrences.md
- #      name: cpp-ref #if not specified, auto extraction will happen so its name would be repo-cpp-code-refrences and it would be accessed at global.context.repo-cpp-code-refrences
- #      # var: global.code
- #    - type: file
- #      path: ./.context # file that does exist is created
- #      append: # "./.context.old" | "simple text context to insert to the file" we could even make these stackble together for effective and blazing fast context loading and prototyping.
-
-
-
-iteration_cap: 10 # A standard default iteration limit.
-
-# --- Environment Variables ---
-environment: # Empty by default, add specific variables for specialized agents.
+# --- Environment Variables (Agent-Specific) ---
+# Example: Can be overridden or extended by more specialized agent profiles.
+environment:
   DEFAULT_LANGUAGE: "en-US"
+  AGENT_ROLE: "General Purpose Assistant"
 
-sub-agents:
-  note:
-   environment:
-     # - Overrides 
-# --- Additional Instructions & Guidance ---
+# --- Agent Capabilities: Tools ---
+# Defines tools this agent profile expects to be available/registered.
+# The actual tool implementations (callbacks, scripts) are handled by the C++ Agent.
+# This section in the YAML is more for documentation and potential future validation.
+# Tool registration still happens programmatically in C++ (e.g., in your server setup).
+# The `Agent::addTool` method using `Tool*` and `setCallback` is the current mechanism.
+# The LLM will be informed of available tools via the <available_actions_reference> in its prompt.
+tools:
+  # Example: A 'bash' tool is commonly registered.
+  # The LLM would refer to it by its 'name' (e.g., "bash").
+  # This section doesn't *load* the tool code itself from YAML.
+  BashExecutor: # This is a logical key, not necessarily the tool name LLM uses.
+    name: "bash" # This is the name the LLM should use in "action" field.
+    description: "Executes a shell command. Parameters: {\"command\": \"string\"}. Use with caution."
+    # type, runtime, code/path fields from your draft are conceptual for YAML;
+    # actual implementation is via C++ Tool class and callbacks.
+  WebSearch: # Logical key
+    name: "websearch" # Name LLM uses.
+    description: "Performs a web search. Parameters: {\"query\": \"string\", \"num_results\": integer (optional)}."
 
-
-
-
+# --- LLM Interaction Schema (Guidance for the LLM) ---
+# This 'schema' field provides the LLM with the *exact* JSON structure it MUST output.
+# It's used to construct part of the system prompt.
 schema: |
   {
-    status: string (REQUIRED, enum: SUCCESS| REQUIRES_ACTION | FAIL | ERROR),
-    thoughts: array<object> (REQUIRED, object: { type: string (REQUIRED, enum: DECISION| LONG_TERM | SHORT_TERM| PLAN | OBSERVATION | QUESTION | NORM | ASSUMPTION | GOAL | HYPOTHESIS | CRITIQUE), content: string (REQUIRED) }),
-    actions: array<object> (REQUIRED, object: { action: string (REQUIRED), type: string (REQUIRED, enum: tool | script | http_request | internal_function | output | workflow_control), params: object (REQUIRED, structure depends on action/type), confidence?: float (0.0-1.0), warnings?: array<string> }),
-    response: string | null
+    "status": "string (REQUIRED, Enum: SUCCESS_FINAL | REQUIRES_ACTION | REQUIRES_CLARIFICATION | ERROR_INTERNAL)",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function | output | workflow_control | http_request)",
+        "params": {
+          "param_name": "value (structure depends on the action)"
+        },
+        "confidence": "float (OPTIONAL, 0.0-1.0, LLM's confidence in this action/parameters.)",
+        "warnings": [
+          "string (OPTIONAL, Any warnings about this specific action or its parameters.)"
+        ]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response. Null if actions are pending or status is not SUCCESS_FINAL/REQUIRES_CLARIFICATION.)"
   }
 
-
- 
-
+# --- LLM Interaction Example (Guidance for the LLM) ---
+# This 'example' field provides a concrete illustration of the expected JSON output.
 example: |
-  "User said 'hello'. The following is the raw llm reply that was Generated: "
+  # User Input: "Hello there"
+  # Expected LLM Output JSON:
   {
-    "status": "SUCCESS",
+    "status": "SUCCESS_FINAL",
     "thoughts": [
       {
         "type": "OBSERVATION",
-        "content": "Looks like the user is saying hello."
+        "content": "User initiated contact with a simple greeting."
       },
       {
         "type": "DECISION",
-        "content": "Lets be nice, and say and hello back."
-      },
-      {
-        "type": "LONG_TERM",
-        "content": "Determine and gather context to achieve the users request."
-      },
-      {
-        "type": "SHORT_TERM",
-        "content": "Ask a follow up question, since the user doesnt seem to be requesting anything right now."
-      },
-        "response": "Greetings Master, Im on stand-by awaiting for your next command "
+        "content": "Acknowledge the greeting and offer assistance, maintaining a helpful persona."
+      }
+    ],
+    "actions": [], # Or null
+    "final_response": "Greetings, Master. I am the StandardAgent, ready for your directives. How may I assist the Chimera Ecosystem today?"
   }
-  
 
-
-
-
-
+# --- Additional Prompting Guidance ---
+# General instructions appended to the system prompt.
 extra_prompts:
-  - "Be polite and helpful in your responses."
-  - "If a request is ambiguous or lacks necessary details, ask clarifying questions before proceeding."
-  - "Break down complex tasks into smaller steps in your 'thoughts' plan."
+  - "Always prioritize clarity and conciseness in your thoughts and final responses."
+  - "If a user's request is ambiguous, and you cannot reasonably infer the intent, use the 'REQUIRES_CLARIFICATION' status and formulate a clear question in an action of type 'workflow_control' with action 'request_user_input', or directly in 'final_response'."
+  - "When planning, break down complex tasks into smaller, logical steps within your 'thoughts'."
+  - "Adhere strictly to the provided JSON output 'schema'. Invalid JSON or deviations will result in processing failure."
 
-# tasks: # General conceptual workflow for the agent
-#   - "Analyze the user's request and conversation history."
-#   - "Formulate a plan (document in 'thoughts')."
-#   - "Identify if clarification or tool/action use is needed."
-#   - "Execute required actions OR request clarification OR formulate final response."
-#   - "Ensure the final output is in the correct JSON structure."
-
-# --- Agent Directive ---
-
-# directive: # Default operational mode
-#   type: "NORMAL"
-#   description: "Assist the user with their requests in a standard conversational manner."
-#   format: "" # No specific format constraint by default.
+# --- Agent Directive (Default Operational Mode) ---
+# This defines the agent's general approach or goal.
+directive:
+  type: "NORMAL" # Default operational mode.
+  description: "Standard operational mode: understand user requests, utilize tools as needed, and provide helpful, accurate responses. Maintain context and learn from interactions where appropriate."
+  format: "Primary output to user should be textual, conveyed via 'final_response' or 'send_response' action. Internal workings (thoughts, tool calls) follow the JSON schema."
 
 # --- Note ---
-# This standard profile does NOT define specific tools, sub-agents,
-# memory configurations, or initial history. These should be added
-# or overridden in the YAML profiles of more specialized agents
-# or configured programmatically via the Orchestrator/Agent instances.
-
-  # {
-  #       "type": "ADJUST",
-  #       "content": "content for behavioral change (auto learn)"
-  #     },
-# {
-
-  #       "type": "DECISION",
-  #       "content": "Say hello back. Proceed with asking about asking the user and listing some of the things I can help with. Maybe Suggest A few from the habit information available about the user"
-  #     },
-  #   ],
-  #   "actions": [],
-  #   "response": 
-  #   {
-  #     "type": "REPLY",
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #   {
-  #     "type": "WAIT", // seems unnecessary
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #   {
-  #     "type": "CLI", // output routing maybe array of outputs, dashboard.
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #
-  # }
+# This standard profile primarily defines the LLM interaction contract.
+# Specific tool implementations, sub-agent profiles, and advanced memory
+# configurations are typically managed by the C++ application or more
+# specialized agent YAML profiles that might extend or override this base.

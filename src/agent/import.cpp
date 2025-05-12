@@ -10,6 +10,26 @@
 #include <yaml-cpp/yaml.h>
 
 
+// ascii json graph tool
+
+// return a buffer for a simple json graph in ascii pillars
+std::string simpleJsonGraph(const Json::Value &jsonValue) {
+  std::string graph;
+  for (const auto &key : jsonValue.getMemberNames()) {
+    graph += key + ": " + jsonValue[key].asString() + "\n";
+  }
+  return graph;
+}
+
+// display any json table infinite collumns and rows
+std::string jsonTable(const Json::Value &jsonValue) {
+  std::string table;
+  for (const auto &key : jsonValue.getMemberNames()) {
+    table += key + ": " + jsonValue[key].asString() + "\n";
+  }
+  return table;
+}
+
 
 // Utility
 // file expansion utility function, can extract the file name from a path
