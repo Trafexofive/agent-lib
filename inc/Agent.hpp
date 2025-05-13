@@ -23,16 +23,6 @@ class MiniGemini;
 class Tool;
 class File; // Assuming File.hpp defines this
 
-// Logging Enum & Function Prototype
-enum class LogLevel {
-  DEBUG,
-  INFO,
-  WARN,
-  ERROR,
-  TOOL_CALL,
-  TOOL_RESULT,
-  PROMPT
-};
 void logMessage(LogLevel level, const std::string &message,
                 const std::string &details = "");
 

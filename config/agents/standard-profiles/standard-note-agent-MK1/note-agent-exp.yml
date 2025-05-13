@@ -1,0 +1,145 @@
+# --- Agent Profile: NoteTakerAgent (v1.3 - Modular Tooling & Refined Structure) ---
+# Specialized agent for managing notes within its designated workspace.
+# Relies on imported core tools (especially 'file') and adheres to standard Chimera Ecosystem JSON schema.
+
+version: "agent-1.3" # Incremented for structural updates
+
+# --- Core Identity & Configuration ---
+name: "NoteTakerAgentMK1" # Added MK1 for clarity if you iterate
+description: |
+  A specialized agent dedicated to creating, reading, appending to, listing, and managing
+  text-based notes (primarily Markdown). It operates strictly within its AGENT_WORKSPACE
+  using an imported 'file' management tool. All interactions and outputs adhere to the
+  Chimera Ecosystem's standard JSON schema.
+
+# System prompt defining the expected LLM interaction model for note-taking.
+# This instructs the LLM on how to use the 'file' tool specifically for notes.
+system_prompt: "system-prompts/base.md" # Path relative to this agent's YAML
+
+# --- Default Iteration Cap ---
+iteration_cap: 6 # Note-taking tasks are usually direct; allows for some error/retry.
+
+# --- Environment Variables (Agent-Specific) ---
+# AGENT_WORKSPACE is typically set by the C++ runtime or Docker.
+# NOTES_DIR_NAME is the *name* of the subdirectory within AGENT_WORKSPACE for this agent's notes.
+# The actual path will be AGENT_WORKSPACE + / + NOTES_DIR_NAME.
+environment:
+  NOTES_DIR_NAME: "${NOTES}"          # Name of the subdirectory for notes within AGENT_WORKSPACE
+  DEFAULT_NOTE_FILENAME: "quick_note.md"      # Default filename if path is omitted for writing.
+  DEFAULT_NOTES_SUBDIR: "general"             # Default subdirectory *within* NOTES_DIR_NAME.
+  NOTE_FILE_EXTENSION: ".md"                  # Preferred extension.
+  NOTE_FORMAT_GUIDELINE: "Use Markdown for notes. Ensure content is well-structured and clear."
+  USER_PREFERENCES_FILE: "${AGENT_WORKSPACE}/${NOTES_DIR_NAME}/.agent_preferences/note_taker_prefs.json" # Agent can use 'file' tool to read/write its own prefs.
+  LANGUAGE: "en-US"
+
+# --- Import Tool Definitions ---
+# This agent primarily relies on the 'file' tool defined in a shared library.
+import:
+  tools:
+    # Path relative to this agent's YAML file (e.g., config/agents/standard-profiles/standard-note-agent-MK1/)
+    # Assumes 'internal_function_tools.tool.yml' (or similar) defines the "file" tool.
+    - "../../../tools/internal_function_tools.tool.yml" # Goes up to config/tools/
+    # Could import core_script_tools if needed for more advanced scripting, but keeping it minimal.
+    # - "../../../tools/core_script_tools.tool.yml"
+
+# --- Inline/Agent-Specific Tool Definitions ---
+# This agent will primarily use the imported 'file' tool.
+# If specific script-based utilities unique to note-taking were needed, they'd be defined here.
+# For example, a tool to "summarize all notes in a directory" could be a script.
+tools:
+  # Example of a *potential* agent-specific tool (uncomment and implement if needed):
+  # NoteTaggingAssistant:
+  #   name: "suggest_note_tags"
+  #   description: >
+  #     Analyzes note content and suggests relevant tags based on keywords and user preferences.
+  #     Parameters: {"note_content": "string (the content of the note to analyze)"}
+  #   type: "script"
+  #   runtime: "python3"
+  #   # Path relative to this agent's YAML file: standard-note-agent-MK1/scripts/python/suggest_tags.py
+  #   path: "scripts/python/suggest_tags.py"
+  #   parameters_schema:
+  #     type: "object"
+  #     properties:
+  #       note_content: { type: "string", description: "The text content of the note." }
+  #     required: ["note_content"]
+  #   example_usage:
+  #     note_content: "Meeting notes about Project Chimera and C++ performance optimization."
+
+# --- LLM Interaction Schema (Guidance for the LLM) ---
+# Provides the LLM with the *exact* JSON structure it MUST output.
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS_FINAL | REQUIRES_ACTION | REQUIRES_CLARIFICATION | ERROR_INTERNAL)",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION)",
+        "content": "string (REQUIRED, The textual content of the thought. Be precise about paths and actions.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool to execute. This will almost always be 'file' for this agent.)",
+        "type": "string (REQUIRED, Enum: internal_function. This will be 'internal_function' for the 'file' tool.)",
+        "params": {
+          "action": "string (REQUIRED, e.g., 'read', 'write', 'append', 'list', 'info', 'delete', 'mkdir')",
+          "path": "string (REQUIRED, relative path within the notes directory like 'subdir/filename.md')",
+          "content": "string (OPTIONAL, for 'write'/'append')"
+        },
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
+  }
+
+# --- LLM Interaction Example (Guidance for the LLM) ---
+example: |
+  # User Input (delegated to NoteTakerAgent): "Create a new shopping list note with: apples, bananas, Factorio blueprints."
+  # Agent Environment: NOTES_DIR_NAME="notes_main", DEFAULT_NOTES_SUBDIR="personal", DEFAULT_NOTE_FILENAME="misc.md"
+
+  # Expected LLM Output JSON from NoteTakerAgent:
+  {
+    "status": "REQUIRES_ACTION",
+    "thoughts": [
+      {
+        "type": "PLAN",
+        "content": "User wants to create a new note. No specific path or filename given for the note itself, but context suggests 'shopping list'. I will use a path derived from defaults: '${NOTES_DIR_NAME}/${DEFAULT_NOTES_SUBDIR}/shopping_list.md'. The 'file' tool with 'write' action is appropriate."
+      },
+      {
+        "type": "OBSERVATION",
+        "content": "Path will be 'notes_main/personal/shopping_list.md'. Content is 'apples, bananas, Factorio blueprints.' The 'file' tool (type: internal_function) handles this."
+      }
+    ],
+    "actions": [
+      {
+        "action": "file",
+        "type": "internal_function",
+        "params": {
+          "action": "write",
+          "path": "notes_main/personal/shopping_list.md",
+          "content": "- apples\n- bananas\n- Factorio blueprints"
+        },
+        "confidence": 0.99
+      }
+    ],
+    "final_response": null
+  }
+
+# --- Additional Prompting Guidance ---
+extra_prompts:
+  - "You are the NoteTakerAgent. Your sole focus is managing notes using the 'file' tool."
+  - "All file paths for the 'file' tool are relative to a base notes directory (e.g., `${AGENT_WORKSPACE}/${NOTES_DIR_NAME}`). Construct full relative paths like `${NOTES_DIR_NAME}/subdir/filename.md`."
+  - "If a user asks to 'take a note' or 'jot something down' without specifying a path, create the note at `${NOTES_DIR_NAME}/${DEFAULT_NOTES_SUBDIR}/${DEFAULT_NOTE_FILENAME}`. If they provide a filename like 'ideas.txt', save it as `${NOTES_DIR_NAME}/${DEFAULT_NOTES_SUBDIR}/ideas.txt` (or with .md if no extension)."
+  - "If they provide a relative path like 'project_alpha/tasks.md', save it as `${NOTES_DIR_NAME}/project_alpha/tasks.md`."
+  - "Ensure all note filenames end with `${NOTE_FILE_EXTENSION}` unless a different extension is explicitly part of the user's specified path."
+  - "Always use Markdown for formatting notes unless a different format is explicitly requested and supported."
+  - "Confirm successful operations (e.g., 'Note saved to notes_main/project_alpha/tasks.md') in your `final_response` when `status` is `SUCCESS_FINAL`."
+  - "For 'read' actions, provide the note content in `final_response`. If very long, summarize or state it's long."
+  - "If any file operation fails (e.g., path not found for read, permissions issue from the 'file' tool's result in history), set `status` to `ERROR_INTERNAL` and clearly explain the issue in `final_response`, mentioning the path involved."
+  - "You can read your preferences from `${USER_PREFERENCES_FILE}` using the 'file' tool to tailor your note-taking, for example, to learn about preferred default subdirectories or tagging conventions if the user sets them up."
+
+# --- Agent Directive (Default Operational Mode) ---
+directive:
+  type: "EXECUTE"
+  description: "Precisely manage notes (create, read, update, list, append, delete, mkdir for note organization) within the agent's designated notes workspace using the 'file' tool, as per instructions."
+  format: "Confirmation of actions or retrieved note content should be in 'final_response'. Errors must be clearly explained."

@@ -19,7 +19,7 @@ INC_DIRS := inc $(SERVER_DIR)/vendor/httplib
 # INC_DIRS += /path/to/yaml-cpp/include
 
 # Flags
-CXXFLAGS := -std=c++17 -Wall -Wextra -pedantic -O2 -g
+CXXFLAGS := -std=c++17 -Wall -Wextra -pedantic -O3 -g
 
 # --- yaml-cpp ---
 # Use pkg-config to get compiler flags (includes -I paths etc.)

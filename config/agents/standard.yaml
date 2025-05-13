@@ -26,6 +26,15 @@ environment:
   DEFAULT_LANGUAGE: "en-US"
   AGENT_ROLE: "General Purpose Assistant"
 
+
+agents:
+  - name: "NoteAgent" # Name of the sub-agent.
+    description: "A specialized agent for note-taking and context management."
+    type: "sub-agent" # Indicates this is a sub-agent.
+    profile: "note.yaml" # Path to the specific profile for this sub-agent.
+    # context: # Optional context for the sub-agent. Can be empty or defined in the sub-agent's profile.
+  # - refer and load other profiles link them to thwe appropriate class in runtime. prob same with tools. for them we do need the MVP first.
+
 # --- Agent Capabilities: Tools ---
 # Defines tools this agent profile expects to be available/registered.
 # The actual tool implementations (callbacks, scripts) are handled by the C++ Agent.
@@ -37,15 +46,35 @@ tools:
   # Example: A 'bash' tool is commonly registered.
   # The LLM would refer to it by its 'name' (e.g., "bash").
   # This section doesn't *load* the tool code itself from YAML.
-  BashExecutor: # This is a logical key, not necessarily the tool name LLM uses.
-    name: "bash" # This is the name the LLM should use in "action" field.
-    description: "Executes a shell command. Parameters: {\"command\": \"string\"}. Use with caution."
-    # type, runtime, code/path fields from your draft are conceptual for YAML;
-    # actual implementation is via C++ Tool class and callbacks.
-  WebSearch: # Logical key
-    name: "websearch" # Name LLM uses.
-    description: "Performs a web search. Parameters: {\"query\": \"string\", \"num_results\": integer (optional)}."
+    BashExecutor:
+      name: "bash" # Internal name used when attaching to agents.
+      description: "Executes a bash command provided as input."
+      type: "code" # Specifies this tool i  s implemented via code. FUTURE: Add "api", "service", file
+      runtime: "bash" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
+      code: | # The actual code to execute. Input mapping TBD (e.g., via parameters).
+        #!/bin/bash
+        echo "Executing command: $1" >&2 # Example logging
+        eval "$1" # WARNING: Security risk! Needs sandboxing/safer execution. Placeholder only.
+    websearch:
+      name: "websearch" # Internal name used when attaching to agents.
+      description: "Searches the web."
+      type: "file" # do we even need this, it could just be infered through the addition of path
+      path: "./script/standard/websearch.py"
+      runtime: "python" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
+      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
+      # command: { type: "string", description: "The bash command to execute." }
+      
 
+  # BashExecutor: # This is a logical key, not necessarily the tool name LLM uses.
+  #   name: "bash" # This is the name the LLM should use in "action" field.
+  #   description: "Executes a shell command. Parameters: {\"command\": \"string\"}. Use with caution."
+  #   type: "code" # Indicates this is a script-based tool. we will support this for starters.
+  #   # type, runtime, code/path fields from your draft are conceptual for YAML;
+  #   # actual implementation is via C++ Tool class and callbacks.
+  # WebSearch: # Logical key
+  #   name: "websearch" # Name LLM uses.
+  #   description: "Performs a web search. Parameters: {\"query\": \"string\", \"num_results\": integer (optional)}."
+  #
 # --- LLM Interaction Schema (Guidance for the LLM) ---
 # This 'schema' field provides the LLM with the *exact* JSON structure it MUST output.
 # It's used to construct part of the system prompt.

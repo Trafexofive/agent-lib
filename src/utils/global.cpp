@@ -1,137 +1,228 @@
 #include "../../inc/Utils.hpp"
-#include "../../inc/Agent.hpp" // For logMessage and LogLevel (assuming Agent.hpp defines these)
+#include "../../inc/Agent.hpp" // For logMessage (ensure it's declared globally or passed)
 
-#include <cstdio>     // For popen, pclose, fgets, remove, mkstemp, perror
-#include <cstdlib>    // For system, WEXITSTATUS
-#include <cstring>    // For strcpy, strerror
-#include <unistd.h>   // For mkstemp, fchmod, write, close, remove
-#include <sys/stat.h> // For fchmod, stat, S_IRUSR, S_IWUSR, S_IXUSR
-#include <sys/wait.h> // For WEXITSTATUS
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <vector>
-#include <algorithm> // For std::find for example
+#include <algorithm>
 
-// Existing executeCommand from your project structure
+// Assuming executeCommand is already defined as:
+// int executeCommand(const std::string &command, std::string &output);
+// If not, it needs to be included or defined here.
+// For simplicity, let's assume it's available and uses logMessage.
+// (If it's in Agent.cpp, it might need to be moved to Utils.cpp or made a static member of a utility class)
+// This is a simplified version from your Agent.cpp for utility usage.
 int executeCommand(const std::string &command, std::string &output) {
   output.clear();
-  std::string cmdWithStderr = command + " 2>&1"; // Consistent naming
+  std::string cmdWithStderr = command + " 2>&1"; // Redirect stderr to stdout
+  logMessage(LogLevel::DEBUG, "[executeCommand] Executing:", cmdWithStderr);
+
   FILE *pipe = popen(cmdWithStderr.c_str(), "r");
   if (!pipe) {
-    logMessage(LogLevel::ERROR, "popen() failed for command:", command);
-    return -1;
+    logMessage(LogLevel::ERROR, "[executeCommand] popen() failed for command:", command);
+    output = "Error: popen() failed to execute command.";
+    return -1; // Indicate failure to open pipe
   }
+
   char buffer[256];
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
     output += buffer;
   }
+
   int status = pclose(pipe);
-  return WEXITSTATUS(status);
+  if (status == -1) {
+    logMessage(LogLevel::ERROR, "[executeCommand] pclose() failed for command:", command);
+    // output might contain partial results, append error.
+    output += "\nError: pclose() failed after command execution.";
+    return -1; // Indicate pclose failure
+  }
+  logMessage(LogLevel::DEBUG, "[executeCommand] Finished. Raw Status: " + std::to_string(status) + ", Exit Code: " + std::to_string(WEXITSTATUS(status)));
+  return WEXITSTATUS(status); // Return the actual exit status of the command
 }
 
-// Generic script execution function
+
 std::string executeScriptTool(const std::string& scriptPathOrContent,
                               const std::string& runtime,
                               const Json::Value& params,
                               bool isContentInline) {
     std::string commandToExecute;
-    std::string tempScriptFilePath; // Store path for cleanup if a temp file is made
+    std::string tempScriptFilePath; // RAII for temp file would be better in production
 
     if (isContentInline) {
-        char tempTemplate[] = "/tmp/agent_script_XXXXXX"; // mkstemp modifies this
+        char tempTemplate[] = "/tmp/agent_script_XXXXXX";
         int fd = mkstemp(tempTemplate);
         if (fd == -1) {
-            logMessage(LogLevel::ERROR, "mkstemp failed for script tool", strerror(errno));
-            return "Error: Could not create temporary script file. Errno: " + std::string(strerror(errno));
+            std::string errMsg = "Error: Could not create temporary script file. Errno: " + std::string(strerror(errno));
+            logMessage(LogLevel::ERROR, "[ScriptTool] mkstemp failed", strerror(errno));
+            return errMsg;
         }
-        tempScriptFilePath = tempTemplate;
+        tempScriptFilePath = tempTemplate; // Store for cleanup
 
         ssize_t written = write(fd, scriptPathOrContent.c_str(), scriptPathOrContent.length());
-        if (written != (ssize_t)scriptPathOrContent.length()) {
-            logMessage(LogLevel::ERROR, "Failed to write to temporary script file", tempScriptFilePath + " Errno: " + std::string(strerror(errno)));
+        if (written != static_cast<ssize_t>(scriptPathOrContent.length())) {
+            std::string errMsg = "Error: Failed to write to temporary script file. Errno: " + std::string(strerror(errno));
+            logMessage(LogLevel::ERROR, "[ScriptTool] Write to temp file failed", tempScriptFilePath + ", Errno: " + strerror(errno));
             close(fd);
             remove(tempScriptFilePath.c_str());
-            return "Error: Failed to write to temporary script file.";
+            return errMsg;
         }
 
-        // Set execute permission primarily for bash scripts if run directly
-        if (runtime == "bash") {
+        if (runtime == "bash" || runtime == "sh" || runtime == "zsh") { // Make shell scripts executable
             if (fchmod(fd, S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
-                logMessage(LogLevel::ERROR, "Failed to set permissions on temporary script file", tempScriptFilePath + " Errno: " + std::string(strerror(errno)));
+                std::string errMsg = "Error: Failed to set execute permissions on temporary script. Errno: " + std::string(strerror(errno));
+                logMessage(LogLevel::ERROR, "[ScriptTool] fchmod failed on temp file", tempScriptFilePath + ", Errno: " + strerror(errno));
                 close(fd);
                 remove(tempScriptFilePath.c_str());
-                return "Error: Failed to set permissions on temporary script file.";
+                return errMsg;
             }
         }
-        close(fd);
+        close(fd); // Close after writing and chmod
 
-        if (runtime == "bash") {
-            commandToExecute = tempScriptFilePath; // Can be run directly if executable
-        } else {
+        // Form the command
+        if (runtime == "bash" || runtime == "sh" || runtime == "zsh") {
+            commandToExecute = tempScriptFilePath; // Directly executable
+        } else if (runtime == "python" || runtime == "python3") {
             commandToExecute = runtime + " " + tempScriptFilePath;
+        } else {
+            logMessage(LogLevel::ERROR, "[ScriptTool] Unsupported runtime for inline script", runtime);
+            remove(tempScriptFilePath.c_str());
+            return "Error: Unsupported runtime '" + runtime + "' for inline script.";
         }
     } else { // scriptPathOrContent is an actual file path
-        if (scriptPathOrContent.find("..") != std::string::npos || scriptPathOrContent[0] == '/') {
-             logMessage(LogLevel::ERROR, "Potentially unsafe script path provided (must be relative, no '..')", scriptPathOrContent);
-             return "Error: Script path must be relative and not contain '..'.";
-        }
-        std::string safeScriptPath = scriptPathOrContent;
-        if (safeScriptPath.rfind("./", 0) != 0) { // Ensure it starts with ./ if relative
-            safeScriptPath = "./" + safeScriptPath;
-        }
-
-        if (runtime == "bash") {
-            // Check if script is already executable, otherwise prepend bash
+        // Path safety should have been checked by the caller (loadAgentProfile/loadToolsFromFile)
+        // We assume scriptPathOrContent is a safe, canonical path here.
+        if (runtime == "bash" || runtime == "sh" || runtime == "zsh") {
+            // Check if script is executable, otherwise prepend interpreter
             struct stat st;
-            if (stat(safeScriptPath.c_str(), &st) == 0 && (st.st_mode & S_IXUSR)) {
-                commandToExecute = safeScriptPath;
+            if (stat(scriptPathOrContent.c_str(), &st) == 0 && (st.st_mode & S_IXUSR)) {
+                commandToExecute = scriptPathOrContent;
             } else {
-                commandToExecute = "bash " + safeScriptPath;
+                commandToExecute = runtime + " " + scriptPathOrContent; // e.g. "bash scripts/my.sh"
             }
+        } else if (runtime == "python" || runtime == "python3") {
+            commandToExecute = runtime + " " + scriptPathOrContent;
         } else {
-            commandToExecute = runtime + " " + safeScriptPath;
+            logMessage(LogLevel::ERROR, "[ScriptTool] Unsupported runtime for file-based script", runtime);
+            return "Error: Unsupported runtime '" + runtime + "' for script file.";
         }
     }
 
-    // Parameter passing (simplified for this B-line approach)
-    std::string argsString;
+    // Parameter Passing: Pass the entire 'params' Json::Value as a single JSON string argument.
+    std::string paramsJsonString = "{}"; // Default to empty JSON object if no params
     if (params.isObject() && !params.empty()) {
-        // For Python, pass the whole JSON object as a single string argument.
-        // For Bash, could pass individual values or also JSON string. Let's stick to JSON string for consistency.
         Json::StreamWriterBuilder writerBuilder;
         writerBuilder["indentation"] = ""; // Compact JSON
-        std::string paramsJson = Json::writeString(writerBuilder, params);
-        
-        // Basic shell escaping for the JSON string argument
-        std::string escapedParamsJson = "'"; // Use single quotes for the outer shell argument
-        for (char c : paramsJson) {
-            if (c == '\'') {
-                escapedParamsJson += "'\\''"; // Replaces ' with '\'', ends current ', adds \', starts new '
-            } else {
-                escapedParamsJson += c;
-            }
-        }
-        escapedParamsJson += "'";
-        argsString = " " + escapedParamsJson;
+        paramsJsonString = Json::writeString(writerBuilder, params);
     }
-    commandToExecute += argsString;
+
+    // Escape the JSON string for shell command line (critical for security and correctness)
+    std::string escapedParamsJsonString = "'"; // Start with single quote
+    for (char c : paramsJsonString) {
+        if (c == '\'') {
+            escapedParamsJsonString += "'\\''"; // Replace ' with '\'', effectively ending the current ' string, adding a literal ', and starting a new ' string
+        } else {
+            escapedParamsJsonString += c;
+        }
+    }
+    escapedParamsJsonString += "'"; // End with single quote
+
+    commandToExecute += " " + escapedParamsJsonString;
 
     std::string output;
-    logMessage(LogLevel::DEBUG, "[ScriptTool] Executing final command", commandToExecute);
+    logMessage(LogLevel::DEBUG, "[ScriptTool] Attempting to execute command", commandToExecute);
 
-    int status = ::executeCommand(commandToExecute, output); // Global ::executeCommand
+    int exitStatus = ::executeCommand(commandToExecute, output); // Use global executeCommand
 
     if (!tempScriptFilePath.empty()) {
         if (remove(tempScriptFilePath.c_str()) != 0) {
-            logMessage(LogLevel::WARN, "Failed to remove temporary script file", tempScriptFilePath + " Errno: " + std::string(strerror(errno)));
+            logMessage(LogLevel::WARN, "[ScriptTool] Failed to remove temporary script file", tempScriptFilePath + ", Errno: " + strerror(errno));
         }
     }
 
-    if (status != 0) {
-        logMessage(LogLevel::ERROR, "[ScriptTool] Execution failed (status " + std::to_string(status) + ") for command", commandToExecute);
-        logMessage(LogLevel::ERROR, "[ScriptTool] Script Output (stderr may be included)", output);
-        return "Error executing script (status " + std::to_string(status) + "):\n" + output;
+    if (exitStatus != 0) {
+        logMessage(LogLevel::ERROR, "[ScriptTool] Script execution failed (Exit Status: " + std::to_string(exitStatus) + ")", "Command: " + commandToExecute);
+        // Return the script's output even on failure, as it might contain error details.
+        return "Error executing script (Exit Status: " + std::to_string(exitStatus) + "):\n" + output;
     }
+    logMessage(LogLevel::DEBUG, "[ScriptTool] Script executed successfully.", "Command: " + commandToExecute);
     return output;
+}
+
+
+// --- Utility Functions ---
+
+void logMessage(LogLevel level, const std::string &message,
+                const std::string &details) {
+  auto nowChrono = std::chrono::system_clock::now();
+  auto nowTimeT = std::chrono::system_clock::to_time_t(nowChrono);
+  std::tm nowTmLocalBuf;
+#ifdef _WIN32
+  localtime_s(&nowTmLocalBuf, &nowTimeT);
+  std::tm *nowTm = &nowTmLocalBuf;
+#else
+  std::tm *nowTm = localtime_r(&nowTimeT, &nowTmLocalBuf);
+#endif
+
+  char timeBuffer[20];
+  if (nowTm) { // Check if localtime_r/s succeeded
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", nowTm);
+  } else {
+    std::strncpy(timeBuffer, "NO_TIME", sizeof(timeBuffer) - 1);
+    timeBuffer[sizeof(timeBuffer) - 1] = '\0';
+  }
+
+  std::string prefix;
+  std::string colorStart = "";
+  std::string colorEnd = "\033[0m"; // ANSI Reset
+
+  switch (level) {
+  case LogLevel::DEBUG:
+    prefix = "[DEBUG] ";
+    colorStart = "\033[36m";
+    break;
+  case LogLevel::INFO:
+    prefix = "[INFO]  ";
+    colorStart = "\033[32m";
+    break;
+  case LogLevel::WARN:
+    prefix = "[WARN]  ";
+    colorStart = "\033[33m";
+    break;
+  case LogLevel::ERROR:
+    prefix = "[ERROR] ";
+    colorStart = "\033[1;31m";
+    break;
+  case LogLevel::TOOL_CALL:
+    prefix = "[TOOL CALL] ";
+    colorStart = "\033[1;35m";
+    break;
+  case LogLevel::TOOL_RESULT:
+    prefix = "[TOOL RESULT] ";
+    colorStart = "\033[35m";
+    break;
+  case LogLevel::PROMPT:
+    prefix = "[PROMPT] ";
+    colorStart = "\033[34m";
+    break;
+  }
+  std::ostream &outStream =
+      (level == LogLevel::ERROR || level == LogLevel::WARN) ? std::cerr
+                                                            : std::cout;
+  outStream << colorStart << std::string(timeBuffer) << " " << prefix << message
+            << colorEnd << std::endl;
+  if (!details.empty()) {
+    const size_t MAX_DETAIL_LEN = 500;
+    std::string truncatedDetails = details.substr(0, MAX_DETAIL_LEN);
+    if (details.length() > MAX_DETAIL_LEN)
+      truncatedDetails += "... (truncated)";
+    outStream << colorStart << "  " << truncatedDetails << colorEnd
+              << std::endl;
+  }
 }

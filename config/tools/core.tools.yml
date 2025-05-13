@@ -1,0 +1,150 @@
+# config/tools/core.tools.yml
+# Core, foundational tools for general agent use within the Chimera Ecosystem.
+# These tools are designed to be robust and reusable.
+
+# --- Internal C++ Function-Based Tools (Assumed to be Registered in C++) ---
+InternalCoreUtilities:
+  TimeOracle:
+    name: "get_current_time"
+    description: >
+      Retrieves the current system date and time.
+      Returns the time in ISO 8601 like format (e.g., YYYY-MM-DDTHH:MM:SSZ).
+      No parameters required.
+    type: "internal_function"
+    function_identifier: "getTimeTool"
+    parameters_schema: { type: "object", properties: {} }
+    example_usage: {}
+
+  GeneralCalculator:
+    name: "calculate"
+    description: >
+      Performs basic arithmetic calculations on two numbers.
+      Supports addition (+), subtraction (-), multiplication (*), and division (/).
+      Expression should be a simple string like "value1 operator value2".
+      Parameters: {"expression": "string (e.g., '2 + 2', '100 / 4', '3.14 * 2')"}
+    type: "internal_function"
+    function_identifier: "calculateTool"
+    parameters_schema:
+      type: "object"
+      properties:
+        expression: { type: "string", description: "The arithmetic expression." }
+      required: ["expression"]
+    example_usage:
+      expression: "7 * 6"
+
+  FileSystemOperator: # This assumes 'fileTool' is a comprehensive internal function
+    name: "file"
+    description: >
+      Performs file system operations (read, write, append, list, info, delete, mkdir)
+      within the agent's designated AGENT_WORKSPACE.
+      Paths must be relative and are strictly confined to the workspace. No '..' allowed.
+      Parameters: {
+        "action": "string (REQUIRED, e.g., 'read', 'write', 'append', 'list', 'info', 'delete', 'mkdir')",
+        "path": "string (REQUIRED, relative path within the workspace, e.g., 'my_notes/todo.md')",
+        "content": "string (OPTIONAL, for 'write'/'append', the text content)",
+        "recursive": "boolean (OPTIONAL, for 'list' or 'delete' on directories, default false)"
+      }
+    type: "internal_function"
+    function_identifier: "fileTool" # This C++ function must handle the 'recursive' param if specified
+    parameters_schema:
+      type: "object"
+      properties:
+        action: { type: "string", enum: ["read", "write", "append", "list", "info", "delete", "mkdir"] }
+        path: { type: "string", description: "Relative path within agent workspace." }
+        content: { type: "string", description: "Content for write/append operations." }
+        recursive: { type: "boolean", description: "Whether to operate recursively for list/delete." }
+      required: ["action", "path"]
+    example_usage:
+      action: "write"
+      path: "config/settings.json"
+      content: '{"theme": "dark", "notifications": true}'
+
+# --- Script-Based Core Tools ---
+SystemInteractionTools:
+  BashExecutor:
+    name: "bash"
+    description: >
+      Executes a given shell command using Bash. The command is executed in the agent's
+      designated AGENT_WORKSPACE if not an absolute path (though absolute paths are discouraged).
+      Output includes both stdout and stderr. USE WITH EXTREME CAUTION.
+      Parameters: {"command": "string (REQUIRED, the shell command to execute)"}
+    type: "script"
+    runtime: "bash"
+    # Path relative to this core.tools.yml file (config/tools/)
+    path: "../scripts/core/execute_bash.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        command: { type: "string", description: "The shell command." }
+      required: ["command"]
+    example_usage:
+      command: "ls -la data_files"
+
+  PythonScriptExecutor:
+    name: "python_exec"
+    description: >
+      Executes a specified Python 3 script. The target script is identified by 'script_path'
+      (relative to a secure, predefined scripts directory).
+      Parameters defined in 'script_params' are passed to the target script as a single JSON string argument.
+      The target script should parse this JSON string to access its parameters.
+      Output from the script's stdout is returned.
+      Parameters: {
+        "script_path": "string (REQUIRED, e.g., 'utils/data_converter.py', 'reporting/generate_summary.py')",
+        "script_params": "object (OPTIONAL, JSON object of parameters for the target script)"
+      }
+    type: "script"
+    runtime: "python3"
+    path: "../scripts/core/generic_python_executor.py" # This is a wrapper script
+    parameters_schema:
+      type: "object"
+      properties:
+        script_path: { type: "string", description: "Path of the Python script to execute (relative to allowed base for agent scripts)." }
+        script_params: { type: "object", description: "A JSON object of parameters for the target script."}
+      required: ["script_path"]
+    example_usage:
+      script_path: "data_processing/clean_data.py"
+      script_params: { "input_file": "raw_data.csv", "output_file": "cleaned_data.csv", "mode": "strict" }
+
+WebUtilities:
+  SimpleHttpGet:
+    name: "http_get"
+    description: >
+      Performs a simple HTTP GET request to the specified URL and returns the response body (text).
+      Handles basic errors and timeouts. Not for complex interactions or binary data.
+      Parameters: {
+        "url": "string (REQUIRED, the full URL to fetch, e.g., 'https://api.example.com/status')",
+        "timeout_seconds": "integer (OPTIONAL, default 10, max 60)"
+      }
+    type: "script"
+    runtime: "python3" # Python with 'requests' is good for this
+    path: "../scripts/web/simple_http_get.py"
+    parameters_schema:
+      type: "object"
+      properties:
+        url: { type: "string", format: "uri", description: "The URL to fetch." }
+        timeout_seconds: { type: "integer", minimum: 1, maximum: 60, description: "Request timeout in seconds."}
+      required: ["url"]
+    example_usage:
+      url: "https://jsonplaceholder.typicode.com/todos/1"
+
+  BasicWebSearch: # Refined from previous
+    name: "web_search_snippets"
+    description: >
+      Performs a web search using a script (e.g., DuckDuckGo via curl) and returns
+      a list of titles and snippets for top results.
+      Parameters: {
+        "query": "string (REQUIRED, the search query)",
+        "num_results": "integer (OPTIONAL, default 3, max 5, number of result snippets to return)"
+      }
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/web/basic_ddg_snippet_search.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        query: { type: "string", description: "The search term(s)." }
+        num_results: { type: "integer", minimum: 1, maximum: 5, description: "Number of result snippets." }
+      required: ["query"]
+    example_usage:
+      query: "C++23 modules tutorial"
+      num_results: 3

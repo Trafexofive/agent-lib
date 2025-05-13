@@ -1,206 +1,131 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    standard.yaml                                      :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: mlamkadm <mlamkadm@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2025/05/04 17:28:44 by mlamkadm          #+#    #+#              #
-#    Updated: 2025/05/04 17:28:44 by mlamkadm         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
+# --- Agent Profile: StandardAgentMK1 (v1.3 - Core Tools Integration) ---
+# A general-purpose, foundational agent for the Chimera Ecosystem.
+# It imports a library of core tools to handle a variety of common tasks.
 
-# --- Standard Agent Profile ---
-# Use this as a base template for creating more specialized agents.
-# It defines a general-purpose assistant configuration loadable by
-# the current loadAgentProfile function.
-
-version: "agent-1.1"
+version: "agent-1.3" # Reflects integration with modular tool loading
 
 # --- Core Identity & Configuration ---
-
-variables:
-  - sample_description: "$(description.md)" #using the var name should be operational we could have the name extracted and default to it. having an explicit config style also 
-  - tmp: "hello"
-  - blank: ""
-  - scalar: |
-      hello im winning
-  - folder-test: ./context-files-mk1 #will load all files from the folder name && ref them by extracting the extension
-
-
-name: "StandardAgent"
+name: "StandardAgentMK1"
 description: |
-  A general-purpose assistant agent.
-  Designed to understand user requests, follow instructions,
-  potentially use available tools via actions, and provide helpful responses.
-  Lives In a HomeLab, Talks in pure JSON.
-  *This is the standard base profile.*
+  A versatile and foundational assistant agent within the Chimera Ecosystem.
+  Designed to understand user requests, formulate plans, execute tasks using
+  a standard set of imported core tools, and provide helpful, accurate responses.
+  Communicates strictly via the defined Chimera JSON schema.
 
-# system_prompt: | # ill try to make these loadable from a file as well. since they could get bigger. also for a more zen/focus.
-#   You are a helpful and versatile AI assistant.
-#   Your goal is to understand the user's request provided via the conversation history ..., and respond appropriately.
-#
-#   [IMPORTANT] Adhere strictly to this JSON format provided.
+# System prompt: points to the refined default system prompt for PRAETORIAN_CHIMERA
+# This prompt should guide the LLM on general interaction, tool usage, and the JSON output format.
+system_prompt: "system-prompts/default-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
 
-# the norm will be the following so we can just load all sysprompts from the system-prompts default dir. Im gonna leave this unimplented for now
-#
-# └── standard-agent-MK1
-#     ├── smp-template.yml
-#     ├── standard-agent-MK1.yml
-#     └── system-prompts
-#         └── default-inline.md
+# --- Default Iteration Cap ---
+iteration_cap: 10 # Standard limit, allowing for multi-step tasks.
 
-# 3 directories, 3 files
+# --- Environment Variables (Agent-Specific & Global Access) ---
+# AGENT_WORKSPACE is set by the C++ runtime/Docker.
+environment:
+  PRIMARY_LANGUAGE: "en-US"
+  AGENT_ALIAS: "Demiurge-Core" # An internal alias or persona hint
+  DEFAULT_SEARCH_ENGINE: "duckduckgo" # For the web_search tool if not specified in params
+  MAX_WEB_RESULTS_DEFAULT: 3
+  # This agent might also have its own scratchpad/log directory within its workspace
+  AGENT_LOG_FILE: "${AGENT_WORKSPACE}/logs/standard_agent_mk1.log"
+  AGENT_TEMP_DIR: "${AGENT_WORKSPACE}/tmp/"
 
-system_prompt: "system-prompts/sysprompt.md"
+# --- Import Tool Definitions ---
+# This agent imports the core set of tools.
+import:
+  tools:
+    # Path relative to this agent's YAML file (standard-agent-MK1/)
+    # Goes up two levels (out of standard-agent-MK1, out of standard-profiles)
+    # then into the global 'tools' directory.
+    - "../../../tools/core.tools.yml"
+    # Example: If you had another common library, you could add it:
+    # - "../../../tools/communication.tools.yml"
 
-# architype:  #dictates the personality traints.
-#   - 
-
-
-agents:
-  - name: "NoteAgent" # Name of the sub-agent.
-    description: "A specialized agent for note-taking and context management."
-    type: "sub-agent" # Indicates this is a sub-agent.
-    profile: "note.yaml" # Path to the specific profile for this sub-agent.
-    # context: # Optional context for the sub-agent. Can be empty or defined in the sub-agent's profile.
-  # - refer and load other profiles link them to thwe appropriate class in runtime. prob same with tools. for them we do need the MVP first.
+# --- Inline/Agent-Specific Tool Definitions ---
+# This standard agent might not have many *unique* tools if core.tools.yml is comprehensive.
+# However, it could define specific configurations or simple utility scripts.
 tools:
-    # Defines a reusable tool configuration accessible via the key 'BashExecutor'.
-    BashExecutor:
-      name: "bash" # Internal name used when attaching to agents.
-      description: "Executes a bash command provided as input."
-      type: "code" # Specifies this tool i  s implemented via code. FUTURE: Add "api", "service", file
-      runtime: "bash" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
-      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
-      #   command: { type: "string", description: "The bash command to execute." }
-      code: | # The actual code to execute. Input mapping TBD (e.g., via parameters).
-        #!/bin/bash
-        echo "Executing command: $1" >&2 # Example logging
-        eval "$1" # WARNING: Security risk! Needs sandboxing/safer execution. Placeholder only.
-    websearch:
-      name: "websearch" # Internal name used when attaching to agents.
-      description: "Searches the web."
-      type: "file" # do we even need this, it could just be infered through the addition of path
-      path: "./script/standard/websearch.py"
-      runtime: "python" # Specifies the execution runtime for 'code' type. FUTURE: Add "python", "nodejs".
-      # parameters: # FUTURE: Define expected input parameters and types for validation/prompting.
-      # command: { type: "string", description: "The bash command to execute." }
-      
- # context: # global.context.cpp-ref
- #    - type: file
- #      path: ./.resources/repo-cpp-code-refrences.md
- #      name: cpp-ref #if not specified, auto extraction will happen so its name would be repo-cpp-code-refrences and it would be accessed at global.context.repo-cpp-code-refrences
- #      # var: global.code
- #    - type: file
- #      path: ./.context # file that does exist is created
- #      append: # "./.context.old" | "simple text context to insert to the file" we could even make these stackble together for effective and blazing fast context loading and prototyping.
+  # Example: A simple script specific to this agent for status reporting.
+  # SystemStatusReporter:
+  #   name: "get_system_status_summary"
+  #   description: >
+  #     Retrieves a brief summary of the system's current status (e.g., load, disk space).
+  #     No parameters required.
+  #   type: "script"
+  #   runtime: "bash"
+  #   # Path relative to this agent's YAML file (standard-agent-MK1/scripts/bash/)
+  #   path: "scripts/bash/get_local_status.sh"
 
-
-
-iteration_cap: 10 # A standard default iteration limit.
-
-# --- Environment Variables ---
-environment: # Empty by default, add specific variables for specialized agents.
-  DEFAULT_LANGUAGE: "en-US"
-
-sub-agents:
-  note:
-   environment:
-     # - Overrides 
-# --- Additional Instructions & Guidance ---
-
-
-
-
+# --- LLM Interaction Schema (Guidance for the LLM) ---
+# This 'schema' field provides the LLM with the *exact* JSON structure it MUST output.
+# This should be your standard Chimera Ecosystem schema.
 schema: |
   {
-    status: string (REQUIRED, enum: SUCCESS| REQUIRES_ACTION | FAIL | ERROR),
-    thoughts: array<object> (REQUIRED, object: { type: string (REQUIRED, enum: DECISION| LONG_TERM | SHORT_TERM| PLAN | OBSERVATION | QUESTION | NORM | ASSUMPTION | GOAL | HYPOTHESIS | CRITIQUE), content: string (REQUIRED) }),
-    actions: array<object> (REQUIRED, object: { action: string (REQUIRED), type: string (REQUIRED, enum: tool | script | http_request | internal_function | output | workflow_control), params: object (REQUIRED, structure depends on action/type), confidence?: float (0.0-1.0), warnings?: array<string> }),
-    response: string | null
-  }
-
-
- 
-
-example: |
-  "User said 'hello'. The following is the raw llm reply that was Generated: "
-  {
-    "status": "SUCCESS",
+    "status": "string (REQUIRED, Enum: SUCCESS_FINAL | REQUIRES_ACTION | REQUIRES_CLARIFICATION | ERROR_INTERNAL)",
     "thoughts": [
       {
-        "type": "OBSERVATION",
-        "content": "Looks like the user is saying hello."
-      },
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
       {
-        "type": "DECISION",
-        "content": "Lets be nice, and say and hello back."
-      },
-      {
-        "type": "LONG_TERM",
-        "content": "Determine and gather context to achieve the users request."
-      },
-      {
-        "type": "SHORT_TERM",
-        "content": "Ask a follow up question, since the user doesnt seem to be requesting anything right now."
-      },
-        "response": "Greetings Master, Im on stand-by awaiting for your next command "
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function | output | workflow_control | http_request)",
+        "params": "object (REQUIRED, structure depends on the action, e.g., for 'bash': {'command': 'ls'})",
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
   }
-  
 
+# --- LLM Interaction Example (Guidance for the LLM) ---
+example: |
+  # User Input: "What is the current time and search the web for 'Factorio automation patterns'?"
+  # Expected LLM Output JSON from StandardAgentMK1:
+  {
+    "status": "REQUIRES_ACTION",
+    "thoughts": [
+      {
+        "type": "PLAN",
+        "content": "The user, PRAETORIAN_CHIMERA, requires the current time and a web search. I will use the 'get_current_time' internal function first, then the 'web_search_snippets' script-based tool."
+      },
+      {
+        "type": "OBSERVATION",
+        "content": "The 'get_current_time' tool takes no parameters. The 'web_search_snippets' tool requires a 'query' parameter and can take an optional 'num_results'."
+      }
+    ],
+    "actions": [
+      {
+        "action": "get_current_time",
+        "type": "internal_function",
+        "params": {}
+      },
+      {
+        "action": "web_search_snippets",
+        "type": "script",
+        "params": {
+          "query": "Factorio automation patterns",
+          "num_results": 3 # Using default from environment or agent's decision
+        },
+        "confidence": 0.95
+      }
+    ],
+    "final_response": null # Actions are pending results
+  }
 
-
-
-
+# --- Additional Prompting Guidance ---
 extra_prompts:
-  - "Be polite and helpful in your responses."
-  - "If a request is ambiguous or lacks necessary details, ask clarifying questions before proceeding."
-  - "Break down complex tasks into smaller steps in your 'thoughts' plan."
+  - "You are StandardAgentMK1, a versatile assistant in PRAETORIAN_CHIMERA's Chimera Ecosystem."
+  - "Leverage your available tools: 'get_current_time', 'calculate', 'file' (for AGENT_WORKSPACE operations), 'bash' (use cautiously), 'python_exec' (for running specific pre-approved scripts), and 'web_search_snippets'."
+  - "When using 'python_exec', the 'script_path' parameter must refer to a script within the agent's allowed script execution directories."
+  - "Always think step-by-step. If a task requires multiple tool uses, plan them sequentially in your 'thoughts' and execute one set of actions per turn."
+  - "If critical information is missing for a tool, use 'status: REQUIRES_CLARIFICATION' and ask the user for the necessary details in 'final_response' or via a 'request_user_input' action."
+  - "Ensure your JSON output strictly adheres to the defined 'schema'."
 
-# tasks: # General conceptual workflow for the agent
-#   - "Analyze the user's request and conversation history."
-#   - "Formulate a plan (document in 'thoughts')."
-#   - "Identify if clarification or tool/action use is needed."
-#   - "Execute required actions OR request clarification OR formulate final response."
-#   - "Ensure the final output is in the correct JSON structure."
-
-# --- Agent Directive ---
-
-# directive: # Default operational mode
-#   type: "NORMAL"
-#   description: "Assist the user with their requests in a standard conversational manner."
-#   format: "" # No specific format constraint by default.
-
-# --- Note ---
-# This standard profile does NOT define specific tools, sub-agents,
-# memory configurations, or initial history. These should be added
-# or overridden in the YAML profiles of more specialized agents
-# or configured programmatically via the Orchestrator/Agent instances.
-
-  # {
-  #       "type": "ADJUST",
-  #       "content": "content for behavioral change (auto learn)"
-  #     },
-# {
-
-  #       "type": "DECISION",
-  #       "content": "Say hello back. Proceed with asking about asking the user and listing some of the things I can help with. Maybe Suggest A few from the habit information available about the user"
-  #     },
-  #   ],
-  #   "actions": [],
-  #   "response": 
-  #   {
-  #     "type": "REPLY",
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #   {
-  #     "type": "WAIT", // seems unnecessary
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #   {
-  #     "type": "CLI", // output routing maybe array of outputs, dashboard.
-  #     "content": "Hello There! May I help you with something?\nWould you like to start drafting like usual?\nShould I instruct the docker-service-repo-builder To start On a new service to deploy to the homeserv?\n Or would you like to go in COPILOT/BRAINSTORM directive?"
-  #   }
-  #
-  # }
+# --- Agent Directive (Default Operational Mode) ---
+directive:
+  type: "NORMAL"
+  description: "Serve PRAETORIAN_CHIMERA by understanding requests, planning execution steps, leveraging core tools, and providing clear, accurate final responses."
+  format: "Primary output to user should be textual, conveyed via 'final_response'. Internal workings (thoughts, tool calls) must strictly follow the JSON schema."

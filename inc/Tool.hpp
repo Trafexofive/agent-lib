@@ -4,11 +4,12 @@
 #include <string>
 #include <functional> // For std::function
 #include <stdexcept>  // For std::runtime_error
+#include <vector>
+#include <map>
 
-// Forward declaration (if Tool methods might take Agent context, not used in this simple version)
-// class Agent;
+// Forward declaration
+class Agent;
 
-// Type alias for the functional callback Tool will use
 using FunctionalToolCallback = std::function<std::string(const Json::Value&)>;
 
 class Tool {
@@ -18,19 +19,25 @@ private:
     FunctionalToolCallback functionalCallback;
 
 public:
-    // Constructors
-    Tool(const std::string& toolName, const std::string& toolDescription);
-    Tool(); // Default constructor
+    Tool(const std::string& toolName, const std::string& toolDescription)
+        : name(toolName), description(toolDescription), functionalCallback(nullptr) {}
 
-    // Getters
-    std::string getName() const;
-    std::string getDescription() const;
+    Tool() : name(""), description(""), functionalCallback(nullptr) {}
 
-    // Setters
-    void setName(const std::string& toolName);
-    void setDescription(const std::string& toolDescription);
-    void setCallback(FunctionalToolCallback callback);
+    std::string getName() const { return name; }
+    std::string getDescription() const { return description; }
 
-    // Execution
-    std::string execute(const Json::Value& params);
+    void setName(const std::string& toolName) { name = toolName; }
+    void setDescription(const std::string& toolDescription) { description = toolDescription; }
+
+    void setCallback(FunctionalToolCallback callback) {
+        functionalCallback = callback;
+    }
+
+    std::string execute(const Json::Value& params) {
+        if (functionalCallback) {
+            return functionalCallback(params);
+        }
+        throw std::runtime_error("No valid callback function set for tool '" + name + "'");
+    }
 };

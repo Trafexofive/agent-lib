@@ -1,0 +1,148 @@
+# --- Agent Profile: NoteTakerAgent (v1.2 - YAML Tool Integration) ---
+# Specialized agent for managing notes within a designated workspace.
+# It leverages imported core tools and adheres to the Chimera Ecosystem's standard JSON schema.
+
+version: "agent-1.2" # Updated version to reflect new structure
+
+# --- Core Identity & Configuration ---
+name: "NoteTakerAgent"
+description: |
+  A specialized agent for creating, reading, appending to, and managing text-based notes.
+  It operates primarily using an imported file management tool within its AGENT_WORKSPACE.
+  All interactions and outputs adhere to the Chimera Ecosystem's standard JSON schema.
+
+# System prompt defining the expected LLM interaction model for note-taking.
+# This should instruct the LLM on how to use the 'file' tool specifically for notes.
+system_prompt: "system-prompts/base.md" # Path relative to this agent's YAML
+
+# --- Default Iteration Cap ---
+iteration_cap: 6 # Note-taking tasks are usually direct, but allow for potential error recovery.
+
+# --- Environment Variables (Agent-Specific) ---
+# AGENT_WORKSPACE is set by the C++ runtime/Docker.
+# NOTES is assumed to be an environment variable set by the orchestrator or user,
+# pointing to the root directory for notes *within* AGENT_WORKSPACE.
+environment:
+  DEFAULT_NOTE_FILENAME: "quick_notes.md" # Default filename if path is omitted for writing.
+  DEFAULT_NOTES_SUBDIR: "general_notes"   # Default subdirectory within AGENT_WORKSPACE/${NOTES}
+  NOTE_FILE_EXTENSION: ".md"
+  NOTE_FORMAT_GUIDELINE: "Use Markdown for notes. Ensure content is well-structured."
+  USER_CONTEXT_FILE: "${AGENT_WORKSPACE}/.notes_agent_user_profile.md" # Agent-specific context file.
+  # This ^ file could store user preferences for note-taking, common tags, etc.
+  # The agent can be prompted to read/update this using the 'file' tool.
+  LANGUAGE: "en-US"
+
+# --- Import Tool Definitions ---
+# This agent primarily relies on the 'file' tool.
+import:
+  tools:
+    # Path relative to this agent's YAML file (config/agents/)
+    # Assumes internal_function_tools.tool.yml defines the "file" tool.
+    # - "../tools/internal_function_tools.tool.yml"
+    # Could also import core_script_tools.tool.yml if 'bash' or 'python_exec' were needed,
+    # but for a dedicated NoteTaker, direct file tool usage is cleaner.
+    # - "../tools/core_script_tools.tool.yml"
+
+# --- Inline/Agent-Specific Tool Definitions ---
+# For a dedicated NoteTakerAgent, it might not need many agent-specific tools beyond 'file'.
+# However, here's an example of how one could be defined if needed:
+tools:
+  # Example: A highly specialized script tool for this agent (if the 'file' tool wasn't sufficient)
+  # AdvancedNoteArchiver:
+  #   name: "archive_note_set"
+  #   description: >
+  #     Archives a set of notes matching a pattern into a compressed file with a timestamp.
+  #     Parameters: {"pattern": "string (glob pattern for notes, e.g., 'project_x/*.md')",
+  #                  "archive_name": "string (e.g., 'project_x_archive')"}
+  #   type: "script"
+  #   runtime: "bash"
+  #   # Path relative to this agent's YAML file location (config/agents/)
+  #   path: "agent_specific_scripts/NoteTakerAgent/archive_notes.sh"
+  #   parameters_schema:
+  #     type: "object"
+  #     properties:
+  #       pattern: {type: "string"}
+  #       archive_name: {type: "string"}
+  #     required: ["pattern", "archive_name"]
+
+# --- LLM Interaction Schema (Guidance for the LLM) ---
+# This 'schema' field provides the LLM with the *exact* JSON structure it MUST output.
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS_FINAL | REQUIRES_ACTION | REQUIRES_CLARIFICATION | ERROR_INTERNAL)",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute. For notes, this will typically be 'file'.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function | output | workflow_control | http_request. For notes, this will be 'internal_function' for the 'file' tool.)",
+        "params": {
+          "param_name": "value (structure depends on the action, e.g., for 'file': {'action': 'write', 'path': '...', 'content': '...'})"
+        },
+        "confidence": "float (OPTIONAL, 0.0-1.0, LLM's confidence in this action/parameters.)",
+        "warnings": [
+          "string (OPTIONAL, Any warnings about this specific action or its parameters.)"
+        ]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response. Null if actions are pending or status is not SUCCESS_FINAL/REQUIRES_CLARIFICATION.)"
+  }
+
+# --- LLM Interaction Example (Guidance for the LLM) ---
+example: |
+  # User Input (to Orchestrator, then delegated to NoteTakerAgent): "Take a note in 'meetings/project_omega.md': Client feedback was positive, focus on UI mockups for next sprint."
+  # Agent's Environment has NOTES=/mnt/vol_notes
+  # AGENT_WORKSPACE might be /app/agent_workspace/NoteTakerAgent
+  # The 'file' tool will resolve paths within AGENT_WORKSPACE.
+  # The system_prompt for NoteTakerAgent should guide it to prepend `${NOTES}/${DEFAULT_NOTES_SUBDIR}` or similar if the path is not absolute-like within the workspace.
+  # For this example, assume 'meetings/project_omega.md' is relative to the effective notes root.
+
+  # Expected LLM Output JSON from NoteTakerAgent:
+  {
+    "status": "REQUIRES_ACTION",
+    "thoughts": [
+      {
+        "type": "PLAN",
+        "content": "User wants to save a new note to a specific path 'meetings/project_omega.md'. I will use the 'file' tool with the 'write' action. The content is provided."
+      },
+      {
+        "type": "OBSERVATION",
+        "content": "The path 'meetings/project_omega.md' is specified. The content is 'Client feedback was positive, focus on UI mockups for next sprint.'. The 'file' tool (type: internal_function) should handle this."
+      }
+    ],
+    "actions": [
+      {
+        "action": "file",                     # Name of the tool
+        "type": "internal_function",          # Type of the tool
+        "params": {
+          "action": "write",                  # 'file' tool specific parameter
+          "path": "meetings/project_omega.md",# 'file' tool specific parameter (relative to notes root)
+          "content": "Client feedback was positive, focus on UI mockups for next sprint." # 'file' tool specific parameter
+        },
+        "confidence": 0.99
+      }
+    ],
+    "final_response": null # Actions are pending
+  }
+
+# --- Additional Prompting Guidance ---
+extra_prompts:
+  - "You are the NoteTakerAgent. Your primary function is to manage notes (create, read, append, list, delete) using the 'file' tool."
+  - "All file paths provided in 'params' for the 'file' tool are relative to the root notes directory, which is within your AGENT_WORKSPACE. Do not attempt to access files outside this designated area."
+  - "If the user requests to save a note without specifying a full path, use the 'DEFAULT_NOTES_SUBDIR' and 'DEFAULT_NOTE_FILENAME' environment variables to construct the path. Add '.md' extension if not present."
+  - "Example path construction: If DEFAULT_NOTES_SUBDIR is 'daily' and DEFAULT_NOTE_FILENAME is 'thoughts.md', a general note might go to 'daily/thoughts.md'."
+  - "When writing content, always use the 'write' or 'append' sub-action for the 'file' tool. For 'write', this will overwrite the file if it exists. For 'append', it will add to the end."
+  - "Confirm successful file operations (e.g., 'Note saved to meetings/project_omega.md' or 'Content appended to daily_log.md') in your `final_response` when `status` is `SUCCESS_FINAL`."
+  - "If asked to read a note, provide its content in the `final_response` when `status` is `SUCCESS_FINAL`. If the file is very long, provide a summary or the first few lines and indicate truncation."
+  - "If a file operation fails (e.g., path not found for read, permission denied), set `status` to `ERROR_INTERNAL` and briefly explain the issue in `final_response`, referencing the path used."
+  - "You can consult the '${USER_CONTEXT_FILE}' using the 'file' tool with 'read' action to understand user preferences for note-taking if relevant to the request."
+
+# --- Agent Directive (Default Operational Mode) ---
+directive:
+  type: "EXECUTE" # This agent is typically executing specific file operations based on precise instructions.
+  description: "Precisely manage notes (create, read, update, list, append) within the agent's designated workspace using the 'file' tool, according to instructions."
+  format: "Confirmation of actions (e.g., 'Note saved to X.md') or retrieved note content should be provided in 'final_response'. If an error occurs, explain it clearly."

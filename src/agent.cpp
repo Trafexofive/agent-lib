@@ -8,95 +8,25 @@
 #include <iostream>         // For std::cout, std::cin, std::cerr
 #include <sstream>          // For std::stringstream
 
-// --- Global Logging Function Implementation ---
-// (Ensure this definition is accessible, typically here or in a dedicated
-// logging.cpp)
-void logMessage(LogLevel level, const std::string &message,
-                const std::string &details) {
-  auto nowChrono = std::chrono::system_clock::now();
-  auto nowTimeT = std::chrono::system_clock::to_time_t(nowChrono);
-  std::tm nowTmLocalBuf;
-#ifdef _WIN32
-  localtime_s(&nowTmLocalBuf, &nowTimeT);
-  std::tm *nowTm = &nowTmLocalBuf;
-#else
-  std::tm *nowTm = localtime_r(&nowTimeT, &nowTmLocalBuf);
-#endif
-
-  char timeBuffer[20];
-  if (nowTm) { // Check if localtime_r/s succeeded
-    std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", nowTm);
-  } else {
-    std::strncpy(timeBuffer, "NO_TIME", sizeof(timeBuffer) - 1);
-    timeBuffer[sizeof(timeBuffer) - 1] = '\0';
-  }
-
-  std::string prefix;
-  std::string colorStart = "";
-  std::string colorEnd = "\033[0m"; // ANSI Reset
-
-  switch (level) {
-  case LogLevel::DEBUG:
-    prefix = "[DEBUG] ";
-    colorStart = "\033[36m";
-    break;
-  case LogLevel::INFO:
-    prefix = "[INFO]  ";
-    colorStart = "\033[32m";
-    break;
-  case LogLevel::WARN:
-    prefix = "[WARN]  ";
-    colorStart = "\033[33m";
-    break;
-  case LogLevel::ERROR:
-    prefix = "[ERROR] ";
-    colorStart = "\033[1;31m";
-    break;
-  case LogLevel::TOOL_CALL:
-    prefix = "[TOOL CALL] ";
-    colorStart = "\033[1;35m";
-    break;
-  case LogLevel::TOOL_RESULT:
-    prefix = "[TOOL RESULT] ";
-    colorStart = "\033[35m";
-    break;
-  case LogLevel::PROMPT:
-    prefix = "[PROMPT] ";
-    colorStart = "\033[34m";
-    break;
-  }
-  std::ostream &outStream =
-      (level == LogLevel::ERROR || level == LogLevel::WARN) ? std::cerr
-                                                            : std::cout;
-  outStream << colorStart << std::string(timeBuffer) << " " << prefix << message
-            << colorEnd << std::endl;
-  if (!details.empty()) {
-    const size_t MAX_DETAIL_LEN = 500;
-    std::string truncatedDetails = details.substr(0, MAX_DETAIL_LEN);
-    if (details.length() > MAX_DETAIL_LEN)
-      truncatedDetails += "... (truncated)";
-    outStream << colorStart << "  " << truncatedDetails << colorEnd
-              << std::endl;
-  }
-}
 // --- End Logging ---
 
 Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
     : api(apiRef), agentName(agentNameVal), currentIteration(0),
       iterationLimit(10), skipNextFlowIteration(false) {
   logMessage(LogLevel::DEBUG, "Agent instance created", "Name: " + agentName);
-  internalFunctionDescriptions["help"] =
-      "Provides descriptions of available tools/actions. Parameters: "
-      "{\"action_name\": \"string\" (optional)}";
+  // internalFunctionDescriptions["help"] =
+  //     "Provides descriptions of available tools/actions. Parameters: "
+  //     "{\"action_name\": \"string\" (optional)}";
   internalFunctionDescriptions["skip"] = "Skips the final response generation "
                                          "for the current turn. No parameters.";
   internalFunctionDescriptions["promptAgent"] =
-      "Sends a prompt to another registered agent. Parameters: "
+      "Used To communicate with available types of agents (e.g sub-agents). "
+      "Functions like talking to another person, all agents have pretty much "
+      "the same runtime logic. Parameters: "
       "{\"agent_name\": \"string\", \"prompt\": \"string\"}";
-  internalFunctionDescriptions
-      ["summarizeText"] =
-          "Summarizes provided text content. Parameters: {\"text\": "
-          "\"string\"}"; // Corrected typo from summerizeTool
+  internalFunctionDescriptions["summarizeText"] =
+      "Summarizes provided text content. Parameters: {\"text\": "
+      "\"string\"}"; // Corrected typo from summerizeTool
   internalFunctionDescriptions["summarizeHistory"] =
       "Summarizes the current conversation history. No parameters.";
   internalFunctionDescriptions["getWeather"] =
@@ -158,6 +88,7 @@ void Agent::addTool(Tool *tool) {
                                    toolNameStr + "'");
   }
 }
+
 void Agent::removeTool(const std::string &toolNameKey) { // Renamed for clarity
   auto it = registeredTools.find(toolNameKey);
   if (it != registeredTools.end()) {
@@ -172,6 +103,7 @@ void Agent::removeTool(const std::string &toolNameKey) { // Renamed for clarity
                    "'");
   }
 }
+
 Tool *Agent::getTool(const std::string &toolNameKey) const {
   auto it = registeredTools.find(toolNameKey);
   return (it != registeredTools.end()) ? it->second : nullptr;
@@ -200,6 +132,7 @@ void Agent::run() {
                    " initial commands for agent '" + agentName + "'...");
     std::vector<std::string> commandsToExecute = initialCommands;
     initialCommands.clear();
+
     for (const auto &cmd : commandsToExecute) {
       Json::Value bashParams;
       bashParams["command"] = cmd;
@@ -301,6 +234,7 @@ void Agent::addEnvironmentVariable(const std::string &key,
                key + "=" + value);
   }
 }
+
 void Agent::importEnvironmentFile(const std::string &filePath) {
   std::ifstream envFile(filePath);
   if (!envFile.is_open()) {
@@ -338,6 +272,7 @@ void Agent::importEnvironmentFile(const std::string &filePath) {
                  " env vars from:",
              filePath);
 }
+
 void Agent::addExtraSystemPrompt(const std::string &promptFragment) {
   extraSystemPrompts.push_back(promptFragment);
 }
@@ -385,6 +320,7 @@ void Agent::addSubAgent(Agent *subAgentInstance) {
                                  "' registered sub-agent: '" +
                                  subAgentInstance->getName() + "'");
 }
+
 Agent *Agent::getSubAgent(const std::string &subAgentNameKey) const {
   auto it =
       std::find_if(subAgents.begin(), subAgents.end(),
@@ -402,119 +338,6 @@ std::string Agent::manualToolCall(const std::string &toolName,
   ai.type = "tool"; // Assume registered tool for manual call
   ai.params = params;
   return processSingleAction(ai);
-}
-
-// --- Private Helper Methods (Implementations) ---
-std::string Agent::buildFullPrompt() const {
-  // Implementation from src/agent/prompt.cpp
-  // (This was already quite complete, ensure it's consistent with Agent.hpp
-  // state)
-  std::stringstream promptSs;
-  if (!systemPrompt.empty()) {
-    promptSs << "<system_prompt>\n" << systemPrompt << "\n</system_prompt>\n\n";
-  }
-  // Add schema and example if they exist
-  if (!llmResponseSchema.empty()) {
-    promptSs << "<response_schema_definition>\n"
-             << llmResponseSchema << "\n</response_schema_definition>\n\n";
-  }
-  if (!llmResponseExample.empty()) {
-    promptSs << "<response_example>\n"
-             << llmResponseExample << "\n</response_example>\n\n";
-  }
-
-  promptSs << "<agent_identity>\n";
-  promptSs << "\t<name>" << agentName << "</name>\n";
-  if (!agentDescription.empty())
-    promptSs << "\t<description>" << agentDescription << "</description>\n";
-  promptSs << "</agent_identity>\n\n";
-
-  if (!environmentVariables.empty()) {
-    promptSs << "<environment_variables>\n";
-    for (const auto &pair : environmentVariables) {
-      promptSs << "\t<variable name=\"" << pair.first << "\">" << pair.second
-               << "</variable>\n";
-    }
-    promptSs << "</environment_variables>\n\n";
-  }
-
-  std::map<std::string, std::string> allAvailableActions =
-      internalFunctionDescriptions;
-  for (const auto &pair : registeredTools) {
-    if (pair.second)
-      allAvailableActions[pair.first] = pair.second->getDescription();
-  }
-  if (!allAvailableActions.empty()) {
-    promptSs << "<available_actions_reference>\n"; // Renamed for clarity
-    for (const auto &pair : allAvailableActions) {
-      promptSs << "\t<action_definition name=\"" << pair.first
-               << "\">\n"; // Renamed
-      promptSs << "\t\t<description_text>" << pair.second
-               << "</description_text>\n"; // Renamed
-      promptSs << "\t</action_definition>\n";
-    }
-    promptSs << "</available_actions_reference>\n\n";
-  }
-
-  if (currentDirective.type != AgentDirective::Type::NORMAL ||
-      !currentDirective.description.empty() ||
-      !currentDirective.format.empty()) {
-    promptSs << "<current_operational_directive>\n"; // Renamed
-    promptSs << "\t<directive_type>"
-             << directiveTypeToString(currentDirective.type)
-             << "</directive_type>\n";
-    if (!currentDirective.description.empty())
-      promptSs << "\t<directive_description>" << currentDirective.description
-               << "</directive_description>\n";
-    if (!currentDirective.format.empty())
-      promptSs << "\t<directive_expected_output_format>"
-               << currentDirective.format
-               << "</directive_expected_output_format>\n";
-    promptSs << "</current_operational_directive>\n\n";
-  }
-
-  if (!extraSystemPrompts.empty()) {
-    promptSs << "<additional_guidance>\n"; // Renamed
-    for (const auto &p : extraSystemPrompts)
-      promptSs << "\t<instruction>" << p << "</instruction>\n";
-    promptSs << "</additional_guidance>\n\n";
-  }
-
-  std::string memoryContextBlock;
-  if (!scratchpad.empty()) {
-    memoryContextBlock += "\t<scratchpad_contents>\n"; // Renamed
-    for (const auto &item : scratchpad)
-      memoryContextBlock += "\t\t<item key=\"" + item.first + "\"><![CDATA[" +
-                            item.second + "]]></item>\n";
-    memoryContextBlock += "\t</scratchpad_contents>\n";
-  }
-  // Add ShortTermMemory and LongTermMemory similarly if needed, potentially
-  // summarized for LongTerm.
-  if (!memoryContextBlock.empty()) {
-    promptSs << "<internal_memory_context>\n"
-             << memoryContextBlock
-             << "</internal_memory_context>\n\n"; // Renamed
-  }
-
-  if (!conversationHistory.empty()) {
-    promptSs << "<conversation_history_log>\n"; // Renamed
-    for (const auto &entry : conversationHistory) {
-      promptSs << "\t<turn role=\"" << entry.first
-               << "\">\n\t\t<content><![CDATA[" << entry.second
-               << "]]></content>\n\t</turn>\n";
-    }
-    promptSs << "</conversation_history_log>\n\n";
-  }
-
-  // The final instruction about JSON format is critical.
-  promptSs
-      << "RESPONSE_FORMATTING_INSTRUCTIONS: You MUST respond with a single, "
-         "valid JSON object. This JSON object must strictly adhere to the "
-         "'response_schema_definition' provided above if present, otherwise "
-         "use the 'response_example' as a structural guide. Key fields "
-         "expected are 'status', 'thoughts' (array of objects), 'actions' "
-         "(array of objects or null), and 'final_response' (string or null).";
-  return promptSs.str();
 }
 
 std::string Agent::executeApiCall(const std::string &fullPromptText) {
@@ -859,8 +682,3 @@ void Agent::trimLLMResponse(std::string &responseText) {
              "Agent '" + agentName + "': Trimmed LLM response code block.");
 }
 
-// --- src/agent/prompt.cpp content integrated here for completeness ---
-// (As buildFullPrompt is a private method of Agent, its implementation belongs
-// in agent.cpp) Content already provided in the response above for
-// src/agent/prompt.cpp is identical to the one in `Agent::buildFullPrompt` in
-// this `src/agent.cpp` section.
