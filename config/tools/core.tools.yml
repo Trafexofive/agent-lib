@@ -3,61 +3,61 @@
 # These tools are designed to be robust and reusable.
 
 # --- Internal C++ Function-Based Tools (Assumed to be Registered in C++) ---
-InternalCoreUtilities:
-  TimeOracle:
-    name: "get_current_time"
-    description: >
-      Retrieves the current system date and time.
-      Returns the time in ISO 8601 like format (e.g., YYYY-MM-DDTHH:MM:SSZ).
-      No parameters required.
-    type: "internal_function"
-    function_identifier: "getTimeTool"
-    parameters_schema: { type: "object", properties: {} }
-    example_usage: {}
-
-  GeneralCalculator:
-    name: "calculate"
-    description: >
-      Performs basic arithmetic calculations on two numbers.
-      Supports addition (+), subtraction (-), multiplication (*), and division (/).
-      Expression should be a simple string like "value1 operator value2".
-      Parameters: {"expression": "string (e.g., '2 + 2', '100 / 4', '3.14 * 2')"}
-    type: "internal_function"
-    function_identifier: "calculateTool"
-    parameters_schema:
-      type: "object"
-      properties:
-        expression: { type: "string", description: "The arithmetic expression." }
-      required: ["expression"]
-    example_usage:
-      expression: "7 * 6"
-
-  FileSystemOperator: # This assumes 'fileTool' is a comprehensive internal function
-    name: "file"
-    description: >
-      Performs file system operations (read, write, append, list, info, delete, mkdir)
-      within the agent's designated AGENT_WORKSPACE.
-      Paths must be relative and are strictly confined to the workspace. No '..' allowed.
-      Parameters: {
-        "action": "string (REQUIRED, e.g., 'read', 'write', 'append', 'list', 'info', 'delete', 'mkdir')",
-        "path": "string (REQUIRED, relative path within the workspace, e.g., 'my_notes/todo.md')",
-        "content": "string (OPTIONAL, for 'write'/'append', the text content)",
-        "recursive": "boolean (OPTIONAL, for 'list' or 'delete' on directories, default false)"
-      }
-    type: "internal_function"
-    function_identifier: "fileTool" # This C++ function must handle the 'recursive' param if specified
-    parameters_schema:
-      type: "object"
-      properties:
-        action: { type: "string", enum: ["read", "write", "append", "list", "info", "delete", "mkdir"] }
-        path: { type: "string", description: "Relative path within agent workspace." }
-        content: { type: "string", description: "Content for write/append operations." }
-        recursive: { type: "boolean", description: "Whether to operate recursively for list/delete." }
-      required: ["action", "path"]
-    example_usage:
-      action: "write"
-      path: "config/settings.json"
-      content: '{"theme": "dark", "notifications": true}'
+# InternalCoreUtilities:
+#   TimeOracle:
+#     name: "get_current_time"
+#     description: >
+#       Retrieves the current system date and time.
+#       Returns the time in ISO 8601 like format (e.g., YYYY-MM-DDTHH:MM:SSZ).
+#       No parameters required.
+#     type: "internal_function"
+#     function_identifier: "getTimeTool"
+#     parameters_schema: { type: "object", properties: {} }
+#     example_usage: {}
+#
+#   GeneralCalculator:
+#     name: "calculate"
+#     description: >
+#       Performs basic arithmetic calculations on two numbers.
+#       Supports addition (+), subtraction (-), multiplication (*), and division (/).
+#       Expression should be a simple string like "value1 operator value2".
+#       Parameters: {"expression": "string (e.g., '2 + 2', '100 / 4', '3.14 * 2')"}
+#     type: "internal_function"
+#     function_identifier: "calculateTool"
+#     parameters_schema:
+#       type: "object"
+#       properties:
+#         expression: { type: "string", description: "The arithmetic expression." }
+#       required: ["expression"]
+#     example_usage:
+#       expression: "7 * 6"
+#
+#   FileSystemOperator: # This assumes 'fileTool' is a comprehensive internal function
+#     name: "file"
+#     description: >
+#       Performs file system operations (read, write, append, list, info, delete, mkdir)
+#       within the agent's designated AGENT_WORKSPACE.
+#       Paths must be relative and are strictly confined to the workspace. No '..' allowed.
+#       Parameters: {
+#         "action": "string (REQUIRED, e.g., 'read', 'write', 'append', 'list', 'info', 'delete', 'mkdir')",
+#         "path": "string (REQUIRED, relative path within the workspace, e.g., 'my_notes/todo.md')",
+#         "content": "string (OPTIONAL, for 'write'/'append', the text content)",
+#         "recursive": "boolean (OPTIONAL, for 'list' or 'delete' on directories, default false)"
+#       }
+#     type: "internal_function"
+#     function_identifier: "fileTool" # This C++ function must handle the 'recursive' param if specified
+#     parameters_schema:
+#       type: "object"
+#       properties:
+#         action: { type: "string", enum: ["read", "write", "append", "list", "info", "delete", "mkdir"] }
+#         path: { type: "string", description: "Relative path within agent workspace." }
+#         content: { type: "string", description: "Content for write/append operations." }
+#         recursive: { type: "boolean", description: "Whether to operate recursively for list/delete." }
+#       required: ["action", "path"]
+#     example_usage:
+#       action: "write"
+#       path: "config/settings.json"
+#       content: '{"theme": "dark", "notifications": true}'
 
 # --- Script-Based Core Tools ---
 SystemInteractionTools:

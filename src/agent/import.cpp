@@ -65,41 +65,41 @@ std::string expandEnvironmentVariables(const std::string& inputStr) {
 // Basic path safety check: ensures targetPath is within or at baseDir
 // and does not use ".." to escape upwards significantly.
 // THIS IS A SIMPLIFIED CHECK AND SHOULD BE MADE MORE ROBUST FOR PRODUCTION.
-bool isPathConsideredSafe(const fs::path& targetPath, const fs::path& baseDir, const std::string& contextAgentName, const std::string& toolName) {
-    fs::path canonicalTarget;
-    fs::path canonicalBase;
-    std::error_code ec;
-
-    // Canonicalize paths to resolve symlinks and ".."
-    canonicalTarget = fs::weakly_canonical(targetPath, ec);
-    if (ec) {
-        logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing target path", targetPath.string() + " - " + ec.message());
-        return false; // Cannot determine safety if path is invalid
-    }
-    canonicalBase = fs::weakly_canonical(baseDir, ec);
-     if (ec) {
-        logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing base path", baseDir.string() + " - " + ec.message());
-        return false;
-    }
-
-    // Check if the canonical target path starts with the canonical base path
-    std::string targetStr = canonicalTarget.string();
-    std::string baseStr = canonicalBase.string();
-
-    if (targetStr.rfind(baseStr, 0) == 0) { // starts_with check
-        // Further check to ensure it's not just the base, but within a sub-directory
-        // or if it's intended to be a script directly in the base (e.g. baseDir/script.sh)
-        // This part depends on your desired strictness.
-        // For now, starting with base is considered "within".
-        // A more robust check would analyze path components to disallow "baseDir/../../something_else"
-        // even if `weakly_canonical` handled some of it.
-        return true;
-    }
-
-    logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': SECURITY VIOLATION - Path attempts to escape allowed directory.",
-               "Base: " + baseDir.string() + ", Target: " + targetPath.string() + ", ResolvedTarget: " + canonicalTarget.string());
-    return false;
-}
+// bool isPathConsideredSafe(const fs::path& targetPath, const fs::path& baseDir, const std::string& contextAgentName, const std::string& toolName) {
+//     fs::path canonicalTarget;
+//     fs::path canonicalBase;
+//     std::error_code ec;
+//
+//     // Canonicalize paths to resolve symlinks and ".."
+//     canonicalTarget = fs::weakly_canonical(targetPath, ec);
+//     if (ec) {
+//         logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing target path", targetPath.string() + " - " + ec.message());
+//         return false; // Cannot determine safety if path is invalid
+//     }
+//     canonicalBase = fs::weakly_canonical(baseDir, ec);
+//      if (ec) {
+//         logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing base path", baseDir.string() + " - " + ec.message());
+//         return false;
+//     }
+//
+//     // Check if the canonical target path starts with the canonical base path
+//     std::string targetStr = canonicalTarget.string();
+//     std::string baseStr = canonicalBase.string();
+//
+//     if (targetStr.rfind(baseStr, 0) == 0) { // starts_with check
+//         // Further check to ensure it's not just the base, but within a sub-directory
+//         // or if it's intended to be a script directly in the base (e.g. baseDir/script.sh)
+//         // This part depends on your desired strictness.
+//         // For now, starting with base is considered "within".
+//         // A more robust check would analyze path components to disallow "baseDir/../../something_else"
+//         // even if `weakly_canonical` handled some of it.
+//         return true;
+//     }
+//
+//     logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': SECURITY VIOLATION - Path attempts to escape allowed directory.",
+//                "Base: " + baseDir.string() + ", Target: " + targetPath.string() + ", ResolvedTarget: " + canonicalTarget.string());
+//     return false;
+// }
 
 
 bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
@@ -140,9 +140,9 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                 fs::path promptFilePath = agentYamlDir / systemPromptStr;
                 promptFilePath = fs::weakly_canonical(promptFilePath);
                 // SAFETY CHECK for prompt file path (e.g., ensure it's within config/sysprompts)
-                 if (!isPathConsideredSafe(promptFilePath, projectRootDir / "config", agentToConfigure.getName(), "system_prompt_file")) {
-                     logMessage(LogLevel::ERROR, "System prompt file path is unsafe: " + promptFilePath.string() + ". Skipping.");
-                 } else {
+                 // if (!isPathConsideredSafe(promptFilePath, projectRootDir / "config", agentToConfigure.getName(), "system_prompt_file")) {
+                 //     logMessage(LogLevel::ERROR, "System prompt file path is unsafe: " + promptFilePath.string() + ". Skipping.");
+                 // } else {
                     std::ifstream promptFile(promptFilePath);
                     if (promptFile.good()) {
                         std::string content((std::istreambuf_iterator<char>(promptFile)), std::istreambuf_iterator<char>());
@@ -150,7 +150,7 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                     } else {
                         logMessage(LogLevel::ERROR, "System prompt file not found or not readable: " + promptFilePath.string());
                     }
-                 }
+                 // }
             } else {
                 agentToConfigure.setSystemPrompt(expandEnvironmentVariables(systemPromptStr));
             }
@@ -201,10 +201,10 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                     fullToolYamlPath = fs::weakly_canonical(fullToolYamlPath);
 
                     // **SECURITY CHECK for imported tool definition file path**
-                    if (!isPathConsideredSafe(fullToolYamlPath, allowedToolImportBaseDir, agentToConfigure.getName(), "tool_import:" + relativeToolYamlPathStr)) {
-                        logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Tool import path '" + fullToolYamlPath.string() + "' is outside allowed tool directories. Skipping import.");
-                        continue;
-                    }
+                    // if (!isPathConsideredSafe(fullToolYamlPath, allowedToolImportBaseDir, agentToConfigure.getName(), "tool_import:" + relativeToolYamlPathStr)) {
+                    //     logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Tool import path '" + fullToolYamlPath.string() + "' is outside allowed tool directories. Skipping import.");
+                    //     continue;
+                    // }
                     if (!fs::exists(fullToolYamlPath)) {
                         logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Tool import file not found: " + fullToolYamlPath.string() + ". Skipping import.");
                         continue;
@@ -265,10 +265,10 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                         scriptFullPath = fs::weakly_canonical(scriptFullPath);
 
                         // **SECURITY CHECK for inline script path**
-                        if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentToConfigure.getName(), toolName + "(inline_script_path)")) {
-                             logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Inline script tool path '" + scriptFullPath.string() + "' is outside allowed script directories. Skipping tool '" + toolName + "'.");
-                             delete newTool; continue;
-                        }
+                        // if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentToConfigure.getName(), toolName + "(inline_script_path)")) {
+                        //      logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Inline script tool path '" + scriptFullPath.string() + "' is outside allowed script directories. Skipping tool '" + toolName + "'.");
+                        //      delete newTool; continue;
+                        // }
                          if (!fs::exists(scriptFullPath) && !isInline) { // Check existence only if not inline code
                             logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Script file for inline tool '" + toolName + "' not found: " + scriptFullPath.string() + ". Skipping.");
                             delete newTool; continue;
@@ -412,10 +412,10 @@ std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, 
                     scriptFullPath = fs::weakly_canonical(scriptFullPath);
 
                     // **SECURITY CHECK for script path from tool file**
-                    if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentForLoggingContext.getName(), toolName + "(script_from_tool_file)")) {
-                         logMessage(LogLevel::ERROR, "Agent '" + agentForLoggingContext.getName() + "': Script path for tool '" + toolName + "' from '" + toolYamlPath + "' (" + scriptFullPath.string() + ") is outside allowed script directories. Skipping tool.");
-                         delete newTool; continue;
-                    }
+                    // if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentForLoggingContext.getName(), toolName + "(script_from_tool_file)")) {
+                    //      logMessage(LogLevel::ERROR, "Agent '" + agentForLoggingContext.getName() + "': Script path for tool '" + toolName + "' from '" + toolYamlPath + "' (" + scriptFullPath.string() + ") is outside allowed script directories. Skipping tool.");
+                    //      delete newTool; continue;
+                    // }
                     if (!fs::exists(scriptFullPath)) {
                         logMessage(LogLevel::ERROR, "Agent '" + agentForLoggingContext.getName() + "': Script file for tool '" + toolName + "' from '" + toolYamlPath + "' not found: " + scriptFullPath.string() + ". Skipping.");
                         delete newTool; continue;

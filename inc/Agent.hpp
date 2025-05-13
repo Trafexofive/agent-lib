@@ -53,9 +53,12 @@ struct ActionInfo {
 
 struct ParsedLLMResponse {
   bool success = false;
+
   std::string status;
+
   std::vector<StructuredThought> thoughts;
   std::vector<ActionInfo> actions;
+
   std::string finalResponseField;
   std::string rawTrimmedJson;
 };

@@ -37,7 +37,7 @@ import:
     # Path relative to this agent's YAML file (standard-agent-MK1/)
     # Goes up two levels (out of standard-agent-MK1, out of standard-profiles)
     # then into the global 'tools' directory.
-    - "../../../tools/core.tools.yml"
+    - "../../../tools/core.tools.yml" # Core tools library
     # Example: If you had another common library, you could add it:
     # - "../../../tools/communication.tools.yml"
 

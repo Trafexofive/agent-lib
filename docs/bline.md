@@ -9,37 +9,15 @@
     - Implement the first relic.
     - python/bash runtime.
     - script api.
-
-{
-  "id": "run_script",
-  "type": "script",
-  "params": {"runtime": "python", "source": "print('Hello')"}, // source could be a file path or inline code
-  "description": "Runs a Python script to say hi",
-  "tags": ["script", "test"],
-  "timeout": 300,
-  "retries": 3,
-  "concurrency": 1,
-  "schedule": "1h", // will run every hour. with the beginning of the hour as base
-  "notifications": [
-    {"event": "completion", "channel": "email", "recipients": ["user@example.com"]},
-    {"event": "failure", "channel": "slack", "webhook": "https://slack.com/webhook"}
-  ],
-  "resource_limits": {
-    "cpu": "0.5",
-    "memory": "512MB",
-    "disk": "1GB"
-  },
+    - CONTEXT the agent state, and the namespace variables... If we dont have this, we are not going to be able to do anything.
+    - clean up the code and make it more readable.
+    - clean up the repo and make it more team oriented.
+    - full docker compose stack.
+    - single modullar agent images.
+    - swarm mode for docker (allowing live instantiation of single agent containers).
 
 
-  {
-    status: string (REQUIRED, enum: SUCCESS| REQUIRES_ACTION | FAIL | ERROR),
-    thoughts: array<object> (REQUIRED, object: { type: string (REQUIRED, enum: DECISION| LONG_TERM | SHORT_TERM| PLAN | OBSERVATION | QUESTION | NORM | ASSUMPTION | GOAL | HYPOTHESIS | CRITIQUE), content: string (REQUIRED) }),
-    actions: array<object> (REQUIRED, object: { action: string (REQUIRED), type: string (REQUIRED, enum: tool | script | http_request | internal_function | output | workflow_control), params: object (REQUIRED, structure depends on action/type), confidence?: float (0.0-1.0), warnings?: array<string> }),
-    response: string | null
-
-  }
-
-
+// INSPIRATIONS && IDEAS:
 {
   "action": "run_script",
   "type": "script",

@@ -48,13 +48,8 @@ int	main(void)
 	Agent agent1(myApi);
 	Agent note(myApi);
 	// Load configuration into agent1
-	if (loadAgentProfile(agent1, "./config/agents/standard.yaml"))
+	if (loadAgentProfile(agent1, "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-profiles/standard-agent-MK1/standard-agent-MK1.yml"))
 	{
-        if (loadAgentProfile(note, "./config/agents/note.yaml"))
-        {
-            std::cout << "Note Agent Name: " << note.getName() << std::endl;
-            agent1.addSubAgent(&note);
-        }
 		std::cout << "Agent Name after load: " << agent1.getName() << std::endl;
 		// std::cout << "listing conf after load "<< std::endl;
 		// agent1.listAllAgentInfo();
