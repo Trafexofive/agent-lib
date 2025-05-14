@@ -17,8 +17,8 @@ Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
   // internalFunctionDescriptions["help"] =
   //     "Provides descriptions of available tools/actions. Parameters: "
   //     "{\"action_name\": \"string\" (optional)}";
-  internalFunctionDescriptions["skip"] = "Skips the final response generation "
-                                         "for the current turn. No parameters.";
+  // internalFunctionDescriptions["skip"] = "Skips the final response generation "
+  //                                        "for the current turn. No parameters.";
   internalFunctionDescriptions["promptAgent"] =
       "Used To communicate with available types of agents (e.g sub-agents). "
       "Functions like talking to another person, all agents have pretty much "
@@ -29,8 +29,8 @@ Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
       "\"string\"}"; // Corrected typo from summerizeTool
   internalFunctionDescriptions["summarizeHistory"] =
       "Summarizes the current conversation history. No parameters.";
-  internalFunctionDescriptions["getWeather"] =
-      "Fetches current weather. Parameters: {\"location\": \"string\"}";
+  // internalFunctionDescriptions["getWeather"] =
+  //     "Fetches current weather. Parameters: {\"location\": \"string\"}";
 }
 
 Agent::~Agent() {

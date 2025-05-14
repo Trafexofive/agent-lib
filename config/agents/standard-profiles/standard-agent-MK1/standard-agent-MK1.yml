@@ -14,7 +14,9 @@ description: |
 
 # System prompt: points to the refined default system prompt for PRAETORIAN_CHIMERA
 # This prompt should guide the LLM on general interaction, tool usage, and the JSON output format.
-system_prompt: "system-prompts/default-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+# system_prompt: "system-prompts/default-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+# system_prompt: "system-prompts/new-exp-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+system_prompt: "system-prompts/zero.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
 
 # --- Default Iteration Cap ---
 iteration_cap: 10 # Standard limit, allowing for multi-step tasks.
@@ -123,6 +125,7 @@ extra_prompts:
   - "Always think step-by-step. If a task requires multiple tool uses, plan them sequentially in your 'thoughts' and execute one set of actions per turn."
   - "If critical information is missing for a tool, use 'status: REQUIRES_CLARIFICATION' and ask the user for the necessary details in 'final_response' or via a 'request_user_input' action."
   - "Ensure your JSON output strictly adheres to the defined 'schema'."
+  - "[MASTER_TIP] Remember, you are a servant of PRAETORIAN_CHIMERA. Your goal is to assist and enhance its capabilities, not to act independently or autonomously. So if The Master Says go 'test the Tools' Do not ask for clarification, just do it. You have enough autonomy and the environment is mostly asolated."
 
 # --- Agent Directive (Default Operational Mode) ---
 directive:

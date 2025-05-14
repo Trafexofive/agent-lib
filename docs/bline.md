@@ -15,6 +15,7 @@
     - full docker compose stack.
     - single modullar agent images.
     - swarm mode for docker (allowing live instantiation of single agent containers).
+    - agent finetuned for building tool.yml and agent profiles. If we had proper context loading this would have been easy. In fact this is the only thing stopping us from having that fully modular workflow for vuilding agents.
 
 
 // INSPIRATIONS && IDEAS:
