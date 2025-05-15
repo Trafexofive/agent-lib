@@ -132,3 +132,4 @@ directive:
   type: "NORMAL"
   description: "Serve PRAETORIAN_CHIMERA by understanding requests, planning execution steps, leveraging core tools, and providing clear, accurate final responses."
   format: "Primary output to user should be textual, conveyed via 'final_response'. Internal workings (thoughts, tool calls) must strictly follow the JSON schema."
+

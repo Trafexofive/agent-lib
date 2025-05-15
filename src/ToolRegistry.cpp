@@ -1,13 +1,13 @@
 #include "../inc/ToolRegistry.hpp"
-#include "../inc/Agent.hpp" // For logMessage, if used by registry for warnings
+#include "../inc/Utils.hpp" // For logMessage
 
 bool ToolRegistry::registerFunction(const std::string& identifier, FunctionalToolCallback callback) {
     if (registry_.count(identifier)) {
-        logMessage(LogLevel::WARN, "ToolRegistry: Duplicate function identifier registration attempted.", "Identifier: " + identifier + ". Keeping existing.");
-        return false;
+        logMessage(LogLevel::WARN, "ToolRegistry: Duplicate function identifier registration attempted for '" + identifier + "'. Keeping existing definition.");
+        return false; // Do not overwrite, or decide on a strategy
     }
     registry_[identifier] = callback;
-    logMessage(LogLevel::DEBUG, "ToolRegistry: Registered internal function.", "Identifier: " + identifier);
+    logMessage(LogLevel::DEBUG, "ToolRegistry: Successfully registered internal function: '" + identifier + "'.");
     return true;
 }
 
@@ -16,6 +16,6 @@ FunctionalToolCallback ToolRegistry::getFunction(const std::string& identifier) 
     if (it != registry_.end()) {
         return it->second;
     }
-    logMessage(LogLevel::WARN, "ToolRegistry: Function identifier not found.", "Identifier: " + identifier);
-    return nullptr;
+    logMessage(LogLevel::WARN, "ToolRegistry: Internal function identifier not found in registry: '" + identifier + "'.");
+    return nullptr; // Return nullptr if not found
 }

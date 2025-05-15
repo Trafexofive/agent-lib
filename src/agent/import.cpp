@@ -1,6 +1,6 @@
 #include "../../inc/Agent.hpp"
 #include "../../inc/Tool.hpp"
-#include "../../inc/Utils.hpp"       // For executeScriptTool
+#include "../../inc/Utils.hpp"       // For executeScriptTool, logMessage
 #include "../../inc/ToolRegistry.hpp" // For ToolRegistry
 #include <fstream>
 #include <iostream>
@@ -16,23 +16,41 @@ namespace fs = std::filesystem;
 // Forward declaration for the new helper
 std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, Agent& agentForLoggingContext, const fs::path& toolFileBaseDir);
 
-// Helper to expand environment variables like ${VAR_NAME} or $VAR_NAME
-// (Simplified version, a more robust one might be needed for complex cases)
-std::string expandEnvironmentVariables(const std::string& inputStr) {
+// Helper to expand environment variables
+std::string expandEnvironmentVariables(const std::string& inputStr, const Agent& agentContext) {
     std::string result = inputStr;
     size_t pos = 0;
+
+    // 1. Expand agent's environment variables first: ${VAR_NAME} or $VAR_NAME from agent.getEnvironmentVariables()
+    const auto& agentEnvVars = agentContext.getEnvironmentVariables();
+    for(const auto& pair : agentEnvVars) {
+        std::string placeholder = "${" + pair.first + "}";
+        size_t N = placeholder.length();
+        for (pos = result.find(placeholder); pos != std::string::npos; pos = result.find(placeholder, pos)) {
+            result.replace(pos, N, pair.second);
+            pos += pair.second.length(); // Adjust pos to continue search after the replacement
+        }
+        // Simple $VAR version (less specific, might conflict with system env vars if names overlap)
+        // For now, prioritizing ${VAR_NAME} for agent vars to be explicit.
+    }
+
+
+    // 2. Expand system environment variables: $SYS_VAR or ${SYS_VAR}
+    pos = 0;
     while ((pos = result.find('$', pos)) != std::string::npos) {
         if (pos + 1 < result.length()) {
             size_t endPos;
             std::string varName;
-            if (result[pos + 1] == '{') { // ${VAR_NAME}
+            bool isBracketed = (result[pos + 1] == '{');
+
+            if (isBracketed) { // ${SYS_VAR}
                 endPos = result.find('}', pos + 2);
                 if (endPos != std::string::npos) {
                     varName = result.substr(pos + 2, endPos - (pos + 2));
                 } else {
                     pos += 2; continue; // Malformed
                 }
-            } else { // $VAR_NAME (simple variable name)
+            } else { // $SYS_VAR (simple variable name)
                 endPos = pos + 1;
                 while (endPos < result.length() && (std::isalnum(result[endPos]) || result[endPos] == '_')) {
                     endPos++;
@@ -42,174 +60,164 @@ std::string expandEnvironmentVariables(const std::string& inputStr) {
             }
 
             if (!varName.empty()) {
-                const char* envVal = std::getenv(varName.c_str());
-                if (envVal) {
-                    result.replace(pos, (endPos +1) - pos, envVal);
-                    pos += strlen(envVal); // Move past the replaced string
-                } else {
-                    logMessage(LogLevel::WARN, "Environment variable not found for expansion: " + varName);
-                    result.replace(pos, (endPos +1) - pos, ""); // Replace with empty if not found
-                    // Or keep placeholder: pos = endPos + 1;
+                // Check if it's an agent variable first (already handled if using ${...})
+                bool agentVarFound = false;
+                if (!isBracketed) { // For $VAR_NAME style, check agent env again
+                    for(const auto& pair : agentEnvVars) {
+                        if (pair.first == varName) {
+                            result.replace(pos, (endPos +1) - pos, pair.second);
+                            pos += pair.second.length();
+                            agentVarFound = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!agentVarFound) {
+                    const char* envVal = std::getenv(varName.c_str());
+                    if (envVal) {
+                        result.replace(pos, (endPos +1) - pos, envVal);
+                        pos += strlen(envVal); 
+                    } else {
+                        logMessage(LogLevel::WARN, "Environment variable not found for expansion: " + varName, "Context: " + agentContext.getName());
+                        result.replace(pos, (endPos +1) - pos, ""); 
+                    }
                 }
             } else {
-                pos++; // Just a '$', not a variable
+                pos++; 
             }
         } else {
-            break; // '$' at the end of the string
+            break; 
         }
     }
     return result;
 }
 
 
-// Basic path safety check: ensures targetPath is within or at baseDir
-// and does not use ".." to escape upwards significantly.
-// THIS IS A SIMPLIFIED CHECK AND SHOULD BE MADE MORE ROBUST FOR PRODUCTION.
-// bool isPathConsideredSafe(const fs::path& targetPath, const fs::path& baseDir, const std::string& contextAgentName, const std::string& toolName) {
-//     fs::path canonicalTarget;
-//     fs::path canonicalBase;
-//     std::error_code ec;
-//
-//     // Canonicalize paths to resolve symlinks and ".."
-//     canonicalTarget = fs::weakly_canonical(targetPath, ec);
-//     if (ec) {
-//         logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing target path", targetPath.string() + " - " + ec.message());
-//         return false; // Cannot determine safety if path is invalid
-//     }
-//     canonicalBase = fs::weakly_canonical(baseDir, ec);
-//      if (ec) {
-//         logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': Error canonicalizing base path", baseDir.string() + " - " + ec.message());
-//         return false;
-//     }
-//
-//     // Check if the canonical target path starts with the canonical base path
-//     std::string targetStr = canonicalTarget.string();
-//     std::string baseStr = canonicalBase.string();
-//
-//     if (targetStr.rfind(baseStr, 0) == 0) { // starts_with check
-//         // Further check to ensure it's not just the base, but within a sub-directory
-//         // or if it's intended to be a script directly in the base (e.g. baseDir/script.sh)
-//         // This part depends on your desired strictness.
-//         // For now, starting with base is considered "within".
-//         // A more robust check would analyze path components to disallow "baseDir/../../something_else"
-//         // even if `weakly_canonical` handled some of it.
-//         return true;
-//     }
-//
-//     logMessage(LogLevel::ERROR, "Agent '" + contextAgentName + "', Tool '" + toolName + "': SECURITY VIOLATION - Path attempts to escape allowed directory.",
-//                "Base: " + baseDir.string() + ", Target: " + targetPath.string() + ", ResolvedTarget: " + canonicalTarget.string());
-//     return false;
-// }
-
-
 bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
-    logMessage(LogLevel::INFO, "Loading agent profile: " + yamlPath);
+    logMessage(LogLevel::INFO, "Loading agent profile: " + yamlPath, "Agent: " + agentToConfigure.getName());
     YAML::Node config;
     fs::path agentYamlFsPath(yamlPath);
     fs::path agentYamlDir = agentYamlFsPath.parent_path();
-
-    // Define allowed root directories for script execution and tool imports (relative to project root or absolute)
-    // THIS IS A CRITICAL SECURITY CONFIGURATION POINT.
-    // These paths should be canonicalized at application startup.
-    const fs::path projectRootDir = fs::current_path(); // Or a more fixed anchor
-    const fs::path allowedScriptsBaseDir = projectRootDir / "config"; // Example: scripts must be under agent-lib/config/
-    const fs::path allowedToolImportBaseDir = projectRootDir / "config/tools"; // Example
+    fs::path projectRootDir = fs::current_path(); 
+    fs::path allowedScriptsBaseDir = projectRootDir / "config" / "scripts"; // More specific
+    fs::path allowedToolImportBaseDir = projectRootDir / "config" / "tools";
 
     try {
-        std::ifstream f(yamlPath); // Use fs::path directly
+        std::ifstream f(agentYamlFsPath.string()); 
         if (!f.good()) {
             logMessage(LogLevel::ERROR, "Agent profile file not found", yamlPath);
             return false;
         }
-        config = YAML::Load(f); // Load from stream
+        config = YAML::Load(f); 
         f.close();
 
-        // --- Load Core Identity & Configuration ---
         if (config["name"] && config["name"].IsScalar()) {
             agentToConfigure.setName(config["name"].as<std::string>());
         } else {
             logMessage(LogLevel::WARN, "Agent profile missing 'name'. Using default or previous.", yamlPath);
         }
-        // ... (load description, system_prompt (with .md file loading), schema, example, iteration_cap as before) ...
+        
         if (config["description"] && config["description"].IsScalar()) {
-            agentToConfigure.setDescription(expandEnvironmentVariables(config["description"].as<std::string>()));
+            agentToConfigure.setDescription(expandEnvironmentVariables(config["description"].as<std::string>(), agentToConfigure));
         }
         if (config["system_prompt"] && config["system_prompt"].IsScalar()) {
             std::string systemPromptStr = config["system_prompt"].as<std::string>();
             if (systemPromptStr.size() > 3 && systemPromptStr.substr(systemPromptStr.size() - 3) == ".md") {
                 fs::path promptFilePath = agentYamlDir / systemPromptStr;
-                promptFilePath = fs::weakly_canonical(promptFilePath);
-                // SAFETY CHECK for prompt file path (e.g., ensure it's within config/sysprompts)
-                 // if (!isPathConsideredSafe(promptFilePath, projectRootDir / "config", agentToConfigure.getName(), "system_prompt_file")) {
-                 //     logMessage(LogLevel::ERROR, "System prompt file path is unsafe: " + promptFilePath.string() + ". Skipping.");
-                 // } else {
+                // logMessage(LogLevel::DEBUG, "Attempting to load system prompt from .md file", promptFilePath.string());
+                
+                std::error_code ec;
+                promptFilePath = fs::weakly_canonical(promptFilePath, ec);
+                 if (ec) {
+                    logMessage(LogLevel::ERROR, "Error canonicalizing system prompt path: " + promptFilePath.string(), ec.message());
+                } else {
                     std::ifstream promptFile(promptFilePath);
                     if (promptFile.good()) {
                         std::string content((std::istreambuf_iterator<char>(promptFile)), std::istreambuf_iterator<char>());
-                        agentToConfigure.setSystemPrompt(expandEnvironmentVariables(content));
+                        agentToConfigure.setSystemPrompt(expandEnvironmentVariables(content, agentToConfigure));
                     } else {
                         logMessage(LogLevel::ERROR, "System prompt file not found or not readable: " + promptFilePath.string());
                     }
-                 // }
+                }
             } else {
-                agentToConfigure.setSystemPrompt(expandEnvironmentVariables(systemPromptStr));
+                agentToConfigure.setSystemPrompt(expandEnvironmentVariables(systemPromptStr, agentToConfigure));
             }
         }
          if (config["schema"] && config["schema"].IsScalar()) {
-            agentToConfigure.setSchema(expandEnvironmentVariables(config["schema"].as<std::string>()));
+            agentToConfigure.setSchema(expandEnvironmentVariables(config["schema"].as<std::string>(), agentToConfigure));
         }
         if (config["example"] && config["example"].IsScalar()) {
-            agentToConfigure.setExample(expandEnvironmentVariables(config["example"].as<std::string>()));
+            agentToConfigure.setExample(expandEnvironmentVariables(config["example"].as<std::string>(), agentToConfigure));
         }
         if (config["iteration_cap"] && config["iteration_cap"].IsScalar()) {
             try {
-                agentToConfigure.setIterationCap(config["iteration_cap"].as<int>());
-            } catch (const YAML::BadConversion& e) { /* ... log ... */ }
+                int cap = config["iteration_cap"].as<int>();
+                agentToConfigure.setIterationCap(cap);
+                 logMessage(LogLevel::DEBUG, "Agent '" + agentToConfigure.getName() + "' iteration_cap set to: " + std::to_string(cap));
+            } catch (const YAML::BadConversion& e) { 
+                 logMessage(LogLevel::WARN, "Failed to parse 'iteration_cap' for agent " + agentToConfigure.getName(), e.what());
+            }
         }
         if (config["environment"] && config["environment"].IsMap()) {
             for (const auto& env_it : config["environment"]) {
-                agentToConfigure.addEnvironmentVariable(env_it.first.as<std::string>(), expandEnvironmentVariables(env_it.second.as<std::string>()));
+                std::string key = env_it.first.as<std::string>();
+                std::string value = expandEnvironmentVariables(env_it.second.as<std::string>(), agentToConfigure);
+                agentToConfigure.addEnvironmentVariable(key, value);
             }
         }
          if (config["extra_prompts"] && config["extra_prompts"].IsSequence()) {
             for (const auto& item : config["extra_prompts"]) {
-                if(item.IsScalar()) agentToConfigure.addExtraSystemPrompt(expandEnvironmentVariables(item.as<std::string>()));
+                if(item.IsScalar()) agentToConfigure.addExtraSystemPrompt(expandEnvironmentVariables(item.as<std::string>(), agentToConfigure));
             }
         }
-        if (config["tasks"] && config["tasks"].IsSequence()) {
-            for (const auto& item : config["tasks"]) {
-                 if(item.IsScalar()) agentToConfigure.addTask(expandEnvironmentVariables(item.as<std::string>()));
-            }
-        }
+        // Tasks are conceptual, not currently used for direct execution logic beyond prompting
+        // if (config["tasks"] && config["tasks"].IsSequence()) {
+        //     for (const auto& item : config["tasks"]) {
+        //          if(item.IsScalar()) agentToConfigure.addTask(expandEnvironmentVariables(item.as<std::string>(), agentToConfigure));
+        //     }
+        // }
         if (config["directive"] && config["directive"].IsMap()) {
             Agent::AgentDirective directive;
-            // ... (load directive fields, expandEnvironmentVariables for strings) ...
+            if (config["directive"]["type"] && config["directive"]["type"].IsScalar()){
+                std::string typeStr = config["directive"]["type"].as<std::string>();
+                if (typeStr == "BRAINSTORMING") directive.type = Agent::AgentDirective::Type::BRAINSTORMING;
+                else if (typeStr == "AUTONOMOUS") directive.type = Agent::AgentDirective::Type::AUTONOMOUS;
+                else if (typeStr == "EXECUTE") directive.type = Agent::AgentDirective::Type::EXECUTE;
+                else if (typeStr == "REPORT") directive.type = Agent::AgentDirective::Type::REPORT;
+                else directive.type = Agent::AgentDirective::Type::NORMAL; // Default
+            }
+            if (config["directive"]["description"] && config["directive"]["description"].IsScalar()){
+                directive.description = expandEnvironmentVariables(config["directive"]["description"].as<std::string>(), agentToConfigure);
+            }
+            if (config["directive"]["format"] && config["directive"]["format"].IsScalar()){
+                directive.format = expandEnvironmentVariables(config["directive"]["format"].as<std::string>(), agentToConfigure);
+            }
             agentToConfigure.setDirective(directive);
         }
 
 
         std::map<std::string, Tool*> resolvedTools;
 
-        // --- 1. Import Tools ---
         if (config["import"] && config["import"].IsMap() &&
             config["import"]["tools"] && config["import"]["tools"].IsSequence()) {
             logMessage(LogLevel::DEBUG, "Agent '" + agentToConfigure.getName() + "': Processing tool imports...");
             for (const auto& importPathNode : config["import"]["tools"]) {
                 if (importPathNode.IsScalar()) {
-                    std::string relativeToolYamlPathStr = expandEnvironmentVariables(importPathNode.as<std::string>());
-                    fs::path fullToolYamlPath = agentYamlDir / relativeToolYamlPathStr; // Path relative to agent's YAML
-                    fullToolYamlPath = fs::weakly_canonical(fullToolYamlPath);
+                    std::string relativeToolYamlPathStr = expandEnvironmentVariables(importPathNode.as<std::string>(), agentToConfigure);
+                    fs::path fullToolYamlPath = agentYamlDir / relativeToolYamlPathStr; 
+                    
+                    std::error_code ec;
+                    fullToolYamlPath = fs::weakly_canonical(fullToolYamlPath, ec);
+                    if (ec) {
+                        logMessage(LogLevel::ERROR, "Error canonicalizing tool import path: " + fullToolYamlPath.string(), ec.message());
+                        continue;
+                    }
 
-                    // **SECURITY CHECK for imported tool definition file path**
-                    // if (!isPathConsideredSafe(fullToolYamlPath, allowedToolImportBaseDir, agentToConfigure.getName(), "tool_import:" + relativeToolYamlPathStr)) {
-                    //     logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Tool import path '" + fullToolYamlPath.string() + "' is outside allowed tool directories. Skipping import.");
-                    //     continue;
-                    // }
                     if (!fs::exists(fullToolYamlPath)) {
                         logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Tool import file not found: " + fullToolYamlPath.string() + ". Skipping import.");
                         continue;
                     }
-
 
                     std::map<std::string, Tool*> toolsFromFile = loadToolsFromFile(fullToolYamlPath.string(), agentToConfigure, fullToolYamlPath.parent_path());
                     for (auto const& [name, toolPtr] : toolsFromFile) {
@@ -225,23 +233,22 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
             }
         }
 
-        // --- 2. Load Inline Tools (Overrides imported tools with the same 'name') ---
         if (config["tools"] && config["tools"].IsMap()) {
             logMessage(LogLevel::DEBUG, "Agent '" + agentToConfigure.getName() + "': Processing inline tools...");
             for (const auto& toolNodePair : config["tools"]) {
-                std::string yamlToolKey = toolNodePair.first.as<std::string>(); // e.g., "BashExecutorConfig"
+                std::string yamlToolKey = toolNodePair.first.as<std::string>(); 
                 YAML::Node toolDef = toolNodePair.second;
 
                 if (!toolDef.IsMap() || !toolDef["name"] || !toolDef["name"].IsScalar() ||
                     !toolDef["description"] || !toolDef["description"].IsScalar() ||
                     !toolDef["type"] || !toolDef["type"].IsScalar()) {
                     logMessage(LogLevel::WARN, "Agent '" + agentToConfigure.getName() +
-                                               "': Skipping malformed inline tool definition under YAML key '" + yamlToolKey + "'.");
+                                               "': Skipping malformed inline tool definition under YAML key '" + yamlToolKey + "'. Missing required fields (name, description, type).");
                     continue;
                 }
 
                 std::string toolName = toolDef["name"].as<std::string>();
-                std::string toolDescription = expandEnvironmentVariables(toolDef["description"].as<std::string>());
+                std::string toolDescription = expandEnvironmentVariables(toolDef["description"].as<std::string>(), agentToConfigure);
                 std::string toolType = toolDef["type"].as<std::string>();
 
                 Tool* newTool = new Tool(toolName, toolDescription);
@@ -252,41 +259,44 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                         logMessage(LogLevel::WARN, "Agent '" + agentToConfigure.getName() + "': Inline script tool '" + toolName + "' missing 'runtime'. Skipping.");
                         delete newTool; continue;
                     }
-                    std::string runtime = toolDef["runtime"].as<std::string>();
-                    std::string scriptSourceLocation;
-                    bool isInline = false;
+                    std::string runtime = toolDef["runtime"].as<std::string>(); // Captured by lambda
+                    std::string scriptSourceLocation;                           // Captured by lambda
+                    bool isInline = false;                                      // Captured by lambda
 
                     if (toolDef["code"] && toolDef["code"].IsScalar()) {
-                        scriptSourceLocation = expandEnvironmentVariables(toolDef["code"].as<std::string>());
+                        scriptSourceLocation = expandEnvironmentVariables(toolDef["code"].as<std::string>(), agentToConfigure);
                         isInline = true;
                     } else if (toolDef["path"] && toolDef["path"].IsScalar()) {
-                        std::string scriptPathStr = expandEnvironmentVariables(toolDef["path"].as<std::string>());
-                        fs::path scriptFullPath = agentYamlDir / scriptPathStr; // Relative to agent's YAML file
-                        scriptFullPath = fs::weakly_canonical(scriptFullPath);
+                        std::string scriptPathStr = expandEnvironmentVariables(toolDef["path"].as<std::string>(), agentToConfigure);
+                        fs::path scriptFullPath = agentYamlDir / scriptPathStr; 
+                        
+                        std::error_code ec;
+                        scriptFullPath = fs::weakly_canonical(scriptFullPath, ec);
+                        if (ec) {
+                             logMessage(LogLevel::ERROR, "Error canonicalizing inline script path: " + scriptFullPath.string(), ec.message() + " for tool " + toolName);
+                             delete newTool; continue;
+                        }
 
-                        // **SECURITY CHECK for inline script path**
-                        // if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentToConfigure.getName(), toolName + "(inline_script_path)")) {
-                        //      logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Inline script tool path '" + scriptFullPath.string() + "' is outside allowed script directories. Skipping tool '" + toolName + "'.");
-                        //      delete newTool; continue;
-                        // }
-                         if (!fs::exists(scriptFullPath) && !isInline) { // Check existence only if not inline code
+                         if (!fs::exists(scriptFullPath)) { 
                             logMessage(LogLevel::ERROR, "Agent '" + agentToConfigure.getName() + "': Script file for inline tool '" + toolName + "' not found: " + scriptFullPath.string() + ". Skipping.");
                             delete newTool; continue;
                         }
-
                         scriptSourceLocation = scriptFullPath.string();
-                        isInline = false; // It's a path, not inline code
+                        isInline = false; 
                     } else {
                         logMessage(LogLevel::WARN, "Agent '" + agentToConfigure.getName() + "': Inline script tool '" + toolName + "' missing 'path' or 'code'. Skipping.");
                         delete newTool; continue;
                     }
-
-                    callback = [runtime, scriptSourceLocation, isInline, toolName](const Json::Value& params) -> std::string {
-                        // logMessage(LogLevel::DEBUG, "Executing inline-defined script tool via lambda: " + toolName);
+                    
+                    // The callback captures necessary info to call executeScriptTool
+                    callback = [runtime, scriptSourceLocation, isInline, toolName, agentName = agentToConfigure.getName()](const Json::Value& scriptParams) -> std::string {
+                        // logMessage(LogLevel::DEBUG, "Agent '" + agentName + "' executing inline-defined script tool via lambda: " + toolName);
                         try {
-                            return executeScriptTool(scriptSourceLocation, runtime, params, isInline);
+                            // scriptParams are the parameters specifically for the *target script*,
+                            // extracted by the LLM and placed in actionInfo.params.
+                            return executeScriptTool(scriptSourceLocation, runtime, scriptParams, isInline);
                         } catch (const std::exception& e) {
-                            logMessage(LogLevel::ERROR, "Exception in inline script tool '" + toolName + "'", e.what());
+                            logMessage(LogLevel::ERROR, "Exception in inline script tool '" + toolName + "' for agent '" + agentName + "'", e.what());
                             return "Error executing script '" + toolName + "': " + e.what();
                         }
                     };
@@ -313,15 +323,13 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
                     delete resolvedTools[toolName];
                 }
                 resolvedTools[toolName] = newTool;
+                 logMessage(LogLevel::DEBUG, "Agent '" + agentToConfigure.getName() + "': Loaded inline tool '" + toolName + "' with type '" + toolType + "'.");
             }
         }
 
-        // --- 3. Add all resolved tools to the agent ---
         for (auto const& [name, toolPtr] : resolvedTools) {
-            agentToConfigure.addTool(toolPtr); // Agent takes ownership
+            agentToConfigure.addTool(toolPtr); 
         }
-
-        // ... (load extra_prompts, tasks, directive as before, applying expandEnvironmentVariables to string fields) ...
 
         logMessage(LogLevel::INFO, "Successfully loaded agent profile: " + agentToConfigure.getName(), yamlPath);
         return true;
@@ -338,13 +346,11 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
     }
 }
 
-// Parses a dedicated tool definition YAML file.
-// toolFileBaseDir is the directory of the tool.yaml file, used for resolving its relative script paths.
 std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, Agent& agentForLoggingContext, const fs::path& toolFileBaseDir) {
     std::map<std::string, Tool*> loadedTools;
     YAML::Node toolsRootNode;
-    fs::path projectRootDir = fs::current_path(); // Or a more fixed anchor for script safety checks
-    fs::path allowedScriptsBaseDir = projectRootDir / "config/scripts"; // Example global safe script dir
+    fs::path projectRootDir = fs::current_path(); 
+    fs::path allowedScriptsBaseDir = projectRootDir / "config" / "scripts"; 
 
     logMessage(LogLevel::DEBUG, "Agent '" + agentForLoggingContext.getName() + "': Importing tool definitions from: " + toolYamlPath);
 
@@ -383,12 +389,12 @@ std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, 
                 !toolDef["description"] || !toolDef["description"].IsScalar() ||
                 !toolDef["type"] || !toolDef["type"].IsScalar()) {
                 logMessage(LogLevel::WARN, "Agent '" + agentForLoggingContext.getName() +
-                           "': Skipping malformed tool definition in '" + toolYamlPath + "' under YAML key '" + yamlToolKey + "'.");
+                           "': Skipping malformed tool definition in '" + toolYamlPath + "' under YAML key '" + yamlToolKey + "'. Missing required fields (name, description, type).");
                 continue;
             }
 
             std::string toolName = toolDef["name"].as<std::string>();
-            std::string toolDescription = expandEnvironmentVariables(toolDef["description"].as<std::string>());
+            std::string toolDescription = expandEnvironmentVariables(toolDef["description"].as<std::string>(), agentForLoggingContext);
             std::string toolType = toolDef["type"].as<std::string>();
 
             Tool* newTool = new Tool(toolName, toolDescription);
@@ -399,23 +405,24 @@ std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, 
                     logMessage(LogLevel::WARN, "Agent '" + agentForLoggingContext.getName() + "': Script tool '" + toolName + "' in '" + toolYamlPath + "' missing 'runtime'. Skipping.");
                     delete newTool; continue;
                 }
-                std::string runtime = toolDef["runtime"].as<std::string>();
-                std::string scriptSourceLocation;
-                bool isInline = false;
+                std::string runtime = toolDef["runtime"].as<std::string>(); // Captured
+                std::string scriptSourceLocation;                           // Captured
+                bool isInline = false;                                      // Captured
 
                 if (toolDef["code"] && toolDef["code"].IsScalar()) {
-                    scriptSourceLocation = expandEnvironmentVariables(toolDef["code"].as<std::string>());
+                    scriptSourceLocation = expandEnvironmentVariables(toolDef["code"].as<std::string>(), agentForLoggingContext);
                     isInline = true;
                 } else if (toolDef["path"] && toolDef["path"].IsScalar()) {
-                    std::string scriptPathStr = expandEnvironmentVariables(toolDef["path"].as<std::string>());
-                    fs::path scriptFullPath = toolFileBaseDir / scriptPathStr; // Path relative to the *tool definition file*
-                    scriptFullPath = fs::weakly_canonical(scriptFullPath);
+                    std::string scriptPathStr = expandEnvironmentVariables(toolDef["path"].as<std::string>(), agentForLoggingContext);
+                    fs::path scriptFullPath = toolFileBaseDir / scriptPathStr; 
+                    
+                    std::error_code ec;
+                    scriptFullPath = fs::weakly_canonical(scriptFullPath, ec);
+                     if (ec) {
+                        logMessage(LogLevel::ERROR, "Error canonicalizing script path from tool file: " + scriptFullPath.string(), ec.message() + " for tool " + toolName);
+                        delete newTool; continue;
+                    }
 
-                    // **SECURITY CHECK for script path from tool file**
-                    // if (!isPathConsideredSafe(scriptFullPath, allowedScriptsBaseDir, agentForLoggingContext.getName(), toolName + "(script_from_tool_file)")) {
-                    //      logMessage(LogLevel::ERROR, "Agent '" + agentForLoggingContext.getName() + "': Script path for tool '" + toolName + "' from '" + toolYamlPath + "' (" + scriptFullPath.string() + ") is outside allowed script directories. Skipping tool.");
-                    //      delete newTool; continue;
-                    // }
                     if (!fs::exists(scriptFullPath)) {
                         logMessage(LogLevel::ERROR, "Agent '" + agentForLoggingContext.getName() + "': Script file for tool '" + toolName + "' from '" + toolYamlPath + "' not found: " + scriptFullPath.string() + ". Skipping.");
                         delete newTool; continue;
@@ -427,10 +434,10 @@ std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, 
                     delete newTool; continue;
                 }
 
-                callback = [runtime, scriptSourceLocation, isInline, toolName, agentName = agentForLoggingContext.getName()](const Json::Value& params) -> std::string {
+                callback = [runtime, scriptSourceLocation, isInline, toolName, agentName = agentForLoggingContext.getName()](const Json::Value& scriptParams) -> std::string {
                     // logMessage(LogLevel::DEBUG, "Agent '" + agentName + "': Executing script tool '" + toolName + "' (defined in separate tool file).");
                     try {
-                        return executeScriptTool(scriptSourceLocation, runtime, params, isInline);
+                        return executeScriptTool(scriptSourceLocation, runtime, scriptParams, isInline);
                     } catch (const std::exception& e) {
                         logMessage(LogLevel::ERROR, "Agent '" + agentName + "': Exception in script tool '" + toolName + "' (defined in separate tool file).", e.what());
                         return "Error executing script '" + toolName + "': " + e.what();
@@ -459,6 +466,7 @@ std::map<std::string, Tool*> loadToolsFromFile(const std::string& toolYamlPath, 
                 delete loadedTools[toolName];
             }
             loadedTools[toolName] = newTool;
+            logMessage(LogLevel::DEBUG, "Agent '" + agentForLoggingContext.getName() + "': Loaded tool '" + toolName + "' from file '" + toolYamlPath + "' with type '" + toolType + "'.");
         }
     }
     logMessage(LogLevel::INFO, "Agent '" + agentForLoggingContext.getName() + "': Finished importing " + std::to_string(loadedTools.size()) + " tool definitions from " + toolYamlPath);

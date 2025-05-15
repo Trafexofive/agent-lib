@@ -226,3 +226,8 @@ void logMessage(LogLevel level, const std::string &message,
               << std::endl;
   }
 }
+
+// log message 2 params overload
+void logMessage(LogLevel level, const std::string &message) {
+  logMessage(level, message, "");
+}

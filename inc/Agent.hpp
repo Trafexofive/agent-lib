@@ -23,9 +23,6 @@ class MiniGemini;
 class Tool;
 class File; // Assuming File.hpp defines this
 
-void logMessage(LogLevel level, const std::string &message,
-                const std::string &details = "");
-
 // Typedefs
 using FileList = std::vector<File>;
 using StringKeyValuePair = std::vector<std::pair<std::string, std::string>>;
@@ -37,12 +34,6 @@ struct StructuredThought {
   std::string content;
 };
 
-// ActionInfo is designed for extensibility.
-// To add a new core field to all actions (e.g., 'priority'):
-// 1. Add the member here (e.g., `int priority = 0;`).
-// 2. Update system prompts to instruct the LLM to include this field.
-// 3. Update `Agent::parseStructuredLLMResponse` to parse it from the JSON.
-// Tool-specific parameters remain flexible within `Json::Value params`.
 struct ActionInfo {
   std::string action;
   std::string type;
@@ -53,12 +44,9 @@ struct ActionInfo {
 
 struct ParsedLLMResponse {
   bool success = false;
-
   std::string status;
-
   std::vector<StructuredThought> thoughts;
   std::vector<ActionInfo> actions;
-
   std::string finalResponseField;
   std::string rawTrimmedJson;
 };
@@ -88,7 +76,7 @@ public:
   void setIterationCap(int cap);
   void setDirective(const AgentDirective &directive);
   void addTask(const std::string &task); // Conceptual task for prompting
-  void addInitialCommand(const std::string &command);
+  void addInitialCommand(const std::string &command); // For commands to run on start via run()
 
   // --- Tool Management ---
   void addTool(Tool *tool); // Agent takes ownership of this raw pointer
@@ -146,16 +134,16 @@ private:
   bool skipNextFlowIteration;
 
   StringKeyValuePair environmentVariables;
-  FileList agentFiles;
+  FileList agentFiles; // Consider if this is actively used or can be deprecated/refactored
   std::vector<std::string> extraSystemPrompts;
-  std::vector<std::pair<std::string, Agent *>> subAgents; // name -> Agent*
+  std::vector<std::pair<std::string, Agent *>> subAgents; // name -> Agent* (non-owning)
 
   StringKeyValuePair scratchpad;
   StringKeyValuePair shortTermMemory;
   StringKeyValuePair longTermMemory;
 
   std::vector<std::string> tasks;
-  std::vector<std::string> initialCommands;
+  std::vector<std::string> initialCommands; // Executed by run()
 
   AgentDirective currentDirective;
 
@@ -172,15 +160,16 @@ private:
   void setSkipNextFlowIteration(bool skip);
   std::string directiveTypeToString(AgentDirective::Type type) const;
 
-  // Internal "Tool-Like" Functions
+  // Internal "Tool-Like" Functions (declared as private methods)
   std::string internalGetHelp(const Json::Value &params);
   std::string internalSkipIteration(const Json::Value &params);
   std::string internalPromptAgent(const Json::Value &params);
   std::string internalSummarizeText(const Json::Value &params);
   std::string internalSummarizeHistory(const Json::Value &params);
-  std::string internalGetWeather(const Json::Value &params);
+  std::string internalGetWeather(const Json::Value &params); // Example, depends on bash+curl
+  std::string internalGetCurrentTime(const Json::Value &params); // To be implemented
 
   // Utility
   std::string generateTimestamp() const;
-  void trimLLMResponse(std::string &responseText);
+  void trimLLMResponse(std::string &responseText); // Helper to extract JSON from ```json ... ```
 };

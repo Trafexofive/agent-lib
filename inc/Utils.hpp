@@ -21,6 +21,7 @@ enum class LogLevel {
   PROMPT
 };
 
+void logMessage(LogLevel level, const std::string &message) ;
 void logMessage(LogLevel level, const std::string &message,
                 const std::string &details) ;
 
