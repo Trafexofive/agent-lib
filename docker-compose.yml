@@ -1,4 +1,3 @@
-
 services:
   backend:
     build:
@@ -12,33 +11,21 @@ services:
     environment:
       # Pass the API key from the .env file
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      # Define the workspace path inside the container
+      # AGENT_PROFILE_PATH can also be set in .env or defaults here
+      - AGENT_PROFILE_PATH=${AGENT_PROFILE_PATH:-config/agents/standard-profiles/standard-agent-MK1/standard-agent-MK1.yml}
+      # AGENT_WORKSPACE is critical for the C++ file tool and script sandboxing
       - AGENT_WORKSPACE=/app/agent_workspace
     volumes:
-      # Mount the local agent_workspace into the container
-      # This allows the agent to read/write persistent files
+      # Mount the local agent_workspace into the container for persistent data
       - ./agent_workspace:/app/agent_workspace
-      # Mount prompts read-only (optional, useful if you change prompts often)
-      - ./prompts:/app/prompts:ro
-    # Run as the non-root user created in the Dockerfile
+      # For development, you might want to mount configs and prompts to see changes live:
+      # However, for a "production" build from this Dockerfile, they are baked in.
+      # If you uncomment these, changes on the host will reflect in the container.
+      # - ./prompts:/app/prompts:ro
+      # - ./config:/app/config:ro
     user: agentuser
     networks:
       - agent-net
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: agent-frontend
-    restart: unless-stopped
-    ports:
-      # Map host port 8000 to container port 80 (Nginx default)
-      - "8000:80"
-    depends_on:
-      - backend # Start backend first (doesn't guarantee readiness)
-    networks:
-      - agent-net
-
 
 networks:
   agent-net:

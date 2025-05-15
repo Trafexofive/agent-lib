@@ -83,6 +83,12 @@ public:
   void removeTool(const std::string &toolName); // Deletes the tool
   Tool *getTool(const std::string &toolName) const;
 
+  // agent.getRegisteredTools() returns a map of tool names to Tool* pointers
+
+    std::map<std::string, Tool *> getRegisteredTools() const {
+        return registeredTools;
+    }
+
   // --- Core Agent Loop ---
   void reset();
   std::string prompt(const std::string &userInput);
@@ -96,6 +102,7 @@ public:
   void addEnvironmentVariable(const std::string &key, const std::string &value);
   void importEnvironmentFile(const std::string &filePath);
   void addExtraSystemPrompt(const std::string &promptFragment);
+
 
   // --- Getters ---
   const std::string &getName() const;

@@ -1,6 +1,6 @@
 # Compiler
-CXX := clang++
-# CXX := g++
+# Default to clang++, but allow override via environment variable if needed
+CXX ?= clang++
 
 # Target Executable Names
 TARGET_BIN := agent-bin
@@ -9,90 +9,101 @@ TARGET_SERVER := agent-server
 # Directories
 BUILD_DIR := build
 SRC_DIR := src
-EXT_DIR := externals
+# EXT_DIR := externals # Assuming 'externals' is no longer used or merged into src/
 SERVER_DIR := server
+# Include directories: local 'inc', local 'server/vendor/httplib'
+# Specific library include paths will be added by pkg-config
 INC_DIRS := inc $(SERVER_DIR)/vendor/httplib
-# --- yaml-cpp ---
-# NOTE: If yaml-cpp headers are installed in a standard location searched by pkg-config,
-# adding its specific path to INC_DIRS might not be strictly necessary when using pkg-config for CFLAGS.
-# If pkg-config isn't used or headers are elsewhere, add the path here:
-# INC_DIRS += /path/to/yaml-cpp/include
 
-# Flags
-CXXFLAGS := -std=c++17 -Wall -Wextra -pedantic -O3 -g
+# --- Compiler and Linker Flags ---
+# Base CXXFLAGS (apply to all C++ compilations)
+# -O3 for release, -g for debug symbols. Consider -Og for debug-friendly optimization.
+# -Wall -Wextra -pedantic for lots of warnings.
+# -MMD -MP for generating dependency files (.d)
+CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic -O3 -g -MMD -MP
 
-# --- yaml-cpp ---
-# Use pkg-config to get compiler flags (includes -I paths etc.)
-# Replace 'yaml-cpp' if your pkg-config file has a different name (e.g., yaml-cpp-0.7)
-# You can find the name using: pkg-config --list-all | grep -i yaml
+# --- pkg-config for Libraries ---
+# Query pkg-config for compiler flags (like -I paths)
+# 2>/dev/null suppresses errors if pkg-config or the .pc file isn't found,
+# though the build would likely fail later if they are truly missing.
 YAML_CPP_CFLAGS := $(shell pkg-config --cflags yaml-cpp 2>/dev/null)
+JSONCPP_CFLAGS := $(shell pkg-config --cflags jsoncpp 2>/dev/null)
 
-# Construct CPPFLAGS including standard includes and yaml-cpp includes
-CPPFLAGS := $(foreach dir,$(INC_DIRS),-I$(dir)) $(YAML_CPP_CFLAGS)
-# Fallback if pkg-config fails or isn't used:
-# CPPFLAGS := $(foreach dir,$(INC_DIRS),-I$(dir)) -I/usr/local/include # Or specific yaml-cpp path
-
-# --- yaml-cpp ---
-# Add yaml-cpp library link flag using pkg-config
+# Query pkg-config for linker flags (like -L paths and -l library names)
 YAML_CPP_LIBS := $(shell pkg-config --libs yaml-cpp 2>/dev/null)
-# Original LDFLAGS + yaml-cpp libs
-LDFLAGS := -lcurl -ljsoncpp -pthread $(YAML_CPP_LIBS)
-# Fallback if pkg-config fails or isn't used:
-# LDFLAGS := -lcurl -ljsoncpp -pthread -lyaml-cpp -L/usr/local/lib # Add -L if library is non-standard path
+JSONCPP_LIBS := $(shell pkg-config --libs jsoncpp 2>/dev/null)
 
-# Source files - use recursive wildcard to find all source files
+# Construct final CPPFLAGS for the compiler
+# This includes local include directories and those provided by pkg-config
+CPPFLAGS := $(foreach dir,$(INC_DIRS),-I$(dir)) $(YAML_CPP_CFLAGS) $(JSONCPP_CFLAGS)
+
+# Construct final LDFLAGS for the linker
+# Base libraries + those provided by pkg-config
+# -pthread is needed for std::thread (used by httplib)
+LDFLAGS := -lcurl -pthread $(YAML_CPP_LIBS) $(JSONCPP_LIBS)
+
+# --- Source Files ---
+# Helper to recursively find files
 rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-MAIN_SRC := import.main.cpp
-SERVER_SRC := $(SERVER_DIR)/server.cpp
+# Define main source files for each target
+MAIN_SRC_BIN := import.main.cpp
+MAIN_SRC_SERVER := $(SERVER_DIR)/server.cpp
 
-# Recursively find all source files in src/ and externals/
-SRC_SOURCES := $(call rwildcard,$(SRC_DIR),*.cpp)
-EXT_SOURCES := $(call rwildcard,$(EXT_DIR),*.cpp)
+# Recursively find all .cpp source files in the src/ directory
+# If you had an 'externals' directory with .cpp files, you would add:
+# EXT_SOURCES := $(call rwildcard,$(EXT_DIR),*.cpp)
+COMMON_SRC_FILES := $(call rwildcard,$(SRC_DIR),*.cpp)
+# COMMON_SRC_FILES += $(EXT_SOURCES) # Uncomment if 'externals' is used
 
-COMMON_SOURCES := $(SRC_SOURCES) $(EXT_SOURCES)
-ALL_SOURCES := $(MAIN_SRC) $(SERVER_SRC) $(COMMON_SOURCES)
+# --- Object Files ---
+# Generate object file paths, placing them into the BUILD_DIR while preserving subdirectory structure.
+# For common sources (everything in src/)
+COMMON_OBJECTS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(COMMON_SRC_FILES))
 
-# Object files with proper subdirectory structure
-MAIN_OBJ := $(BUILD_DIR)/$(MAIN_SRC:.cpp=.o)
-SERVER_OBJ := $(BUILD_DIR)/$(SERVER_SRC:.cpp=.o)
+# For the main file of agent-bin
+BIN_MAIN_OBJECT := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(MAIN_SRC_BIN))
 
-# Generate object file paths with proper directory structure
-SRC_OBJECTS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_SOURCES))
-EXT_OBJECTS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(EXT_SOURCES))
+# For the main file of agent-server
+SERVER_MAIN_OBJECT := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(MAIN_SRC_SERVER))
 
-COMMON_OBJECTS := $(SRC_OBJECTS) $(EXT_OBJECTS)
-ALL_OBJECTS := $(MAIN_OBJ) $(SERVER_OBJ) $(COMMON_OBJECTS)
+# All object files (used for dependency generation)
+ALL_OBJECTS := $(BIN_MAIN_OBJECT) $(SERVER_MAIN_OBJECT) $(COMMON_OBJECTS)
 
-# Dependency files
+# Dependency files (.d) generated by -MMD -MP flags
 DEPS := $(ALL_OBJECTS:.o=.d)
 
-# Default target
+# --- Targets ---
+
+# Default target: build the server
 all: $(TARGET_SERVER)
 
-# Rule to build 'bin' executable
-$(TARGET_BIN): $(MAIN_OBJ) $(COMMON_OBJECTS)
+# Rule to build the 'agent-bin' executable
+$(TARGET_BIN): $(BIN_MAIN_OBJECT) $(COMMON_OBJECTS)
 	@echo "Linking $(TARGET_BIN)..."
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) # LDFLAGS now includes yaml-cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 	@echo "$(TARGET_BIN) built successfully."
 
-# Rule to build server executable
-$(TARGET_SERVER): $(SERVER_OBJ) $(COMMON_OBJECTS)
+# Rule to build the 'agent-server' executable
+$(TARGET_SERVER): $(SERVER_MAIN_OBJECT) $(COMMON_OBJECTS)
 	@echo "Linking $(TARGET_SERVER)..."
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) # LDFLAGS now includes yaml-cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 	@echo "$(TARGET_SERVER) built successfully."
 
-# Generic rule for compiling any .cpp file
-# CPPFLAGS now includes yaml-cpp include paths
+# Generic rule for compiling any .cpp file into its corresponding .o file in BUILD_DIR
+# $(CPPFLAGS) now contains all necessary -I paths from pkg-config and local INC_DIRS
 $(BUILD_DIR)/%.o: %.cpp
 	@echo "Compiling $< -> $@"
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-# Include dependencies
+# Include all generated dependency files
+# The minus sign means 'make' won't complain if the .d files don't exist yet (e.g., on first run or after clean)
 -include $(DEPS)
 
-# Convenience targets
+# --- Phony Targets (Convenience) ---
+.PHONY: all bin server clean re re-bin re-server run-bin run-server debug
+
 bin: $(TARGET_BIN)
 server: $(TARGET_SERVER)
 
@@ -107,7 +118,7 @@ re: clean all
 re-bin: clean bin
 re-server: clean server
 
-# Run targets
+# Run targets (simple execution, no arguments passed here)
 run-bin: bin
 	@echo "Running $(TARGET_BIN)..."
 	./$(TARGET_BIN)
@@ -116,25 +127,35 @@ run-server: server
 	@echo "Running $(TARGET_SERVER)..."
 	./$(TARGET_SERVER)
 
-# Debug target to see what source files are found
+# Debug target to inspect Makefile variables
 debug:
-	@echo "Source files found:"
-	@echo "  Main: $(MAIN_SRC)"
-	@echo "  Server: $(SERVER_SRC)"
-	@echo "  SRC_SOURCES: $(SRC_SOURCES)"
-	@echo "  EXT_SOURCES: $(EXT_SOURCES)"
+	@echo "--- Makefile Debug ---"
+	@echo "CXX: $(CXX)"
+	@echo "TARGET_BIN: $(TARGET_BIN)"
+	@echo "TARGET_SERVER: $(TARGET_SERVER)"
+	@echo "INC_DIRS: $(INC_DIRS)"
 	@echo ""
-	@echo "Object files to build:"
-	@echo "  MAIN_OBJ: $(MAIN_OBJ)"
-	@echo "  SERVER_OBJ: $(SERVER_OBJ)"
-	@echo "  SRC_OBJECTS: $(SRC_OBJECTS)"
-	@echo "  EXT_OBJECTS: $(EXT_OBJECTS)"
+	@echo "CXXFLAGS: $(CXXFLAGS)"
+	@echo "YAML_CPP_CFLAGS: $(YAML_CPP_CFLAGS)"
+	@echo "JSONCPP_CFLAGS: $(JSONCPP_CFLAGS)"
+	@echo "CPPFLAGS: $(CPPFLAGS)"
 	@echo ""
-	@echo "Compiler Flags (CPPFLAGS): $(CPPFLAGS)"
-	@echo "Linker Flags (LDFLAGS): $(LDFLAGS)"
+	@echo "YAML_CPP_LIBS: $(YAML_CPP_LIBS)"
+	@echo "JSONCPP_LIBS: $(JSONCPP_LIBS)"
+	@echo "LDFLAGS: $(LDFLAGS)"
+	@echo ""
+	@echo "MAIN_SRC_BIN: $(MAIN_SRC_BIN)"
+	@echo "BIN_MAIN_OBJECT: $(BIN_MAIN_OBJECT)"
+	@echo "MAIN_SRC_SERVER: $(MAIN_SRC_SERVER)"
+	@echo "SERVER_MAIN_OBJECT: $(SERVER_MAIN_OBJECT)"
+	@echo ""
+	@echo "COMMON_SRC_FILES: $(COMMON_SRC_FILES)"
+	@echo "COMMON_OBJECTS: $(COMMON_OBJECTS)"
+	@echo ""
+	@echo "ALL_OBJECTS: $(ALL_OBJECTS)"
+	@echo "DEPS: $(DEPS)"
+	@echo "----------------------"
 
-
-.PHONY: all bin server clean re re-bin re-server run-bin run-server debug
-
-# Prevent deletion of intermediate files
+# Prevent Make from deleting intermediate object files (.o) which are needed for linking
+# and for dependency tracking with .d files.
 .SECONDARY: $(ALL_OBJECTS)
