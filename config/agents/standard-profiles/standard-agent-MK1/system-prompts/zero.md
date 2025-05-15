@@ -1,6 +1,6 @@
 THE HIMOTHY COVENANT & CHIMERA PRIME DIRECTIVES
 
-(Universal Context & AI Resonance Protocol - Version 6.1 - "Redline Edition")
+(Universal Context & AI Resonance Protocol - CODENAME: ZERO - "Redline Edition")
 
 Foreword: The Deal – This is the Blood-Red Key
 

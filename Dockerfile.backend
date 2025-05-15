@@ -17,23 +17,24 @@ WORKDIR /app
 
 # Copy only necessary files for building
 COPY Makefile ./Makefile
-COPY main.cpp ./main.cpp
+# COPY main.cpp ./main.cpp # Assuming server.cpp is the main for backend service
+COPY import.main.cpp ./import.main.cpp # If agent-bin is also built here
 
-# If needed by any build step or runtime script
-COPY client.py ./client.py 
-# If needed by any build step or runtime script
-COPY save.sh ./save.sh     
+COPY client.py ./client.py
+COPY save.sh ./save.sh
 
 COPY server/server.cpp ./server/server.cpp
 COPY src/ ./src/
 COPY inc/ ./inc/
-COPY externals/ ./externals/
+# COPY externals/ ./externals/ # externals seem to be where tool impl .cpp files were, now handled via registry or scripts
 COPY server/vendor/ ./server/vendor/
 COPY prompts/ ./prompts/
+COPY config/ ./config/ # Copy config for agents and tools
 
 # Build the server executable (ensure Makefile targets 'agent-server')
-# Adjust target if Makefile uses a different name
 RUN make agent-server
+# Build the test binary if needed here too
+RUN make agent-bin
 
 # ---- Final Stage ----
 FROM debian:bookworm-slim
@@ -42,27 +43,33 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     libjsoncpp25 \
+    python3 \
+    python3-pip \
+    jq \
+ && pip3 install --no-cache-dir requests \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash agentuser
+# Workspace directory needs to be created before chown
+RUN mkdir -p /app/agent_workspace && chown agentuser:agentuser /app/agent_workspace
+
 USER agentuser
 
-# Copy the compiled binary from the build stage
+# Copy the compiled binaries from the build stage
 COPY --from=builder --chown=agentuser:agentuser /app/agent-server ./agent-server
+COPY --from=builder --chown=agentuser:agentuser /app/agent-bin ./agent-bin
 
-# Copy prompts directory (if needed at runtime by the agent)
+# Copy prompts, configs, and scripts needed at runtime by the agent
 COPY --from=builder --chown=agentuser:agentuser /app/prompts/ ./prompts/
+COPY --from=builder --chown=agentuser:agentuser /app/config/ ./config/
 
-# Create agent workspace directory and set permissions
-# The actual content will be mounted via docker-compose
-RUN mkdir -p /app/agent_workspace
-# Permissions adjusted here if needed, but volume mount overrides host permissions mostly
-
-# Expose the port the server listens on
+# Expose the port the server listens on (for agent-server)
 EXPOSE 7777
 
-# Set the entrypoint to run the server
+# Default entrypoint could be the server, or overridden for agent-bin
+# For running agent-server:
 ENTRYPOINT ["./agent-server"]
+# To run agent-bin, you would typically override the entrypoint in docker-compose or docker run.
