@@ -5,19 +5,43 @@
 #include <string>
 #include <json/json.h> // For Json::Value (or your preferred JSON library)
 
+// const std::string MODELS[] = {
+//     // Main models
+//     "gemini-2.0-flash",         // Latest Flash model
+//     "gemini-2.0-flash-lite",    // Cost-efficient Flash variant
+//     "gemini-1.5-flash",         // Previous generation Flash model
+//     "gemini-1.5-flash-8b",      // Lightweight 8B parameter variant
+//     "gemini-2.5-pro-exp-03-25", // Experimental Pro model
+//
+//     // Special purpose models
+//     "gemini-embedding-exp",      // Text embedding model
+//     "models/text-embedding-004", // Basic text embedding model
+//     "imagen-3.0-generate-002",   // Image generation model
+//     "models/embedding-001"       // Legacy embedding model
+// };
+
 const std::string MODELS[] = {
     // Main models
-    "gemini-2.0-flash",         // Latest Flash model
-    "gemini-2.0-flash-lite",    // Cost-efficient Flash variant
-    "gemini-1.5-flash",         // Previous generation Flash model
-    "gemini-1.5-flash-8b",      // Lightweight 8B parameter variant
-    "gemini-2.5-pro-exp-03-25", // Experimental Pro model
+    "models/gemini-2.5-pro-exp-03-25", // Gemini 2.5 Pro Experimental
+    "models/gemini-2.0-flash",         // Gemini 2.0 Flash (default production)
+    "models/gemini-2.0-flash-lite",    // Gemini 2.0 Flash Lite (cost-efficient)
+    "models/gemini-2.0-flash-thinking",// Gemini 2.0 Flash Thinking Experimental
+    "models/gemini-1.5-pro",           // Gemini 1.5 Pro
+    "models/gemini-1.5-flash",         // Gemini 1.5 Flash
+    "models/gemini-1.5-flash-8b",      // Gemini 1.5 Flash 8B (lightweight)
 
-    // Special purpose models
-    "gemini-embedding-exp",      // Text embedding model
-    "models/text-embedding-004", // Basic text embedding model
-    "imagen-3.0-generate-002",   // Image generation model
-    "models/embedding-001"       // Legacy embedding model
+    // Embedding models
+    "models/text-embedding-004",       // Latest text embedding model
+    "models/embedding-001",            // Legacy embedding model
+
+    // Image generation
+    "models/imagen-3.0-generate-002",  // Imagen 3.0 for text-to-image generation
+
+    // Open models (Gemma)
+    "models/gemma-2b",                 // Gemma 2B open model
+    "models/gemma-7b",                 // Gemma 7B open model
+    "models/gemma-9b",                 // Gemma 9B open model
+    "models/gemma-27b"                 // Gemma 27B open model
 };
 
 class MiniGemini : public LLMClient {

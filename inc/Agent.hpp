@@ -35,15 +35,18 @@ struct StructuredThought {
 };
 
 struct ActionInfo {
+
   std::string action;
   std::string type;
   Json::Value params;
   double confidence = 1.0; // Default confidence
   std::vector<std::string> warnings;
+
 };
 
 struct ParsedLLMResponse {
   bool success = false;
+
   std::string status;
   std::vector<StructuredThought> thoughts;
   std::vector<ActionInfo> actions;
@@ -78,11 +81,26 @@ public:
   void addTask(const std::string &task); // Conceptual task for prompting
   void addInitialCommand(const std::string &command); // For commands to run on start via run()
 
+  // setModel implement
+    void setModel(const std::string &modelName)
+    {
+        api.setModel(modelName);
+    }
+    void setTemperature(double temperature)
+    {
+        api.setTemperature(temperature);
+    }
+    void setTokenLimit(int tokenLimit)
+    {
+        api.setMaxTokens(tokenLimit);
+    }
   // --- Tool Management ---
   void addTool(Tool *tool); // Agent takes ownership of this raw pointer
   void removeTool(const std::string &toolName); // Deletes the tool
   Tool *getTool(const std::string &toolName) const;
+std::string hotReloadConfig(const std::string &yamlPath) ;
 
+std::string hotReloadConfigTool(const Json::Value &params);
   // agent.getRegisteredTools() returns a map of tool names to Tool* pointers
 
     std::map<std::string, Tool *> getRegisteredTools() const {

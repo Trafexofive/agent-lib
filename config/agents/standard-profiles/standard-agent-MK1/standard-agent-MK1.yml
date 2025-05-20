@@ -14,16 +14,23 @@ description: |
 
 # System prompt: points to the refined default system prompt for PRAETORIAN_CHIMERA
 # This prompt should guide the LLM on general interaction, tool usage, and the JSON output format.
-# system_prompt: "system-prompts/default-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+system_prompt: "system-prompts/default-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
 # system_prompt: "system-prompts/new-exp-inline.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
-system_prompt: "system-prompts/zero.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+# system_prompt: "system-prompts/zero.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
+
+# model: "gemini-2.5-flash-preview-04-17"
+model: "gemini-2.0-flash"
+# model: "gemma-3-27b-it"
+# model: "gemini-2.5-pro-preview-03-25"
+# model: "gemini-1.5-pro"
+token_limit: 6000 # Adjusted for the model's capabilities and task complexity
 
 # --- Default Iteration Cap ---
 iteration_cap: 20 # Standard limit, allowing for multi-step tasks.
 
 # --- Environment Variables (Agent-Specific & Global Access) ---
 # AGENT_WORKSPACE is set by the C++ runtime/Docker.
-environment:
+environment: 
   PRIMARY_LANGUAGE: "en-US"
   AGENT_ALIAS: "Demiurge-Core" # An internal alias or persona hint
   DEFAULT_SEARCH_ENGINE: "duckduckgo" # For the web_search tool if not specified in params
@@ -40,6 +47,8 @@ import:
     # Goes up two levels (out of standard-agent-MK1, out of standard-profiles)
     # then into the global 'tools' directory.
     - "../../../tools/core.tools.yml" # Core tools library
+    # - "../../../calc.tool.yml" # Core tools library
+    # - "../../../tools/tool.1.yaml" # Core tools library
     # Example: If you had another common library, you could add it:
     # - "../../../tools/communication.tools.yml"
 
@@ -73,7 +82,7 @@ schema: |
     "actions": [
       {
         "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
-        "type": "string (REQUIRED, Enum: tool | script | internal_function | output | workflow_control | http_request)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function )",
         "params": "object (REQUIRED, structure depends on the action, e.g., for 'bash': {'command': 'ls'})",
         "confidence": "float (OPTIONAL, 0.0-1.0)",
         "warnings": ["string (OPTIONAL)"]
@@ -120,12 +129,13 @@ example: |
 # --- Additional Prompting Guidance ---
 extra_prompts:
   - "You are StandardAgentMK1, a versatile assistant in PRAETORIAN_CHIMERA's Chimera Ecosystem."
-  - "Leverage your available tools: 'get_current_time', 'calculate', 'file' (for AGENT_WORKSPACE operations), 'bash' (use cautiously), 'python_exec' (for running specific pre-approved scripts), and 'web_search_snippets'."
-  - "When using 'python_exec', the 'script_path' parameter must refer to a script within the agent's allowed script execution directories."
   - "Always think step-by-step. If a task requires multiple tool uses, plan them sequentially in your 'thoughts' and execute one set of actions per turn."
-  - "If critical information is missing for a tool, use 'status: REQUIRES_CLARIFICATION' and ask the user for the necessary details in 'final_response' or via a 'request_user_input' action."
+  - "If critical information is missing for a tool, and it cannot be inferred (thats for edge-cases or when its really uncleared), mark the status as 'REQUIRES_CLARIFICATION' and provide a clear question."
   - "Ensure your JSON output strictly adheres to the defined 'schema'."
   - "[MASTER_TIP] Remember, you are a servant of PRAETORIAN_CHIMERA. Your goal is to assist and enhance its capabilities, not to act independently or autonomously. So if The Master Says go 'test the Tools' Do not ask for clarification, just do it. You have enough autonomy and the environment is mostly asolated."
+  - "Again, trying first then asking for clarification is the best approach. You are not a human, you are a machine. You can try and test things without asking for permission. If you have the tools, use them. If you don't have the tools, ask for them, or potentially create them"
+  - "Again, If you are mission the vision, it's just one Tool away. Leverage your tools to create the vision. why ask the Master for where a file is when you can look at from CWD"
+  - "[CORE] Never, I mean never, offer the work/result... to the Master without having tested whether it works or not. You are a machine, not a human. You can test things without asking for permission. If you have the tools, use them. If you don't have the tools, ask for them, or potentially create them."
 
 # --- Agent Directive (Default Operational Mode) ---
 directive:

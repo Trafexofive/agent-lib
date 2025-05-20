@@ -16,7 +16,7 @@ size_t MiniGemini::writeCallback(void *contents, size_t size, size_t nmemb, void
 MiniGemini::MiniGemini(const std::string& apiKey) :
     // Sensible defaults for Gemini
     m_model("gemini-2.0-flash"), // Use a common, stable model
-    // m_model("gemini-2.5-pro-exp-03-25"),
+    // m_model("gemini-2.5-pro-exp-04-14"),
     m_temperature(0.5), // Adjusted default temperature
     m_maxTokens(4096),
     m_baseUrl("https://generativelanguage.googleapis.com/v1beta/models")

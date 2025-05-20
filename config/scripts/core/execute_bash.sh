@@ -2,6 +2,7 @@
 # execute_bash.sh
 # Executes a shell command provided as the first argument (JSON string containing the command).
 
+
 PARAMS_JSON="$1"
 
 if [ -z "$PARAMS_JSON" ]; then

@@ -24,11 +24,13 @@ Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
       "Functions like talking to another person, all agents have pretty much "
       "the same runtime logic. Parameters: "
       "{\"agent_name\": \"string\", \"prompt\": \"string\"}";
-  internalFunctionDescriptions["summarizeText"] =
-      "Summarizes provided text content. Parameters: {\"text\": "
-      "\"string\"}"; // Corrected typo from summerizeTool
-  internalFunctionDescriptions["summarizeHistory"] =
-      "Summarizes the current conversation history. No parameters.";
+  internalFunctionDescriptions["hotReload"] =
+      "Reloads the agent's configuration and tools based off the agent-profile.yml conf. No parameters.";
+  // internalFunctionDescriptions["summarizeText"] =
+  //     "Summarizes provided text content. Parameters: {\"text\": "
+  //     "\"string\"}"; // Corrected typo from summerizeTool
+  // internalFunctionDescriptions["summarizeHistory"] =
+  //     "Summarizes the current conversation history. No parameters.";
   // internalFunctionDescriptions["getWeather"] =
   //     "Fetches current weather. Parameters: {\"location\": \"string\"}";
 }

@@ -1,8 +1,8 @@
 
 #include "../../inc/Agent.hpp"
 #include "../../inc/Tool.hpp"
-#include "../../inc/Utils.hpp"       // For executeScriptTool
 #include "../../inc/ToolRegistry.hpp" // For ToolRegistry
+#include "../../inc/Utils.hpp"        // For executeScriptTool
 
 // --- Private Helper Methods (Implementations) ---
 std::string Agent::buildFullPrompt() const {
@@ -37,6 +37,40 @@ std::string Agent::buildFullPrompt() const {
     }
     promptSs << "</environment_variables>\n\n";
   }
+  
+  // std::map<std::string, std::string> allAvailableActions =
+  //     internalFunctionDescriptions;
+  // if (!allAvailableActions.empty()) {
+  //   promptSs << "<available_actions_reference>\n";
+  //   for (const auto &pair : allAvailableActions) { // pair.first is tool name,
+  //                                                  // pair.second is description
+  //     Tool *toolPtr = getTool(
+  //         pair.first); // Check if it's a registered (script/external) tool
+  //     std::string toolTypeStr = "unknown";
+  //     if (toolPtr) { // It's a Tool object, likely script or complex
+  //       // We need a way for Tool class to store its definition type (script,
+  //       // C++ internal via registry, etc.) For now, assume tools loaded from
+  //       // YAML with 'code' are 'script' type for LLM. If it was loaded via
+  //       // ToolRegistry, it's effectively an internal_function in behavior. This
+  //       // part needs refinement in how tools store their 'type' as defined in
+  //       // YAML. Let's assume for tools loaded from YAML that are 'script', we
+  //       // can tell the LLM 'script'. And internal C++ functions in
+  //       // internalFunctionDescriptions are 'internal_function'.
+  //       toolTypeStr = "script"; // Default assumption for tools in
+  //                               // registeredTools map for now
+  //     } else if (internalFunctionDescriptions.count(pair.first)) {
+  //       toolTypeStr = "internal_function";
+  //     }
+  //
+  //     promptSs << "\t<action_definition name=\"" << pair.first << "\" type=\""
+  //              << toolTypeStr << "\">\n"; // <<< ADDED TYPE ATTRIBUTE
+  //     promptSs << "\t\t<description_text>" << pair.second
+  //              << "</description_text>\n";
+  //     // Optionally, add params_schema here too if available
+  //     promptSs << "\t</action_definition>\n";
+  //   }
+  //   promptSs << "</available_actions_reference>\n\n";
+  // }
 
   // if (!tasks.empty()) {
   //   promptSs << "<tasks>\n";
@@ -129,6 +163,7 @@ std::string Agent::buildFullPrompt() const {
   //        "'response_schema_definition' provided above if present, otherwise "
   //        "use the 'response_example' as a structural guide. Key fields "
   //        "expected are 'status', 'thoughts' (array of objects), 'actions' "
-  //        "(array of objects or null), and 'final_response' (string or null).";
+  //        "(array of objects or null), and 'final_response' (string or
+  //        null).";
   return promptSs.str();
 }

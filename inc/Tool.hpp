@@ -41,3 +41,5 @@ public:
         throw std::runtime_error("No valid callback function set for tool '" + name + "'");
     }
 };
+
+

@@ -1,0 +1,269 @@
+# File: config/tools/core.tools.file.crud.inline_bash.yml
+# Description: Core file system CRUD operations using inline Bash commands.
+# These tools are defined with inline bash 'code'.
+# AGENT_WORKSPACE environment variable MUST be set in the execution environment.
+# The inline bash script receives the LLM's 'params' object as a JSON string in $1.
+# Requires 'jq' to be installed in the runtime environment.
+
+FileCRUDActionsInlineBash: # Category key
+
+  read_file_inline:
+    name: "read_file_inline"
+    description: >
+      Reads the content of a specified text file within AGENT_WORKSPACE.
+      Params: {"file_path": "string (relative path from AGENT_WORKSPACE)"}
+    type: "script" # This type, with 'code', means the 'code' block is the script.
+    runtime: "bash"  # The interpreter for the 'code' block.
+    code: |
+      #!/bin/bash
+      # Script receives LLM params as JSON string in $1
+      PARAMS_JSON="$1"
+      FILE_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .file_path)
+
+      if [ "$FILE_PATH_REL" == "null" ] || [ -z "$FILE_PATH_REL" ]; then
+        echo "Error: read_file_inline: 'file_path' parameter is missing." >&2
+        exit 1
+      fi
+
+      # Construct absolute path & basic validation (prevents '..' and absolute)
+      if [[ "$FILE_PATH_REL" == /* ]] || [[ "$FILE_PATH_REL" == *..* ]]; then
+        echo "Error: read_file_inline: Invalid 'file_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${FILE_PATH_REL}"
+
+      # Resolve the path and check if it's still within AGENT_WORKSPACE
+      RESOLVED_PATH=$(realpath -m "$FULL_PATH" 2>/dev/null) # -m allows non-existent for dir part
+      
+      if [[ ! "$RESOLVED_PATH" == "$AGENT_WORKSPACE"* ]] || [ ! -f "$RESOLVED_PATH" ]; then
+        echo "Error: read_file_inline: File not found or path issue for '$FILE_PATH_REL'." >&2
+        exit 1
+      fi
+      
+      cat "$RESOLVED_PATH"
+    tags: [core, file_system, read, data_access, inline_bash]
+    example_usage: {"file_path": "my_notes/todo.txt"}
+
+  write_file_inline:
+    name: "write_file_inline"
+    description: >
+      Writes or overwrites content to a specified text file within AGENT_WORKSPACE.
+      Creates parent directories if they don't exist.
+      Params: {"file_path": "string (relative path)", "content": "string"}
+    type: "script"
+    runtime: "bash"
+    code: |
+      #!/bin/bash
+      PARAMS_JSON="$1"
+      FILE_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .file_path)
+      CONTENT=$(echo "$PARAMS_JSON" | jq -r .content) # Raw content
+
+      if [ "$FILE_PATH_REL" == "null" ] || [ -z "$FILE_PATH_REL" ]; then
+        echo "Error: write_file_inline: 'file_path' parameter is missing." >&2
+        exit 1
+      fi
+      # Content can be empty, but not null if key is missing
+      if [[ "$(echo "$PARAMS_JSON" | jq .content)" == "null" ]]; then
+        echo "Error: write_file_inline: 'content' parameter is missing." >&2
+        exit 1
+      fi
+
+      if [[ "$FILE_PATH_REL" == /* ]] || [[ "$FILE_PATH_REL" == *..* ]]; then
+        echo "Error: write_file_inline: Invalid 'file_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${FILE_PATH_REL}"
+      
+      # Resolve parent directory and check sandbox for parent
+      PARENT_DIR=$(dirname "$FULL_PATH")
+      RESOLVED_PARENT_DIR=$(realpath -m "$PARENT_DIR" 2>/dev/null)
+
+      if [[ ! "$RESOLVED_PARENT_DIR" == "$AGENT_WORKSPACE"* ]]; then
+        echo "Error: write_file_inline: Target directory for '$FILE_PATH_REL' is outside workspace." >&2
+        exit 1
+      fi
+
+      mkdir -p "$RESOLVED_PARENT_DIR" # Create parent dirs
+      # Use printf to handle content safely, especially with special characters or newlines
+      printf '%s' "$CONTENT" > "$FULL_PATH"
+      if [ $? -eq 0 ]; then
+        echo "Success: Content written to '$FILE_PATH_REL'."
+      else
+        echo "Error: write_file_inline: Failed to write to '$FILE_PATH_REL'." >&2
+        exit 1
+      fi
+    tags: [core, file_system, write, data_management, inline_bash]
+    example_usage: {"file_path": "output/data.txt", "content": "Line 1\nLine 2"}
+
+  append_file_inline:
+    name: "append_file_inline"
+    description: >
+      Appends content to a text file within AGENT_WORKSPACE. Creates file/dirs if needed.
+      Params: {"file_path": "string (relative path)", "content": "string"}
+    type: "script"
+    runtime: "bash"
+    code: |
+      #!/bin/bash
+      PARAMS_JSON="$1"
+      FILE_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .file_path)
+      CONTENT=$(echo "$PARAMS_JSON" | jq -r .content)
+
+      if [ "$FILE_PATH_REL" == "null" ] || [ -z "$FILE_PATH_REL" ]; then
+        echo "Error: append_file_inline: 'file_path' parameter is missing." >&2
+        exit 1
+      fi
+      if [[ "$(echo "$PARAMS_JSON" | jq .content)" == "null" ]]; then
+        echo "Error: append_file_inline: 'content' parameter is missing." >&2
+        exit 1
+      fi
+
+      if [[ "$FILE_PATH_REL" == /* ]] || [[ "$FILE_PATH_REL" == *..* ]]; then
+        echo "Error: append_file_inline: Invalid 'file_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${FILE_PATH_REL}"
+
+      PARENT_DIR=$(dirname "$FULL_PATH")
+      RESOLVED_PARENT_DIR=$(realpath -m "$PARENT_DIR" 2>/dev/null)
+
+      if [[ ! "$RESOLVED_PARENT_DIR" == "$AGENT_WORKSPACE"* ]]; then
+        echo "Error: append_file_inline: Target directory for '$FILE_PATH_REL' is outside workspace." >&2
+        exit 1
+      fi
+      
+      mkdir -p "$RESOLVED_PARENT_DIR"
+      printf '%s' "$CONTENT" >> "$FULL_PATH"
+      if [ $? -eq 0 ]; then
+        echo "Success: Content appended to '$FILE_PATH_REL'."
+      else
+        echo "Error: append_file_inline: Failed to append to '$FILE_PATH_REL'." >&2
+        exit 1
+      fi
+    tags: [core, file_system, append, data_management, logging, inline_bash]
+    example_usage: {"file_path": "logs/events.log", "content": "$(date): New event.\n"}
+
+  delete_file_inline:
+    name: "delete_file_inline"
+    description: >
+      Deletes a specified file (not directory) within AGENT_WORKSPACE. Use with caution.
+      Params: {"file_path": "string (relative path)"}
+    type: "script"
+    runtime: "bash"
+    code: |
+      #!/bin/bash
+      PARAMS_JSON="$1"
+      FILE_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .file_path)
+
+      if [ "$FILE_PATH_REL" == "null" ] || [ -z "$FILE_PATH_REL" ]; then
+        echo "Error: delete_file_inline: 'file_path' parameter is missing." >&2
+        exit 1
+      fi
+
+      if [[ "$FILE_PATH_REL" == /* ]] || [[ "$FILE_PATH_REL" == *..* ]]; then
+        echo "Error: delete_file_inline: Invalid 'file_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${FILE_PATH_REL}"
+      
+      RESOLVED_PATH=$(realpath -m "$FULL_PATH" 2>/dev/null)
+
+      if [[ ! "$RESOLVED_PATH" == "$AGENT_WORKSPACE"* ]] || [ ! -f "$RESOLVED_PATH" ]; then
+        echo "Error: delete_file_inline: File not found for deletion or path issue for '$FILE_PATH_REL'." >&2
+        exit 1
+      fi
+
+      rm -- "$RESOLVED_PATH"
+      if [ $? -eq 0 ]; then
+        echo "Success: File '$FILE_PATH_REL' deleted."
+      else
+        echo "Error: delete_file_inline: Failed to delete '$FILE_PATH_REL'." >&2
+        exit 1
+      fi
+    tags: [core, file_system, delete, destructive, data_management, inline_bash]
+    example_usage: {"file_path": "temp/old_file.tmp"}
+
+  list_directory_inline:
+    name: "list_directory_inline"
+    description: >
+      Lists contents of a directory within AGENT_WORKSPACE.
+      Params: {"directory_path": "string (relative path)"}
+    type: "script"
+    runtime: "bash"
+    code: |
+      #!/bin/bash
+      PARAMS_JSON="$1"
+      DIR_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .directory_path)
+
+      if [ "$DIR_PATH_REL" == "null" ] || [ -z "$DIR_PATH_REL" ]; then
+        echo "Error: list_directory_inline: 'directory_path' parameter is missing." >&2
+        exit 1
+      fi
+
+      if [[ "$DIR_PATH_REL" == /* ]] || [[ "$DIR_PATH_REL" == *..* ]]; then
+        echo "Error: list_directory_inline: Invalid 'directory_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${DIR_PATH_REL}"
+      
+      RESOLVED_PATH=$(realpath -m "$FULL_PATH" 2>/dev/null)
+
+      if [[ ! "$RESOLVED_PATH" == "$AGENT_WORKSPACE"* ]] || [ ! -d "$RESOLVED_PATH" ]; then
+        echo "Error: list_directory_inline: Directory not found or path issue for '$DIR_PATH_REL'." >&2
+        exit 1
+      fi
+      
+      # Output format: one item per line, directories end with /
+      # Use find for more control and to avoid issues with ls parsing.
+      find "$RESOLVED_PATH" -maxdepth 1 -mindepth 1 -printf "%f%y\n" | sed 's|d$|/|g; s|f$||g; s|l$|@|g'
+      # Alternatively, a simpler ls:
+      # (cd "$RESOLVED_PATH" && ls -Ap)
+    tags: [core, file_system, list, data_access, observability, inline_bash]
+    example_usage: {"directory_path": "my_folder"}
+
+  mkdir_inline:
+    name: "mkdir_inline"
+    description: >
+      Creates a directory (and any parent directories if needed) within AGENT_WORKSPACE.
+      Params: {"directory_path": "string (relative path)"}
+    type: "script"
+    runtime: "bash"
+    code: |
+      #!/bin/bash
+      PARAMS_JSON="$1"
+      DIR_PATH_REL=$(echo "$PARAMS_JSON" | jq -r .directory_path)
+
+      if [ "$DIR_PATH_REL" == "null" ] || [ -z "$DIR_PATH_REL" ]; then
+        echo "Error: mkdir_inline: 'directory_path' parameter is missing." >&2
+        exit 1
+      fi
+
+      if [[ "$DIR_PATH_REL" == /* ]] || [[ "$DIR_PATH_REL" == *..* ]]; then
+        echo "Error: mkdir_inline: Invalid 'directory_path'. Must be relative and no '..'." >&2
+        exit 1
+      fi
+      FULL_PATH="${AGENT_WORKSPACE}/${DIR_PATH_REL}"
+
+      # Resolve the base part of the path to ensure we're not asked to create something outside.
+      # e.g. if DIR_PATH_REL is "newdir/subdir", check AGENT_WORKSPACE/newdir
+      PARENT_TO_CHECK=$(dirname "$FULL_PATH")
+      if [ "$PARENT_TO_CHECK" = "." ] || [ "$PARENT_TO_CHECK" = "/" ]; then # Creating dir directly in AGENT_WORKSPACE
+          PARENT_TO_CHECK="${AGENT_WORKSPACE}"
+      else
+          PARENT_TO_CHECK=$(realpath -m "$PARENT_TO_CHECK" 2>/dev/null)
+      fi
+
+
+      if [[ ! "$PARENT_TO_CHECK" == "$AGENT_WORKSPACE"* ]]; then
+        echo "Error: mkdir_inline: Target base directory for '$DIR_PATH_REL' is outside workspace." >&2
+        exit 1
+      fi
+      
+      mkdir -p -- "$FULL_PATH"
+      if [ $? -eq 0 ]; then
+        echo "Success: Directory '$DIR_PATH_REL' created."
+      else
+        echo "Error: mkdir_inline: Failed to create directory '$DIR_PATH_REL'." >&2
+        exit 1
+      fi
+    tags: [core, file_system, create_directory, data_management, inline_bash]
+    example_usage: {"directory_path": "new_project/data"}
