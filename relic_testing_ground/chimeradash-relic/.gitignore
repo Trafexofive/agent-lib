@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+.venv/
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!/.env.example
+
+# Log files
+*.log
+
+# Coverage
+.coverage
+coverage/
+
+# Temporary files for chimeradash frontend build if any (besides dist)
+# (adjust if your frontend has other build artifacts not in dist)
+# chimeradash_frontend_code/.temp/
+# chimeradash_frontend_code/.vite/

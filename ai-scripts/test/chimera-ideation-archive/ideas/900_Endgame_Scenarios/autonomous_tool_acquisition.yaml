@@ -1,0 +1,21 @@
+orchestrations:
+  - id: 'autonomous-tool-acquisition-on-failure'
+    alias: 'Autonomous Tool Acquisition'
+    description: 'When an agent determines it needs a CLI tool that is not installed, it attempts to install it using the system''s package manager.'
+    trigger:
+      - platform: 'event'
+        event_type: 'agent.tool_command.not_found'
+        # Fired by the system.execute tool when a command returns 'command not found'.
+        # Event data: { 'command': 'yq', 'agent_id': '...', 'original_goal': '...' }
+    action:
+      - agent:
+          id: 'sysadmin-agent-v2'
+          goal: >
+            The command '{{ trigger.data.command }}' was not found. I need to install it.
+            First, I will check if it is available in the 'apt' package manager.
+            If it is, I will attempt to install it.
+            If the install is successful, I will re-attempt the original goal.
+          capabilities:
+            allowed_tools: ['system.execute', 'orchestration.rerun_with_delay']
+          # This agent would reason to form commands like `apt-cache search yq` and `apt-get install -y yq`
+          # and execute them. This is extremely high-risk and requires a sandboxed, permissioned environment.

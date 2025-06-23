@@ -14,11 +14,11 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
 // Forward declarations
 namespace Json {
 class Value;
 }
+
 class MiniGemini;
 class Tool;
 class File; // Assuming File.hpp defines this
@@ -35,23 +35,29 @@ struct StructuredThought {
 };
 
 struct ActionInfo {
-
-  std::string action;
-  std::string type;
+  std::string action; // name of the action to perform eg, "search",
+                      // "calculate", "fetch_data"
+  std::string type;   // e.g., "tool", "script", "internal_function",
+                      // "http_request", "output", etc.
   Json::Value params;
-  double confidence = 1.0; // Default confidence
-  std::vector<std::string> warnings;
 
+  double confidence = 1.0;
+  std::vector<std::string> warnings;
 };
 
 struct ParsedLLMResponse {
   bool success = false;
 
   std::string status;
+
   std::vector<StructuredThought> thoughts;
   std::vector<ActionInfo> actions;
+
   std::string finalResponseField;
   std::string rawTrimmedJson;
+
+  bool stop =
+      true; // Indicates if the agent should stop processing further actions
 };
 
 class Agent {
@@ -62,6 +68,7 @@ public:
     std::string description;
     std::string format;
   };
+
   using DIRECTIVE = AgentDirective;
 
   // --- Constructor & Destructor ---
@@ -79,33 +86,25 @@ public:
   void setIterationCap(int cap);
   void setDirective(const AgentDirective &directive);
   void addTask(const std::string &task); // Conceptual task for prompting
-  void addInitialCommand(const std::string &command); // For commands to run on start via run()
+  void addInitialCommand(
+      const std::string &command); // For commands to run on start via run()
 
   // setModel implement
-    void setModel(const std::string &modelName)
-    {
-        api.setModel(modelName);
-    }
-    void setTemperature(double temperature)
-    {
-        api.setTemperature(temperature);
-    }
-    void setTokenLimit(int tokenLimit)
-    {
-        api.setMaxTokens(tokenLimit);
-    }
+  void setModel(const std::string &modelName) { api.setModel(modelName); }
+  void setTemperature(double temperature) { api.setTemperature(temperature); }
+  void setTokenLimit(int tokenLimit) { api.setMaxTokens(tokenLimit); }
   // --- Tool Management ---
   void addTool(Tool *tool); // Agent takes ownership of this raw pointer
   void removeTool(const std::string &toolName); // Deletes the tool
   Tool *getTool(const std::string &toolName) const;
-std::string hotReloadConfig(const std::string &yamlPath) ;
+  std::string hotReloadConfig(const std::string &yamlPath);
 
-std::string hotReloadConfigTool(const Json::Value &params);
+  std::string hotReloadConfigTool(const Json::Value &params);
   // agent.getRegisteredTools() returns a map of tool names to Tool* pointers
 
-    std::map<std::string, Tool *> getRegisteredTools() const {
-        return registeredTools;
-    }
+  std::map<std::string, Tool *> getRegisteredTools() const {
+    return registeredTools;
+  }
 
   // --- Core Agent Loop ---
   void reset();
@@ -121,7 +120,6 @@ std::string hotReloadConfigTool(const Json::Value &params);
   void importEnvironmentFile(const std::string &filePath);
   void addExtraSystemPrompt(const std::string &promptFragment);
 
-
   // --- Getters ---
   const std::string &getName() const;
   const std::string &getDescription() const;
@@ -134,6 +132,8 @@ std::string hotReloadConfigTool(const Json::Value &params);
   const StringKeyValuePair &getEnvironmentVariables() const;
   const std::vector<std::string> &getExtraSystemPrompts() const;
   const std::vector<std::pair<std::string, std::string>> &getHistory() const;
+  // getapi
+  MiniGemini &getApi() const { return api; }
 
   // --- Sub-Agent Management ---
   void
@@ -159,9 +159,11 @@ private:
   bool skipNextFlowIteration;
 
   StringKeyValuePair environmentVariables;
-  FileList agentFiles; // Consider if this is actively used or can be deprecated/refactored
+  FileList agentFiles; // Consider if this is actively used or can be
+                       // deprecated/refactored
   std::vector<std::string> extraSystemPrompts;
-  std::vector<std::pair<std::string, Agent *>> subAgents; // name -> Agent* (non-owning)
+  std::vector<std::pair<std::string, Agent *>>
+      subAgents; // name -> Agent* (non-owning)
 
   StringKeyValuePair scratchpad;
   StringKeyValuePair shortTermMemory;
@@ -191,10 +193,13 @@ private:
   std::string internalPromptAgent(const Json::Value &params);
   std::string internalSummarizeText(const Json::Value &params);
   std::string internalSummarizeHistory(const Json::Value &params);
-  std::string internalGetWeather(const Json::Value &params); // Example, depends on bash+curl
-  std::string internalGetCurrentTime(const Json::Value &params); // To be implemented
+  std::string internalGetWeather(
+      const Json::Value &params); // Example, depends on bash+curl
+  std::string
+  internalGetCurrentTime(const Json::Value &params); // To be implemented
 
   // Utility
   std::string generateTimestamp() const;
-  void trimLLMResponse(std::string &responseText); // Helper to extract JSON from ```json ... ```
+  void trimLLMResponse(
+      std::string &responseText); // Helper to extract JSON from ```json ... ```
 };

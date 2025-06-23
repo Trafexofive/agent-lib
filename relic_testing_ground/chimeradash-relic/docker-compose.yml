@@ -1,0 +1,53 @@
+services:
+  chimeradash-relic-backend-api:
+    build:
+      context: ./backend_api_service
+      dockerfile: Dockerfile
+    container_name: chimeradash-relic-backend-api-ctnr
+    ports:
+      - "${BACKEND_PORT_HOST:-8001}:${BACKEND_PORT_CONTAINER:-8000}"
+    volumes:
+      - ./backend_api_service:/app
+      - chimeradash_relic_db_data:/app/data
+    env_file:
+      - .env
+    networks:
+      - chimeradash_relic_network
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./backend_api_service
+          target: /app
+          ignore:
+            - __pycache__/
+            - .venv/
+        - action: rebuild
+          path: ./backend_api_service/requirements.txt
+
+  chimeradash-relic-frontend-ui:
+    build:
+      context: ./chimeradash_frontend_code # USER: Populate this directory with your ChimeraDash frontend project
+      dockerfile: Dockerfile
+    container_name: chimeradash-relic-frontend-ui-ctnr
+    ports:
+      - "${FRONTEND_PORT_HOST:-3001}:${FRONTEND_PORT_CONTAINER:-80}"
+    environment:
+      # This VITE_API_BASE_URL is crucial for your Vite app to find the backend.
+      # Ensure your frontend code (e.g., geminiService.ts) uses import.meta.env.VITE_API_BASE_URL
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL_FOR_FRONTEND}
+      - API_KEY=${GEMINI_API_KEY} # Optional, if your frontend needs to access the API key
+    env_file:
+      - .env # For FRONTEND_PORT_CONTAINER if used by Nginx template (not typical)
+    depends_on:
+      - chimeradash-relic-backend-api
+    networks:
+      - chimeradash_relic_network
+    restart: unless-stopped
+
+volumes:
+  chimeradash_relic_db_data: # For SQLite persistence
+
+networks:
+  chimeradash_relic_network:
+    driver: bridge

@@ -2,8 +2,6 @@
 #include <json/json.h>         // Your JSON library
 #include <memory>              // For std::unique_ptr
 
-// Ensure LogLevel and logMessage are accessible
-
 ParsedLLMResponse Agent::parseStructuredLLMResponse(const std::string &trimmedJsonString) {
   ParsedLLMResponse result;
   result.rawTrimmedJson = trimmedJsonString; // Store the input for fallback/debugging
@@ -114,19 +112,29 @@ ParsedLLMResponse Agent::parseStructuredLLMResponse(const std::string &trimmedJs
     return result;
   }
 
-  // 4. Parse 'final_response' (string or null)
-  if (root.isMember("final_response")) {
-    if (root["final_response"].isString()) {
-      result.finalResponseField = root["final_response"].asString();
-    } else if (root["final_response"].isNull()) {
+  if (root.isMember("response")) {
+    if (root["response"].isString()) {
+      result.finalResponseField = root["response"].asString();
+    } else if (root["response"].isNull()) {
       result.finalResponseField = ""; // Represent JSON null as empty string for simplicity
     } else {
       logMessage(LogLevel::WARN,
-                 "Agent '" + agentName + "': LLM JSON 'final_response' is present but not string or null.",
-                 root["final_response"].toStyledString().substr(0, 200));
+                 "Agent '" + agentName + "': LLM JSON 'response' is present but not string or null.",
+                 root["response"].toStyledString().substr(0, 200));
       // Not a critical failure for success=true, but good to note.
     }
   } // else: field is optional, result.finalResponseField remains empty.
+
+  // bool
+  if (root.isMember("stop"))
+  {
+      if (root["stop"].isBool())
+          result.stop = root["stop"].asBool();
+      else
+          logMessage(LogLevel::WARN,
+                     "Agent '" + agentName + "': LLM JSON 'stop' is present but not a boolean.",
+                     root["stop"].toStyledString().substr(0, 200));
+  }
 
   // If we've reached here without returning false, parsing of required fields was structurally okay.
   result.success = true;

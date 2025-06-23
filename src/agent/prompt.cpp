@@ -1,23 +1,32 @@
-
 #include "../../inc/Agent.hpp"
 #include "../../inc/Tool.hpp"
 #include "../../inc/ToolRegistry.hpp" // For ToolRegistry
 #include "../../inc/Utils.hpp"        // For executeScriptTool
 
+static std::string xmlWrapHelper(const std::string &content,
+                                 const std::string &tagName,
+                                 size_t indent = 0) {
+  std::string indentStr(indent, '\t');
+
+  return indentStr + "<" + tagName + ">\n" + indentStr + "</" + tagName + ">\n";
+}
+
 // --- Private Helper Methods (Implementations) ---
 std::string Agent::buildFullPrompt() const {
-  // Implementation from src/agent/prompt.cpp
-  // (This was already quite complete, ensure it's consistent with Agent.hpp
-  // state)
+
+  size_t indentLevel = 1;
+
   std::stringstream promptSs;
   if (!systemPrompt.empty()) {
     promptSs << "<system_prompt>\n" << systemPrompt << "\n</system_prompt>\n\n";
   }
+
   // Add schema and example if they exist
   if (!llmResponseSchema.empty()) {
     promptSs << "<response_schema_definition>\n"
              << llmResponseSchema << "\n</response_schema_definition>\n\n";
   }
+
   if (!llmResponseExample.empty()) {
     promptSs << "<response_example>\n"
              << llmResponseExample << "\n</response_example>\n\n";
@@ -37,48 +46,6 @@ std::string Agent::buildFullPrompt() const {
     }
     promptSs << "</environment_variables>\n\n";
   }
-  
-  // std::map<std::string, std::string> allAvailableActions =
-  //     internalFunctionDescriptions;
-  // if (!allAvailableActions.empty()) {
-  //   promptSs << "<available_actions_reference>\n";
-  //   for (const auto &pair : allAvailableActions) { // pair.first is tool name,
-  //                                                  // pair.second is description
-  //     Tool *toolPtr = getTool(
-  //         pair.first); // Check if it's a registered (script/external) tool
-  //     std::string toolTypeStr = "unknown";
-  //     if (toolPtr) { // It's a Tool object, likely script or complex
-  //       // We need a way for Tool class to store its definition type (script,
-  //       // C++ internal via registry, etc.) For now, assume tools loaded from
-  //       // YAML with 'code' are 'script' type for LLM. If it was loaded via
-  //       // ToolRegistry, it's effectively an internal_function in behavior. This
-  //       // part needs refinement in how tools store their 'type' as defined in
-  //       // YAML. Let's assume for tools loaded from YAML that are 'script', we
-  //       // can tell the LLM 'script'. And internal C++ functions in
-  //       // internalFunctionDescriptions are 'internal_function'.
-  //       toolTypeStr = "script"; // Default assumption for tools in
-  //                               // registeredTools map for now
-  //     } else if (internalFunctionDescriptions.count(pair.first)) {
-  //       toolTypeStr = "internal_function";
-  //     }
-  //
-  //     promptSs << "\t<action_definition name=\"" << pair.first << "\" type=\""
-  //              << toolTypeStr << "\">\n"; // <<< ADDED TYPE ATTRIBUTE
-  //     promptSs << "\t\t<description_text>" << pair.second
-  //              << "</description_text>\n";
-  //     // Optionally, add params_schema here too if available
-  //     promptSs << "\t</action_definition>\n";
-  //   }
-  //   promptSs << "</available_actions_reference>\n\n";
-  // }
-
-  // if (!tasks.empty()) {
-  //   promptSs << "<tasks>\n";
-  //   for (const auto &task : tasks) {
-  //     promptSs << "\t<task>" << task << "</task>\n";
-  //   }
-  //   promptSs << "</tasks>\n\n";
-  // }
 
   if (!subAgents.empty()) {
     promptSs << "<sub_agents online>\n";
@@ -94,6 +61,7 @@ std::string Agent::buildFullPrompt() const {
     if (pair.second)
       allAvailableActions[pair.first] = pair.second->getDescription();
   }
+
   if (!allAvailableActions.empty()) {
     promptSs << "<available_actions_reference>\n"; // Renamed for clarity
     for (const auto &pair : allAvailableActions) {
@@ -146,24 +114,21 @@ std::string Agent::buildFullPrompt() const {
              << "</internal_memory_context>\n\n"; // Renamed
   }
 
+  const size_t MAX_PAST_HISTORY = 100; // items
+
   if (!conversationHistory.empty()) {
-    promptSs << "<conversation_history_log>\n"; // Renamed
-    for (const auto &entry : conversationHistory) {
-      promptSs << "\t<turn role=\"" << entry.first
-               << "\">\n\t\t<content><![CDATA[" << entry.second
-               << "]]></content>\n\t</turn>\n";
-    }
-    promptSs << "</conversation_history_log>\n\n";
+      // include only the last 100 items
+
+      for (size_t i = 0; i < conversationHistory.size() &&
+                      i < MAX_PAST_HISTORY; ++i) {
+        const auto &item = conversationHistory[conversationHistory.size() - 1 - i];
+        promptSs << "<past_conversation_item>\n";
+        promptSs << "\t<role>" << item.first<< "</role>\n";
+        promptSs << "\t<content><![CDATA[" << item.second << "]]></content>\n";
+        promptSs << "</past_conversation_item>\n";
+
+      }
   }
 
-  // The final instruction about JSON format is critical.
-  // promptSs
-  //     << "RESPONSE_FORMATTING_INSTRUCTIONS: You MUST respond with a single, "
-  //        "valid JSON object. This JSON object must strictly adhere to the "
-  //        "'response_schema_definition' provided above if present, otherwise "
-  //        "use the 'response_example' as a structural guide. Key fields "
-  //        "expected are 'status', 'thoughts' (array of objects), 'actions' "
-  //        "(array of objects or null), and 'final_response' (string or
-  //        null).";
   return promptSs.str();
 }

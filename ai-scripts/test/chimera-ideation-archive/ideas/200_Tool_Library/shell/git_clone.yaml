@@ -1,0 +1,16 @@
+- id: 'git.clone'
+  description: 'Clones a remote git repository into a specified local directory.'
+  runtime: 'shell'
+  # Parameters are injected as environment variables. The engine constructs the final command.
+  # Final command: git clone "${PARAM_REPO_URL}" "${PARAM_DEST_PATH}"
+  handler: 'git clone "${PARAM_REPO_URL}" "${PARAM_DEST_PATH}"'
+  parameters:
+    repo_url:
+      description: 'The full URL of the git repository to clone.'
+      type: 'string'
+      required: true
+    dest_path:
+      description: 'The local file system path where the repository should be cloned.'
+      type: 'path'
+      required: true
+  returns: 'The stdout and stderr from the git command.'

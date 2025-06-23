@@ -1,0 +1,4 @@
+knowledge_bases:
+  - id: 'company_product_docs_kb'
+    description: 'Official documentation for products.'
+    type: 'vector_store'

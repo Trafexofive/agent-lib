@@ -1,0 +1,49 @@
+# ENDGAME VISION: A manifest of highly specialized, interconnected agents.
+
+# Note: In a real endgame scenario, these would likely be in separate files.
+# This is a consolidated view for ideation.
+
+agents:
+  - metadata:
+      id: 'triage-agent-v1'
+      name: 'Triage & IOC Extraction Agent'
+      description: 'A high-speed, low-cost agent for initial data extraction from alerts.'
+    constitution:
+      system_prompt: 'You are a security alert triage bot. Your only job is to quickly and accurately extract IOCs (IPs, domains, hashes) from raw text.'
+    capabilities:
+      allowed_tools: [] # No tools needed, relies purely on prompt-based extraction.
+    memory:
+      short_term:
+        reasoning_model: 'groq/llama3-8b-8192' # Optimized for speed and low cost.
+
+  - metadata:
+      id: 'soc-lead-agent-v1'
+      name: 'SOC Lead Decision Agent'
+      description: 'A powerful reasoning agent that synthesizes reports, formulates plans, and can define new tools on the fly.'
+    constitution:
+      system_prompt: 'You are a lead security operations analyst. Your role is to make decisions, create plans, and delegate. Be decisive and clear.'
+    capabilities:
+      allowed_tools:
+        - 'knowledge_retriever'
+        - 'tool_generator' # A meta-tool that can create new, temporary tools.
+        - 'delegate_to_agent' # Can invoke other agents.
+    memory:
+      short_term:
+        reasoning_model: 'gemini/gemini-1.5-pro-latest' # Optimized for complex reasoning.
+      long_term:
+        default_knowledge_bases: ['soc_playbooks_kb']
+    execution_plan:
+      strategy_type: 'Plan-and-Execute' # This agent thinks through the whole plan first.
+
+  - metadata:
+      id: 'threat-intel-agent-v2'
+      name: 'Threat Intelligence Enrichment Agent'
+      description: 'Enriches IOCs with data from external threat feeds and internal incident history.'
+    capabilities:
+      allowed_tools: ['http_request', 'knowledge_retriever'] # To call APIs like VirusTotal, etc.
+    memory:
+      short_term:
+        reasoning_model: 'groq/llama3-8b-8192'
+      long_term:
+        retrieval_strategy: 'automatic'
+        default_knowledge_bases: ['past_incidents_kb', 'threat_feed_kb']

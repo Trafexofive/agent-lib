@@ -1,0 +1,24 @@
+# GOLD ESSENCE: Modularity for Emergence (Building a personal Google), Absolute Sovereignty (Owning your data).
+orchestrations:
+  - id: 'universal-knowledge-ingestor'
+    alias: 'Universal Knowledge Ingestor'
+    description: 'Triggered by a webhook (e.g., from a browser extension), this orchestration takes a URL, scrapes the content, and archives it into a queryable knowledge base.'
+    trigger:
+      - platform: 'webhook'
+        webhook_id: 'archive-this-url'
+        # Expected JSON: { "url": "...", "topic": "..." }
+    action:
+      - service: 'http.scrape_main_content'
+        data: { url: "{{ trigger.json.url }}" }
+        response_variable: 'scraped_data'
+      - condition: 'template'
+        value_template: "{{ scraped_data.content | length > 100 }}" # Ensure content was actually scraped
+      - service: 'knowledge.update'
+        data:
+          knowledge_base_id: 'personal_archive_kb'
+          document_id: "{{ trigger.json.url }}"
+          content: "{{ scraped_data.content }}"
+          metadata:
+            source_url: "{{ trigger.json.url }}"
+            title: "{{ scraped_data.title }}"
+            topic: "{{ trigger.json.topic }}"

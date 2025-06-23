@@ -1,0 +1,9 @@
+{
+  "storage_base_path_container": "/storage_data",
+  "max_upload_size_mb": 1024,
+  "default_listing_sort": "name_asc",
+  "allow_overwrite_on_upload": false,
+  "api_title": "StorageMK1 API",
+  "api_version": "0.2.1",
+  "hidden_files_prefixes": [".", "~"]
+}

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Docker
+.dockerignore
+
+# Environment
+.env
+.env.*
+
+# IDEs
+.idea/
+.vscode/
+
+# Data & Logs
+*.db
+*.sqlite3
+*.log
+logs/*
+!logs/.gitkeep
+
+# Dependencies
+venv/
+env/

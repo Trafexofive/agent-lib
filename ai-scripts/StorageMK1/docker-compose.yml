@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  storagemk1-backend-api:
+    build:
+      context: ./service_code_backend
+      dockerfile: Dockerfile
+    container_name: storagemk1-backend-api-ctnr
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      - ./service_code_backend:/app # For development: mounts host code into container
+      - "${STORAGE_ROOT_HOST_PATH}:/storage_data" # Mount the actual NAS storage directory
+    networks:
+      - storagemk1_network
+    restart: unless-stopped
+
+  # Frontend service definition for user-provided frontend code.
+  # User needs to place their frontend code in the ./frontend directory
+  # and ensure it has a Dockerfile that can serve it (e.g., using Vite dev server or Nginx for static builds).
+  frontend:
+    build:
+      context: ./frontend # User must provide Dockerfile and frontend code here
+      dockerfile: Dockerfile # Example: Dockerfile to run 'npm run dev -- --host'
+    container_name: storagemk1-frontend-ui-ctnr
+    ports:
+      - "${FRONTEND_PORT_HOST}:${FRONTEND_PORT_CONTAINER}"
+    env_file:
+      - .env # Makes all .env vars available, user's frontend build tool (e.g. Vite) picks up VITE_ prefixed ones
+    volumes:
+      - ./frontend:/usr/src/app # Mount frontend code for live reload (if dev server supports it)
+      - /usr/src/app/node_modules # Anonymous volume to prevent host node_modules from overwriting container's (if applicable)
+    networks:
+      - storagemk1_network
+    depends_on:
+      - storagemk1-backend-api # Ensures backend is available for API calls
+    restart: unless-stopped
+
+networks:
+  storagemk1_network:
+    driver: bridge

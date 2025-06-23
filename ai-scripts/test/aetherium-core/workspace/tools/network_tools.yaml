@@ -1,0 +1,6 @@
+- id: 'system.dig'
+  description: 'Performs a DNS lookup using the `dig` command-line utility.'
+  runtime: 'shell'
+  handler: 'dig +short {{ params.domain }}'
+  parameters:
+    domain: { description: 'The domain name to look up.', type: 'string', required: true }

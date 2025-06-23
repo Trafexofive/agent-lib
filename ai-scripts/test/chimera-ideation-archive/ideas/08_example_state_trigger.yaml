@@ -1,0 +1,45 @@
+# This example demonstrates a state-based trigger that monitors a sensor
+# and uses a looping action to wait for a condition to be met.
+
+orchestrations:
+  - id: 'smart-laundry-notifier'
+    alias: 'Smart Laundry Notifier'
+    description: 'Monitors a smart plug on the washing machine. When the cycle finishes (power drops), it sends a notification.'
+
+    # This trigger fires when the power sensor's state goes from 'high_power' to 'low_power'.
+    # This assumes an upstream automation or sensor template defines these states based on wattage.
+    trigger:
+      - platform: 'state'
+        entity_id: 'sensor.washing_machine_power_state'
+        from: 'running'
+        to: 'finished'
+        # 'for' ensures the state must be 'finished' for at least 2 minutes to avoid false positives.
+        for:
+          minutes: 2
+
+    action:
+      # This sequence demonstrates a waiting loop.
+      - service: 'log.write'
+        data:
+          message: 'Laundry cycle finished. Waiting for the door to be opened.'
+
+      # The 'repeat' action can loop until a condition is met or for a set number of times.
+      - repeat:
+          # This loop will continue as long as the laundry door sensor is 'closed'.
+          until:
+            - condition: 'state'
+              entity_id: 'binary_sensor.laundry_door'
+              state: 'on' # 'on' means open
+          # The sequence of actions to perform in each loop iteration.
+          sequence:
+            # Wait for 30 minutes before the next check.
+            - delay: '00:30:00'
+            # Send a reminder notification.
+            - service: 'notify.mobile_app'
+              data:
+                message: 'Reminder: The laundry is finished and waiting to be emptied.'
+
+      # This action only runs AFTER the repeat loop has successfully completed.
+      - service: 'notify.mobile_app'
+        data:
+          message: 'Laundry has been collected. Good job!'

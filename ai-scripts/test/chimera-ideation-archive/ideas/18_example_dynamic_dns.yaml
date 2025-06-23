@@ -1,0 +1,52 @@
+# GOLD ESSENCE: Absolute Sovereignty (A core homelab task), Pragmatic Purity (Simple, reliable, does one thing well).
+
+orchestrations:
+  - id: 'dynamic-dns-updater-cloudflare'
+    alias: 'Cloudflare DDNS Updater'
+    description: 'Periodically checks the public IP of the homelab and updates a Cloudflare DNS record if it has changed.'
+
+    trigger:
+      - platform: 'time_pattern'
+        minutes: '*/5' # Run every 5 minutes
+
+    action:
+      # 1. Get the current public IP address.
+      - service: 'http.request'
+        data:
+          url: 'https://api.ipify.org'
+        response_variable: 'current_ip_response'
+
+      # 2. Store the IP and compare it to the last known IP stored by the platform.
+      # The 'state.set' and 'state.get' services would interact with a simple key-value store.
+      - variables:
+          current_ip: "{{ current_ip_response.content }}"
+          last_known_ip: "{{ state.get('ddns_last_ip') }}"
+
+      # 3. Only proceed if the IP has actually changed.
+      - condition:
+          - condition: 'template'
+            value_template: "{{ current_ip != last_known_ip }}"
+
+      # 4. If the condition is met, execute the update.
+      - service: 'log.write'
+        data:
+          message: "IP change detected. Old: {{ last_known_ip }}, New: {{ current_ip }}. Updating Cloudflare..."
+
+      - service: 'http.request'
+        data:
+          method: 'PUT'
+          url: 'https://api.cloudflare.com/client/v4/zones/YOUR_ZONE_ID/dns_records/YOUR_RECORD_ID'
+          headers:
+            Authorization: 'Bearer YOUR_CLOUDFLARE_API_TOKEN'
+            Content-Type: 'application/json'
+          json_body:
+            type: 'A'
+            name: 'home.yourdomain.com'
+            content: "{{ current_ip }}"
+            ttl: 120
+
+      # 5. Update the state with the new IP for the next run.
+      - service: 'state.set'
+        data:
+          key: 'ddns_last_ip'
+          value: "{{ current_ip }}"

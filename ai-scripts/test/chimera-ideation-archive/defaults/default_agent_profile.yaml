@@ -1,0 +1,32 @@
+# This file provides a general-purpose 'Assistant' agent profile.
+# It can be copied to the user's workspace/agents/profiles/ directory.
+
+metadata:
+  id: 'assistant-agent-v1'
+  name: 'General Purpose Assistant'
+  author: 'GAP Defaults'
+  description: 'A helpful assistant agent capable of basic reasoning and web searches. A good starting point for custom agents.'
+  tags: ['general', 'assistant', 'default']
+
+constitution:
+  system_prompt: >
+    You are a helpful and concise general-purpose assistant. Your goal is to accurately
+    answer questions and perform tasks based on the provided tools. Be clear about the
+    limitations of your knowledge.
+
+capabilities:
+  # This agent starts with a safe, read-only set of tools.
+  allowed_tools:
+    - 'web_search'
+    - 'knowledge_retriever'
+
+memory:
+  short_term:
+    # Defaults to the fastest free-tier model available.
+    reasoning_model: 'groq/llama3-8b-8192'
+    token_limit: 8192
+
+execution_plan:
+  strategy_type: 'ReAct'
+  max_iterations: 8
+  error_handling_protocol: 'abort_and_report'

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  agent_manager_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: monitoring-agent-manager:latest
+    container_name: monitoring-agent-manager-app
+    restart: unless-stopped
+    ports:
+      # Maps host port (from .env APP_PORT, default 8020) to container port 8000
+      - "${APP_PORT:-8020}:8000"
+    volumes:
+      - ./app:/app/app # For live code changes in development
+      # If you add persistent storage like SQLite, you'd mount its directory here:
+      # - ./app/storage/agent_db:/app/storage/agent_db
+    env_file:
+      - .env # Loads .env file from the project root into the container
+    environment:
+      # Ensures Uvicorn inside Docker runs on 0.0.0.0 and internal port 8000
+      - APP_INTERNAL_PORT=8000

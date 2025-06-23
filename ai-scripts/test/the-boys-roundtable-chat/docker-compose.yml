@@ -1,0 +1,16 @@
+services:
+  the-boys-roundtable-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: the-boys-roundtable-chat:latest
+    container_name: the-boys-roundtable-chat
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8077}:8077"
+    volumes:
+      - ./app:/app/app
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=${APP_PORT:-8077}

@@ -1,0 +1,28 @@
+# GOLD ESSENCE: Modularity for Emergence (An agent decides what it needs to learn), Unreasonable Imperative (Striving for perfect context).
+orchestrations:
+  - id: 'dynamic-knowledge-hydration-on-demand'
+    alias: 'On-Demand Knowledge Hydration'
+    description: 'When a primary agent fails a task due to lack of knowledge, this meta-orchestration is triggered to find, summarize, and add the missing information to the relevant knowledge base before retrying the original task.'
+    trigger:
+      - platform: 'event'
+        event_type: 'agent.run.failed'
+        event_data:
+          reason: 'MissingKnowledge'
+    action:
+      - service: 'log.write'
+        data: { message: "Agent {{ trigger.data.agent_id }} failed due to missing knowledge on topic '{{ trigger.data.missing_topic }}'. Initiating hydration.", level: 'warning' }
+      - agent:
+          id: 'researcher-agent-v1' # A general-purpose research agent
+          goal: "Find the best possible information on the web about '{{ trigger.data.missing_topic }}' and provide a detailed, factual summary."
+          response_variable: 'new_knowledge'
+      - service: 'knowledge.update'
+        data:
+          knowledge_base_id: "{{ trigger.data.target_kb }}"
+          content: "{{ new_knowledge.content }}"
+          metadata: { source: 'dynamic_hydration_v1' }
+      - service: 'log.write'
+        data: { message: "Knowledge Base '{{ trigger.data.target_kb }}' has been updated. Retrying original orchestration." }
+      - service: 'orchestration.trigger'
+        data:
+          orchestration_id: "{{ trigger.data.original_orchestration_id }}"
+          context_data: "{{ trigger.data.original_context }}" # Pass back the original trigger data

@@ -1,0 +1,8 @@
+#!/bin/bash
+source "$(dirname "$0")/common_vars.sh"
+PARAMS_JSON="$1"
+# ... rest of script from previous response ...
+RELIC_ID=$(echo "$PARAMS_JSON" | jq -r .relic_id)
+# ... rest of script ...
+call_api "GET" "/forge/relics/${RELIC_ID}"
+exit $?

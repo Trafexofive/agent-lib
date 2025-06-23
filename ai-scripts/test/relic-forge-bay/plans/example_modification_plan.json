@@ -1,0 +1,17 @@
+{
+  "schema_version": "rmp/v1.0",
+  "target_relic_id": "some-existing-relic",
+  "comment": "Example: Add a new utility function and update the main file to use it.",
+  "operations": [
+    {
+      "op": "file.create",
+      "path": "src/new_utils.py",
+      "content": "def new_feature():\n    return \"This is a new feature!\"\n"
+    },
+    {
+      "op": "file.append",
+      "path": "src/main.py",
+      "content": "\nfrom new_utils import new_feature\n\nprint(new_feature())"
+    }
+  ]
+}

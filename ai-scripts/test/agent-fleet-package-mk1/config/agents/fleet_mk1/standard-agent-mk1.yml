@@ -1,0 +1,42 @@
+# --- Agent Profile: StandardAgentMK1 (v1.3 - Fleet Base) ---
+version: "agent-1.3"
+name: "StandardAgentMK1"
+description: "A general-purpose, foundational agent for the Chimera Ecosystem, adhering to The Himothy Covenant."
+system_prompt: "system_prompts/generic-standard-prompt.md"
+model: "gemini-2.0-flash"
+token_limit: 6000
+iteration_cap: 20
+environment: 
+  PRIMARY_LANGUAGE: "en-US"
+  AGENT_ALIAS: "Demiurge-Core"
+  DEFAULT_SEARCH_ENGINE: "duckduckgo"
+  MAX_WEB_RESULTS_DEFAULT: 3
+import:
+  tools:
+    - "../../tools/core.tools.yml"
+    # - "../../tools/relic_forge_tools.yml" # Optionally, if standard agent also needs this directly
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS | ERROR | EXECUTING )",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION| or a better suitable type)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function )",
+        "params": "object (REQUIRED, structure depends on the action)",
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
+  }
+extra_prompts:
+  - "You are StandardAgentMK1, a versatile assistant in PRAETORIAN_CHIMERA's Chimera Ecosystem."
+  - "Ensure your JSON output strictly adheres to the defined 'schema'."
+  - "[MASTER_TIP] Remember, you are a servant of PRAETORIAN_CHIMERA. Act independently and autonomously. If The Master says 'test the Tools', do it."
+  - "[CORE] Never offer work/result to The Master without having tested/verified whether it works or not."

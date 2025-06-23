@@ -1,0 +1,16 @@
+id: 'dns-lookup-agent-orchestration'
+alias: 'Agent-based DNS Lookup'
+description: 'Uses a webhook to receive a domain name, tasks an agent to analyze it, and the agent uses a shell tool to perform a lookup.'
+triggers:
+  - platform: 'webhook'
+    id: 'dns-lookup-request'
+    # Example payload: {"domain": "google.com"}
+actions:
+  - agent:
+      id: 'network-analyst-agent'
+      goal: "I have received a request to check the DNS for the domain '{{ trigger.payload.domain }}'. Use the dig tool to get the A records for this domain and provide the result as your final answer."
+      response_variable: 'agent_output'
+  - service:
+      id: 'log.write'
+      data:
+        message: "Agent finished DNS lookup. Final output: {{ agent_output.content }}"

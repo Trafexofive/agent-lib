@@ -1,0 +1,45 @@
+# This example demonstrates a more advanced webhook trigger that parses incoming JSON data
+# and uses it to dynamically control the workflow.
+
+orchestrations:
+  - id: 'github-stargazer-notifier'
+    alias: 'GitHub Stargazer Notifier'
+    description: 'Receives a webhook from GitHub when a repository is starred and sends a formatted notification to Discord.'
+
+    # The webhook trigger. The platform would expose a unique URL for this ID,
+    # e.g., https://gap.clevo.ddnsgeek.com/webhook/github-stargazer-webhook
+    trigger:
+      - platform: 'webhook'
+        webhook_id: 'github-stargazer-webhook'
+
+    # A condition to ensure the action is 'started' and not 'unstarred'.
+    # It accesses nested JSON data from the webhook payload.
+    condition:
+      - condition: 'template'
+        value_template: "{{ trigger.json.action == 'created' }}"
+
+    # The action sequence uses the webhook data extensively.
+    action:
+      # Use the 'variables' block to create cleaner, reusable template strings.
+      - variables:
+          repo_name: "{{ trigger.json.repository.full_name }}"
+          user_name: "{{ trigger.json.sender.login }}"
+          user_url: "{{ trigger.json.sender.html_url }}"
+          total_stars: "{{ trigger.json.repository.stargazers_count }}"
+
+      - service: 'notify.discord'
+        data:
+          # The target channel could be hardcoded or also come from the webhook data.
+          channel_id: '123456789012345678'
+          # The 'embed' object is a structured way to send rich messages to Discord.
+          embed:
+            title: "⭐ New Star on {{ repo_name }}!"
+            description: "**[{{ user_name }}]({{ user_url }})** just starred the repository."
+            color: '15844367' # Gold
+            fields:
+              - name: 'Total Stars'
+                value: "{{ total_stars }}"
+                inline: true
+              - name: 'Timestamp'
+                value: "{{ now().isoformat() }}"
+                inline: true

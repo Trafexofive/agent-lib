@@ -1,0 +1,29 @@
+# config/tools/code_utility_tools.yml
+# Tools for basic code interactions like linting or metrics.
+
+CodeUtilityTools:
+  CountLinesOfCode:
+    name: "code_count_lines"
+    description: "Counts lines in a specified text file (source code, text). Returns JSON with 'file', 'lines', 'words', 'bytes'."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/code_utility/count_lines.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        file_path: { type: "string", description: "Path to the file." }
+      required: ["file_path"]
+    example_usage: { "file_path": "app/main.py" }
+
+  SimplePythonLint:
+    name: "code_simple_lint_python"
+    description: "Performs a very basic lint check on a Python file using 'python -m py_compile'. Returns JSON with 'status' ('ok' or 'error') and 'message'."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/code_utility/simple_lint_python.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        file_path: { type: "string", description: "Path to the Python file to check." }
+      required: ["file_path"]
+    example_usage: { "file_path": "utils/helpers.py" }

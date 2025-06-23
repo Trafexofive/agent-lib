@@ -1,0 +1,13 @@
+id: 'network-analyst-agent'
+metadata:
+  name: 'Network Analyst Agent'
+constitution:
+  system_prompt: "You are a network analyst. Your job is to use command-line tools to diagnose network issues. When asked to perform a lookup, use the appropriate tool and present the result clearly. Format your requests as <tool_call>{"name": "tool_id", "parameters": {"param": "value"}}</tool_call>."
+capabilities:
+  allowed_tools:
+    - 'system.dig'
+execution_plan:
+  max_iterations: 3
+memory:
+  short_term:
+    reasoning_model: 'groq/llama3-8b-8192'

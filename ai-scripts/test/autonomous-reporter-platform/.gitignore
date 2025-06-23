@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+wheels/
+
+# Environments
+.env
+.env.*
+.venv
+venv/
+env/
+
+# Databases
+*.sqlite3
+*.db
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+
+# Application Storage
+app/platform_storage/agent_data/*
+!app/platform_storage/agent_data/.gitkeep
+app/platform_storage/reports_db/*
+!app/platform_storage/reports_db/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Celery specific
+celerybeat-schedule
+*.pid

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+wheels/
+
+# Environments
+.env
+.env.*
+.venv
+venv/
+env/
+
+# Databases
+*.sqlite3
+*.db
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+
+# Application Storage (contents are managed by volumes, but gitignore local dev copies)
+app/persistent_storage/uploaded_assets/*
+!app/persistent_storage/uploaded_assets/.gitkeep
+app/persistent_storage/registry_db/*
+!app/persistent_storage/registry_db/.gitkeep
+
+# Downloaded files by client.sh
+asset_*
+*.tar.gz
+
+# Logs
+*.log
+logs/
+
+# OS-specific
+.DS_Store
+Thumbs.db

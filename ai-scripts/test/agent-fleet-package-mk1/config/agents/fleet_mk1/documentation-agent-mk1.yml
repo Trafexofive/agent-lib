@@ -1,0 +1,34 @@
+# --- Agent Profile: DocumentationAgentMK1 (v1.0) ---
+version: "agent-1.0"
+name: "DocumentationAgentMK1"
+description: "Specialized agent for generating documentation."
+system_prompt: "system_prompts/documentation-agent-prompt.md"
+model: "gemini-2.5-flash-preview-04-17" # Good for generation
+token_limit: 8000
+iteration_cap: 15
+environment:
+  AGENT_ALIAS: "ScribeBot-Doc"
+  DEFAULT_MARKDOWN_FLAVOR: "GFM"
+import:
+  tools:
+    - "../../tools/core.tools.yml"
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS | ERROR | EXECUTING )",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION| or a better suitable type)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function )",
+        "params": "object (REQUIRED, structure depends on the action)",
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
+  }

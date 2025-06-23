@@ -1,0 +1,46 @@
+{
+  "service_version": "0.1.0",
+  "default_max_tokens": 2048,
+  "models": [
+    {
+      "id": "google/gemini-1.5-flash-latest",
+      "provider": "gemini",
+      "actual_model_name": "gemini-1.5-flash-latest",
+      "description": "Google Gemini Flash - Fast and versatile for chat and text generation.",
+      "free_tier_available": true,
+      "context_window": 8192 
+    },
+    {
+      "id": "google/gemini-pro",
+      "provider": "gemini",
+      "actual_model_name": "gemini-pro", 
+      "description": "Google Gemini Pro - Balanced model for chat and text generation.",
+      "free_tier_available": true,
+      "context_window": 32768
+    },
+    {
+      "id": "groq/llama3-8b-8192",
+      "provider": "groq",
+      "actual_model_name": "llama3-8b-8192",
+      "description": "Meta Llama 3 8B Instruct on Groq - High speed inference.",
+      "free_tier_available": true,
+      "context_window": 8192
+    },
+    {
+      "id": "groq/llama3-70b-8192",
+      "provider": "groq",
+      "actual_model_name": "llama3-70b-8192",
+      "description": "Meta Llama 3 70B Instruct on Groq - Powerful and fast.",
+      "free_tier_available": true,
+      "context_window": 8192
+    },
+    {
+      "id": "groq/mixtral-8x7b-32768",
+      "provider": "groq",
+      "actual_model_name": "mixtral-8x7b-32768",
+      "description": "Mixtral 8x7B SMoE on Groq - Strong general capabilities.",
+      "free_tier_available": true,
+      "context_window": 32768
+    }
+  ]
+}

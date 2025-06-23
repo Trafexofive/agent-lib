@@ -1,0 +1,10 @@
+{
+  "dashboardTitle": "ChimeraDash Relic Edition",
+  "defaultTheme": "Crimson Forge",
+  "featureFlags": {
+    "knowledgeGraphEnabled": true,
+    "automationServiceEnabled": false,
+    "aiToolsEnabled": true
+  },
+  "service_version": "0.1.0"
+}

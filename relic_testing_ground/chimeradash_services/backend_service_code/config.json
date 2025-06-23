@@ -1,0 +1,6 @@
+{
+  "sample_setting_1": "initial_value_from_config_json",
+  "feature_x_enabled": true,
+  "service_name": "ChimeraDash Backend",
+  "service_version": "0.1.0"
+}

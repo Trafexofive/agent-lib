@@ -1,0 +1,11 @@
+orchestrations:
+  - id: 'engine-test-orch'
+    alias: 'Minute-by-Minute Engine Test'
+    trigger:
+      - platform: 'time_pattern'
+        minutes: '*'
+    action:
+      - service: 'log.write'
+        data:
+          level: 'info'
+          message: 'SUCCESS: The OrchestrationEngine is alive and executing tools.'

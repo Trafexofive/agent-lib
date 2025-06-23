@@ -1,0 +1,14 @@
+#!/bin/bash
+# Robust wrapper to execute the Python harvester from its virtual environment.
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+VENV_PATH="$SCRIPT_DIR/.venv"
+
+# Check if venv exists
+if [ ! -d "$VENV_PATH" ]; then
+    echo "Virtual environment not found. Please run 'make setup' first."
+    exit 1
+fi
+
+# Activate venv and run the python script, passing all arguments
+"$VENV_PATH/bin/python" "$SCRIPT_DIR/src/context_harvester.py" "$@"

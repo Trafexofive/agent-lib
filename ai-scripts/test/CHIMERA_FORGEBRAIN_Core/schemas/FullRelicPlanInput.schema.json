@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FullRelicPlanInput",
+  "type": "object",
+  "required": ["relic_name", "artifacts"],
+  "properties": {
+    "relic_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "maxLength": 100
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(\\d+)\\.(\\d+)\\.(\\d+)(-[\\w.]+)?(\\+[\\w.]+)?)?$"
+    },
+    "bootstrap_script_content": {
+      "type": ["string", "null"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "contentType", "content"],
+        "properties": {
+          "title": {"type": "string"},
+          "path": {"type": "string"},
+          "contentType": {"type": "string"},
+          "content": {"type": "string"}
+        }
+      }
+    },
+    "setup_instructions_markdown": {
+      "type": ["string", "null"]
+    }
+  }
+}

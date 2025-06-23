@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+.dockerignore
+
+# Runtime Data & Logs
+data/
+logs/
+
+# IDE folders
+.vscode/
+.idea/

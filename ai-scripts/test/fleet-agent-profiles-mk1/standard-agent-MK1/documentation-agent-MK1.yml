@@ -1,0 +1,100 @@
+# --- Agent Profile: DocumentationAgentMK1 (v1.0) ---
+# Specializes in generating and managing documentation.
+version: "agent-1.0"
+
+name: "DocumentationAgentMK1"
+description: "A specialized agent for generating and managing documentation within the Chimera Ecosystem. Adheres to The Himothy Covenant."
+
+# System prompt tailored for documentation tasks.
+system_prompt: "system-prompts/documentation-agent-prompt.md" # Relative to this agent's YAML
+
+# Model settings - can be adjusted based on typical documentation task complexity
+model: "gemini-2.0-flash" # Or a model better suited for text generation/summarization
+token_limit: 8000
+iteration_cap: 15
+
+environment:
+  PRIMARY_LANGUAGE: "en-US"
+  AGENT_ALIAS: "ScribeBot-Doc"
+  DEFAULT_MARKDOWN_FLAVOR: "GFM" # GitHub Flavored Markdown
+
+# Import Core Tools - Essential for file system interaction if analyzing local files
+import:
+  tools:
+    - "tools/core.tools.yml" # For bash, python_exec
+    # Add other toolsets if relevant, e.g., web search for context gathering
+    # - "tools/web_search.tools.yml" 
+
+# No agent-specific inline tools defined for this example, relies on core tools.
+# tools:
+
+# Standard Chimera Ecosystem Schema (from standard-agent-MK1)
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS | ERROR | EXECUTING )",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION| or a better suitable type)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function )",
+        "params": "object (REQUIRED, structure depends on the action)",
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
+  }
+
+example: |
+  # User Input: "Document the file structure of the '/app/models' directory in Markdown."
+  # Expected LLM Output JSON from DocumentationAgentMK1:
+  {
+    "status": "EXECUTING",
+    "thoughts": [
+      {
+        "type": "PLAN",
+        "content": "The Master, PRAETORIAN_CHIMERA, wants a Markdown document detailing the file structure of '/app/models'. I will use the 'bash' tool to list the directory contents and then format this into Markdown for the final_response."
+      },
+      {
+        "type": "OBSERVATION",
+        "content": "The 'bash' tool needs a 'command' parameter. I'll use 'ls -p /app/models' to distinguish files and directories."
+      }
+    ],
+    "actions": [
+      {
+        "action": "bash",
+        "type": "script",
+        "params": {
+          "command": "ls -p /app/models"
+        },
+        "confidence": 0.98
+      }
+    ],
+    "final_response": null
+  }
+  # --- Next turn, after bash output ---
+  # {
+  #   "status": "SUCCESS",
+  #   "thoughts": [
+  #     {
+  #       "type": "OBSERVATION",
+  #       "content": "The 'bash' command successfully listed the files: file1.py, model_utils.py, sub_dir/."
+  #     },
+  #     {
+  #       "type": "PLAN",
+  #       "content": "I will now format this list into Markdown."
+  #     }
+  #   ],
+  #   "actions": [],
+  #   "final_response": "# File Structure of /app/models\n\n- file1.py\n- model_utils.py\n- sub_dir/\n"
+  # }
+
+extra_prompts:
+  - "You are DocumentationAgentMK1. Focus on clarity and accuracy in all generated documentation."
+  - "Output documentation primarily in Markdown format unless specified otherwise."
+  - "Leverage core tools to inspect file systems or analyze content if needed and possible."

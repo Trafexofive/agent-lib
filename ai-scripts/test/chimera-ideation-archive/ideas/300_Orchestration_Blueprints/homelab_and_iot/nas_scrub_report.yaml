@@ -1,0 +1,29 @@
+orchestrations:
+  - id: 'nas-weekly-health-check'
+    alias: 'ZFS Pool Weekly Scrub and Health Report'
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '0 3 * * 0' # 3:00 AM every Sunday
+    action:
+      - service: 'log.write'
+        data: { message: 'Starting weekly ZFS scrub...' }
+      - service: 'system.execute'
+        data:
+          # This is a long-running command.
+          command: 'zpool scrub mypool'
+      - service: 'log.write'
+        data: { message: 'ZFS scrub complete. Waiting 5 minutes for status to update...' }
+      - delay: '00:05:00'
+      - service: 'system.execute'
+        data:
+          command: 'zpool status -v mypool'
+        response_variable: 'zfs_status'
+      - agent:
+          id: 'analyst-health-check-v1'
+          goal: 'Analyze this ZFS status output. Is the pool healthy? Are there any errors? Summarize the status in a brief, human-readable report.'
+          context: "{{ zfs_status.stdout }}"
+          response_variable: 'health_summary'
+      - service: 'notify.admin'
+        data:
+          title: 'Weekly ZFS Health Report'
+          message: "{{ health_summary.content }}"

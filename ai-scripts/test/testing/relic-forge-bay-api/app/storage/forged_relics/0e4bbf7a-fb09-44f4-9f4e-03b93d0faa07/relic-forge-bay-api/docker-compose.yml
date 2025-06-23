@@ -1,0 +1,23 @@
+services:
+  relic-forge-bay-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: relic-forge-bay-api:latest
+    container_name: relic-forge-bay-api
+    restart: unless-stopped
+    ports:
+      # Exposes container port 8000 to host port $FORGE_API_PORT (default 13080 if env var not set)
+      - "${FORGE_API_PORT:-13080}:8000"
+    volumes:
+      - ./app:/app/app # For live code changes in development
+      - ./app/storage/forge_db:/app/storage/forge_db
+      - ./app/storage/forged_relics:/app/storage/forged_relics
+    env_file:
+      - .env # Docker Compose will load this if it exists
+    # Environment variables set here can override those in .env or provide defaults
+    # The application (config_forge.py) itself will also try to load .env inside the container.
+    environment:
+      - FORGE_API_HOST=0.0.0.0     # Uvicorn binds to this inside the container
+      - FORGE_INTERNAL_PORT=8000 # Port Uvicorn uses *inside* the container (matches CMD)
+      # - FORGE_API_PORT # This would be set by the .env file for the container's internal logic if needed, distinct from host mapping.

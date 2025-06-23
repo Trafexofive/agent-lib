@@ -1,0 +1,45 @@
+# config/tools/data_processing_tools.yml
+# Tools for basic data manipulation and validation.
+
+DataProcessingTools:
+  JsonValidate:
+    name: "data_json_validate"
+    description: "Validates if a given string is valid JSON. Returns JSON with 'valid' (boolean) and 'error' (string, if invalid)."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/data_processing/json_validate.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        json_string: { type: "string", description: "The JSON string to validate." }
+      required: ["json_string"]
+    example_usage: { "json_string": "{\"key\": \"value\"}" }
+
+  JsonQueryJq:
+    name: "data_json_query_jq"
+    description: "Queries a JSON string using a jq filter. Returns the result of the query."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/data_processing/json_query_jq.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        json_string: { type: "string", description: "The input JSON string." }
+        jq_filter: { type: "string", description: "The jq filter string (e.g., '.name', '.items[0].price')." }
+      required: ["json_string", "jq_filter"]
+    example_usage: { "json_string": "{\"user\":{\"name\":\"Alice\",\"age\":30}}", "jq_filter": ".user.name" }
+
+  TextSearchGrep:
+    name: "data_text_search_grep"
+    description: "Searches for a pattern in a given text string (similar to grep). Returns JSON with 'matches' (array of matching lines) and 'count'."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/data_processing/text_search_grep.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        text_content: { type: "string", description: "The text to search within." }
+        pattern: { type: "string", description: "The ERE pattern to search for." }
+        ignore_case: { type: "boolean", default: false, description: "Perform case-insensitive matching." }
+      required: ["text_content", "pattern"]
+    example_usage: { "text_content": "Hello world\nHello there", "pattern": "^Hello", "ignore_case": true }

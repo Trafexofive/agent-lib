@@ -1,0 +1,43 @@
+# GOLD ESSENCE: Modularity for Emergence (Closed-Loop Learning), Pragmatic Purity (Automating information gathering).
+
+orchestrations:
+  - id: 'tech-blog-knowledge-archivist'
+    alias: 'Tech Blog Knowledge Archivist'
+    description: 'Monitors a tech blog''s RSS feed, uses an agent to summarize new posts, and then adds the summary to a long-term knowledge base for future agents to use.'
+
+    trigger:
+      - platform: 'rss_feed'
+        url: 'https://some-ai-blog.com/feed/'
+        # This trigger would fire for each new item in the feed.
+
+    action:
+      # 1. Use an agent to read and summarize the article.
+      - agent:
+          id: 'summarization-agent-v1'
+          goal: >
+            Read the article at the following URL: {{ trigger.data.link }}.
+            Produce a concise, three-paragraph summary of its key points.
+          response_variable: 'article_summary'
+
+      # 2. Use a meta-tool to add the summary to the knowledge base.
+      # This is the crucial step that closes the learning loop.
+      - service: 'knowledge.update'
+        data:
+          knowledge_base_id: 'ai_developments_kb'
+          # Use the article link as a unique ID to prevent duplicates.
+          document_id: "{{ trigger.data.link }}"
+          content: |
+            Title: {{ trigger.data.title }}
+            Published: {{ trigger.data.published }}
+            URL: {{ trigger.data.link }}
+            
+            --- SUMMARY ---
+            {{ article_summary.content }}
+          metadata: # Store structured metadata for later filtering.
+            source: 'ai-blog'
+            topic: 'AI Research'
+
+      # 3. Log the successful archival.
+      - service: 'log.write'
+        data:
+          message: "Successfully archived summary for article: {{ trigger.data.title }}"

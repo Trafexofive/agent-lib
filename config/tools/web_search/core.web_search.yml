@@ -1,0 +1,37 @@
+# config/tools/web_search/core.web_search.yml
+# Core web search tool for the Chimera Ecosystem.
+# Performs general web searches by fetching and processing content from a public domain (e.g., Wikipedia).
+# Relies on 'web_content_fetch' from tools/http/core.web.yml for HTTP requests.
+# No external search APIs or services are used, ensuring full self-sufficiency.
+
+# --- Web Search Tools ---
+WebSearchTools:
+  WebSearch:
+    name: "web_search"
+    description: >
+      Performs a general web search by constructing a search URL for a public domain (e.g., Wikipedia)
+      and extracting relevant results locally. Uses 'web_content_fetch' to retrieve content and processes
+      it to return titles, URLs, and snippets ranked by query relevance. Fully self-contained with no
+      external service dependencies.
+      Parameters: {
+        "query": "string (REQUIRED, the search query)",
+        "max_results": "integer (OPTIONAL, maximum number of results; defaults to MAX_WEB_RESULTS_DEFAULT from .env)",
+        "timeout": "integer (OPTIONAL, per-request timeout in seconds; defaults to DEFAULT_PROVIDER_TIMEOUT from .env)",
+        "search_base": "string (OPTIONAL, base URL for search; defaults to FALLBACK_SEARCH_BASE from .env)"
+      }
+    type: "script"
+    runtime: "python3"
+    path: "./scripts/web_search.py"
+    parameters_schema:
+      type: "object"
+      properties:
+        query: { type: "string", description: "The search query" }
+        max_results: { type: "integer", minimum: 1, description: "Maximum number of results to return" }
+        timeout: { type: "integer", minimum: 1, description: "Per-request timeout in seconds" }
+        search_base: { type: "string", format: "uri", description: "Base URL for search (e.g., Wikipedia search endpoint)" }
+      required: ["query"]
+    example_usage:
+      query: "Factorio automation patterns"
+      max_results: 3
+      timeout: 15
+      search_base: "https://en.wikipedia.org/w/index.php"

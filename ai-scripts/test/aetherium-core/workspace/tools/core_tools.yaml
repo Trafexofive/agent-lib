@@ -1,0 +1,16 @@
+- id: 'log.write'
+  description: 'Writes a message to the Aetherium Core logs. Useful for debugging and status updates.'
+  runtime: 'python'
+  handler: 'aetherium_core.core.tools.LogWriteTool' # This would be dynamically imported
+  parameters:
+    message: { description: 'The log message content.', type: 'string', required: true }
+    level: { description: 'The log level (info, warning, error).', type: 'string' }
+  returns: 'A status object.'
+
+- id: 'system.ping'
+  description: 'Pings a network host to check for connectivity.'
+  runtime: 'shell'
+  handler: 'ping -c 4 {{ params.host }}'
+  parameters:
+    host: { description: 'The hostname or IP address to ping.', type: 'string', required: true }
+  returns: 'The stdout/stderr of the ping command.'

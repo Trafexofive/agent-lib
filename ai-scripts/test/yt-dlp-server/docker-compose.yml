@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: yt-dlp-server:latest # Optional: explicit image naming
+    container_name: yt-dlp-server-app # Optional: explicit container naming
+    ports:
+      - "${APP_PORT:-8099}:8000"
+    volumes:
+      # Mounts the host's ./app directory to /app/app in the container for live code reloading.
+      # This matches the structure created by `COPY . .` in the Dockerfile where host ./app becomes /app/app.
+      - ./app:/app/app
+      # Mounts the host's ./storage directory to /app/storage in the container for persistent data.
+      - ./storage:/app/storage
+    env_file:
+      - .env
+    # `depends_on` for a non-networked SQLite 'db' service is not meaningful.
+    # The app service manages its own SQLite file.
+    # If you had a separate database server (e.g., Postgres), depends_on would be used here.
+
+# The sqlite:3 image based 'db' service is not necessary for this application configuration
+# as the app service directly manages its SQLite database file within its /app/storage volume.
+# Removing it to avoid confusion.
+# db:
+#   image: sqlite:3 # This image provides SQLite CLI tools, not a DB server.
+#   volumes:
+#     # This volume would be for the 'db' service, not directly used by 'app' service for its DB.
+#     - ./storage/forge_db:/db 

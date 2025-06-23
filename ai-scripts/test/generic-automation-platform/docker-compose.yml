@@ -1,0 +1,21 @@
+services:
+  backend-api:
+    build:
+      context: ./gap_core
+      dockerfile: Dockerfile
+    container_name: gap-backend-api-ctnr
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      - ./gap_core:/app/gap_core
+      - ./workspace:/app/workspace
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - gap_network
+    restart: unless-stopped
+
+networks:
+  gap_network:
+    driver: bridge

@@ -1,0 +1,8 @@
+metadata:
+  id: 'researcher-agent-v1'
+  name: 'Basic Research Agent'
+capabilities:
+  allowed_tools: ['web_search']
+memory:
+  short_term:
+    reasoning_model: 'groq/llama3-8b-8192'

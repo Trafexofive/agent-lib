@@ -1,0 +1,21 @@
+services:
+  aetherium-backend:
+    build:
+      context: ./aetherium_core
+      dockerfile: Dockerfile
+    container_name: aetherium-core-ctnr
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      - ./aetherium_core:/app/aetherium_core
+      - ./workspace:/app/workspace
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - aetherium_network
+    restart: unless-stopped
+
+networks:
+  aetherium_network:
+    driver: bridge

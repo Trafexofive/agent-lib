@@ -1,0 +1,31 @@
+# GOLD ESSENCE: FAAFO Engineering (The platform watches itself), Pragmatic Purity (Automating diagnostics).
+orchestrations:
+  - id: 'agent-error-rate-monitor'
+    alias: 'Agent Error Rate Monitor'
+    description: 'Periodically scans the platform''s own logs to calculate the error rate of agents. If the rate exceeds a threshold, it notifies an administrator.'
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '*/15 * * * *' # Every 15 minutes
+    action:
+      - service: 'log.query'
+        data:
+          # Query the structured logs for agent execution events in the last 15 minutes.
+          query_string: 'message: "Agent execution failed"'
+          time_range: '15m'
+        response_variable: 'failed_runs'
+      - service: 'log.query'
+        data:
+          query_string: 'message: "Agent execution success"'
+          time_range: '15m'
+        response_variable: 'successful_runs'
+      - variables:
+          total_runs: "{{ (failed_runs.count + successful_runs.count) | default(1, true) }}"
+          error_rate: "{{ (failed_runs.count / total_runs) * 100 }}"
+      - condition:
+          - condition: 'numeric_state'
+            value_template: "{{ error_rate }}"
+            above: 25
+      - service: 'notify.admin'
+        data:
+          title: 'High Agent Error Rate Detected!'
+          message: 'Agent error rate is {{ error_rate | round(2) }}% over the last 15 minutes. Please check the logs.'

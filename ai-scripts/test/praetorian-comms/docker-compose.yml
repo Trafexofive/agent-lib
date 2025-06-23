@@ -1,0 +1,63 @@
+services:
+  praetorian-comms-api:
+    build: ./backend_comms_server
+    container_name: praetorian-comms-api-ctnr
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      - ./backend_comms_server:/app
+      - praetorian_comms_files:/app/files_storage
+    depends_on:
+      praetorian-comms-db:
+        condition: service_healthy
+    networks:
+      - praetorian_comms_net
+    restart: unless-stopped
+
+  praetorian-comms-db:
+    image: postgres:15-alpine
+    container_name: praetorian-comms-db-ctnr
+    env_file: .env
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - praetorian_comms_pg_data:/var/lib/postgresql/data
+    networks:
+      - praetorian_comms_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Placeholder for your main chat client UI
+  chat-client-ui:
+    build:
+      context: ./chat_client_frontend
+    container_name: praetorian-comms-client-ui-ctnr
+    ports:
+      - "${CHAT_CLIENT_PORT_HOST}:${FRONTEND_PORT_CONTAINER}"
+    networks:
+      - praetorian_comms_net
+    restart: unless-stopped
+
+  # Placeholder for your admin dashboard UI
+  admin-dashboard-ui:
+    build:
+      context: ./admin_dashboard_frontend
+    container_name: praetorian-comms-admin-ui-ctnr
+    ports:
+      - "${ADMIN_DASHBOARD_PORT_HOST}:${FRONTEND_PORT_CONTAINER}"
+    networks:
+      - praetorian_comms_net
+    restart: unless-stopped
+
+volumes:
+  praetorian_comms_pg_data:
+  praetorian_comms_files:
+
+networks:
+  praetorian_comms_net:
+    driver: bridge

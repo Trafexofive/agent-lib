@@ -1,0 +1,32 @@
+# ENDGAME v2: After a critical alert is resolved, the platform autonomously triggers an
+# agent to write a post-mortem, update knowledge bases, and suggest new automations to prevent recurrence.
+
+orchestrations:
+  - id: 'autonomous-incident-postmortem-generator'
+    alias: 'Autonomous Incident Post-mortem Generator'
+    trigger:
+      - platform: 'event'
+        event_type: 'alert.resolved'
+        event_data: { severity: 'critical' }
+    action:
+      - agent:
+          id: 'postmortem-writer-agent-v1'
+          knowledge: ['monitoring_logs_kb', 'git_commit_history_kb', 'past_incidents_kb']
+          goal: >
+            A critical alert '{{ trigger.data.alert_name }}' which started at {{ trigger.data.start_time }}
+            and ended at {{ trigger.data.end_time }} has been resolved. Write a detailed post-mortem document.
+            1. Analyze logs from the incident period to establish a timeline of events.
+            2. Correlate the incident with any recent code deployments by checking git history.
+            3. Determine the root cause.
+            4. Propose a new automation or monitoring check that could have prevented this incident or sped up its resolution.
+          response_variable: 'postmortem_report'
+      - service: 'knowledge.update'
+        data:
+          knowledge_base_id: 'past_incidents_kb'
+          document_id: "postmortem_{{ trigger.data.incident_id }}"
+          content: "{{ postmortem_report.content.full_text }}"
+      - service: 'jira.create_ticket'
+        data:
+          project: 'ENG'
+          title: "Follow-up Action for Incident {{ trigger.data.incident_id }}"
+          description: "Implement the following suggested automation: {{ postmortem_report.content.suggested_automation }}"

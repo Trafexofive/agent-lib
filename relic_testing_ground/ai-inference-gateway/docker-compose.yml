@@ -1,0 +1,46 @@
+services:
+  ai-inference-gateway-backend-api:
+    build:
+      context: ./backend_api_service
+      dockerfile: Dockerfile
+    container_name: ai-inference-gateway-backend-api-ctnr
+    ports:
+      - "${BACKEND_PORT_HOST:-8002}:${BACKEND_PORT_CONTAINER:-8000}"
+    volumes:
+      - ./backend_api_service:/app
+    env_file:
+      - .env
+    networks:
+      - ai_inference_gateway_network
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./backend_api_service
+          target: /app
+          ignore:
+            - __pycache__/
+            - .venv/
+        - action: rebuild
+          path: ./backend_api_service/requirements.txt
+
+  ai-inference-gateway-frontend-ui:
+    build:
+      context: ./chimeradash_frontend_code # USER: Populate this directory with your ChimeraDash OpenRouter-style frontend project
+      dockerfile: Dockerfile             # This plan provides a standard Vite+Nginx Dockerfile here
+    container_name: ai-inference-gateway-frontend-ui-ctnr
+    ports:
+      - "${FRONTEND_PORT_HOST:-3002}:${FRONTEND_PORT_CONTAINER:-80}"
+    environment:
+      - VITE_API_GATEWAY_URL=${API_GATEWAY_URL_FOR_FRONTEND}
+    env_file:
+      - .env
+    depends_on:
+      - ai-inference-gateway-backend-api
+    networks:
+      - ai_inference_gateway_network
+    restart: unless-stopped
+
+networks:
+  ai_inference_gateway_network:
+    driver: bridge

@@ -1,0 +1,42 @@
+# ENDGAME v2: A user requests a new, fully-formed microservice. A lead agent decomposes the task
+# into components (API, database schema, Dockerfile) and assigns each to a specialist agent.
+
+orchestrations:
+  - id: 'generate-microservice-from-prompt'
+    alias: 'Generative Microservice Scaffolder'
+    trigger:
+      - platform: 'command'
+        patterns: ['scaffold a new service named {service_name} to manage {resource_name}s']
+    action:
+      - variables:
+          service: "{{ trigger.data.service_name }}"
+          resource: "{{ trigger.data.resource_name }}"
+      - agent:
+          id: 'architect-agent-v1'
+          goal: "Design the components for a Python FastAPI microservice named '{{ service }}' that manages '{{ resource }}' resources. Define the tasks for three specialist agents: a DB modeler, an API writer, and a DevOps engineer. Output this as a structured plan."
+          response_variable: 'architect_plan'
+      # A swarm where each action is different, based on the architect's plan.
+      - parallel:
+        - agent:
+            id: 'db-modeler-agent-v1'
+            goal: "{{ architect_plan.json.db_modeler_task }}"
+            response_variable: 'db_code'
+        - agent:
+            id: 'api-writer-agent-v1'
+            goal: "{{ architect_plan.json.api_writer_task }}"
+            response_variable: 'api_code'
+        - agent:
+            id: 'devops-agent-v2'
+            goal: "{{ architect_plan.json.devops_task }}"
+            response_variable: 'devops_files'
+      # A final agent assembles the files from the workers into a complete directory structure.
+      - agent:
+          id: 'assembler-agent-v1'
+          goal: "Take these code and config files and create a complete directory structure for the new '{{ service }}' microservice."
+          context: { db: "{{ db_code.content }}", api: "{{ api_code.content }}", devops: "{{ devops_files.content }}" }
+          response_variable: 'service_files'
+      # Use the file system tool to write the new service to disk.
+      - service: 'file.write_tree'
+        data:
+          base_path: "/services/{{ service }}/"
+          file_tree: "{{ service_files.json }}"

@@ -11,6 +11,7 @@ std::string Agent::processActions(const std::vector<ActionInfo> &actions) {
   if (actions.empty()) {
     return "<action_results status=\"no_actions_requested\"/>\n";
   }
+
   std::stringstream resultsSs;
   resultsSs << "<action_results>\n";
   for (const auto &action : actions) {
@@ -47,6 +48,7 @@ std::string Agent::processActions(const std::vector<ActionInfo> &actions) {
 
 // processSingleAction: Handles execution of one action
 std::string Agent::processSingleAction(const ActionInfo &actionInfo) {
+
   logMessage(LogLevel::TOOL_CALL,
              "Agent '" + agentName +
                  "' preparing to execute action: " + actionInfo.action,
@@ -68,8 +70,6 @@ std::string Agent::processSingleAction(const ActionInfo &actionInfo) {
     if (actionInfo.type == "tool" || actionInfo.type == "script") {
       Tool *toolToRun = getTool(actionInfo.action);
       if (toolToRun) {
-        // The params for Tool::execute are the script-specific params from the
-        // LLM.
         std::string result = toolToRun->execute(actionInfo.params);
         logMessage(LogLevel::TOOL_RESULT,
                    "Agent '" + agentName + "' " + actionInfo.type + " '" +
@@ -85,83 +85,30 @@ std::string Agent::processSingleAction(const ActionInfo &actionInfo) {
         return "Error: " + actionInfo.type + " '" + actionInfo.action +
                "' not registered or available.";
       }
-    } else if (actionInfo.type == "internal_function") {
+    } else if (actionInfo.type == "internal") {
       using InternalFuncPtr = std::string (Agent::*)(const Json::Value &);
       std::map<std::string, InternalFuncPtr> internalFuncMap = {
           {"help", &Agent::internalGetHelp},
-          {"skip", &Agent::internalSkipIteration},
-          {"promptAgent", &Agent::internalPromptAgent},
-          // {"summarizeText", &Agent::internalSummarizeText},
-          // {"summarizeHistory", &Agent::internalSummarizeHistory},
+          {"call_subagent", &Agent::internalPromptAgent},
           {"getWeather", &Agent::internalGetWeather},
           {"get_current_time", &Agent::internalGetCurrentTime}};
 
       auto it = internalFuncMap.find(actionInfo.action);
+
       if (it != internalFuncMap.end()) {
         std::string result = (this->*(it->second))(actionInfo.params);
         logMessage(LogLevel::TOOL_RESULT,
-                   "Agent '" + agentName + "' internal_function '" +
+                   "Agent '" + agentName + "' internal'" +
                        actionInfo.action + "' result:",
                    result.substr(0, 500) +
                        (result.length() > 500 ? "..." : ""));
         return result;
       }
       logMessage(LogLevel::ERROR, "Agent '" + agentName +
-                                      "': Unknown internal_function '" +
+                                      "': Unknown internal" +
                                       actionInfo.action + "'.");
-      return "Error: Unknown internal_function '" + actionInfo.action + "'.";
+      return "Error: Unknown internal'" + actionInfo.action + "'.";
 
-    } else if (actionInfo.type == "http_request") {
-      logMessage(LogLevel::WARN,
-                 "Agent '" + agentName + "': Action type 'http_request' for '" +
-                     actionInfo.action +
-                     "' is a placeholder and not yet fully implemented.");
-      return "Error: Action type 'http_request' not implemented in "
-             "Agent::processSingleAction.";
-    } else if (actionInfo.type == "output") {
-      logMessage(LogLevel::WARN,
-                 "Agent '" + agentName +
-                     "': LLM attempted to use 'output' action type for '" +
-                     actionInfo.action +
-                     "'. This may indicate a deviation from the expected JSON "
-                     "schema usage. "
-                     "Final responses should typically use status: "
-                     "SUCCESS_FINAL and the 'final_response' field.");
-      if (actionInfo.action == "send_response") {
-        if (actionInfo.params.isMember("text") &&
-            actionInfo.params["text"].isString()) {
-          std::string text = actionInfo.params["text"].asString();
-          logMessage(
-              LogLevel::INFO,
-              "Agent '" + agentName +
-                  "' 'send_response' action (via 'output' type) content:",
-              text.substr(0, 200) + (text.length() > 200 ? "..." : ""));
-          return "Output action 'send_response' noted by agent. Content: " +
-                 text.substr(0, 100) + (text.length() > 100 ? "..." : "");
-        }
-        return "Error: 'send_response' action (via 'output' type) missing "
-               "'text' parameter.";
-      }
-      return "Error: Unknown 'output' action '" + actionInfo.action + "'.";
-    } else if (actionInfo.type == "workflow_control") {
-      if (actionInfo.action == "request_user_input") {
-        if (actionInfo.params.isMember("query_to_user") &&
-            actionInfo.params["query_to_user"].isString()) {
-          logMessage(LogLevel::INFO,
-                     "Agent '" + agentName + "' 'request_user_input' query:",
-                     actionInfo.params["query_to_user"].asString());
-          return "Workflow control: '" + actionInfo.action +
-                 "' noted. Query: " +
-                 actionInfo.params["query_to_user"].asString().substr(0, 100) +
-                 (actionInfo.params["query_to_user"].asString().length() > 100
-                      ? "..."
-                      : "");
-        }
-        return "Error: 'request_user_input' action missing 'query_to_user' "
-               "parameter.";
-      }
-      return "Error: Unknown 'workflow_control' action '" + actionInfo.action +
-             "'.";
     }
 
     logMessage(LogLevel::ERROR, "Agent '" + agentName +
@@ -186,213 +133,6 @@ std::string Agent::processSingleAction(const ActionInfo &actionInfo) {
   }
 }
 
-// Agent::prompt method (modified for clarity based on prior discussion, no
-// major logic change here)
-std::string Agent::prompt(const std::string &userInput) {
-  if (!userInput.empty()) {
-    addToHistory("user", userInput);
-  }
-
-  currentIteration = 0;
-  skipNextFlowIteration = false;
-  std::string finalAgentResponseToUser = "";
-
-  while (currentIteration < iterationLimit && !skipNextFlowIteration) {
-    currentIteration++;
-    logMessage(LogLevel::INFO, "Agent '" + agentName + "' Iteration " +
-                                   std::to_string(currentIteration) + "/" +
-                                   std::to_string(iterationLimit));
-
-    std::string fullPromptText = buildFullPrompt();
-    std::string llmRawResponse = executeApiCall(fullPromptText);
-
-    std::string trimmedLlmResponse = llmRawResponse;
-    trimLLMResponse(trimmedLlmResponse);
-
-    ParsedLLMResponse parsedData =
-        parseStructuredLLMResponse(trimmedLlmResponse);
-    addToHistory("model", parsedData.rawTrimmedJson);
-
-    if (!parsedData.success) {
-      logMessage(LogLevel::ERROR,
-                 "Agent '" + agentName +
-                     "': Critical failure parsing LLM response. Internal "
-                     "parser status: " +
-                     parsedData.status,
-                 "Raw trimmed JSON: " +
-                     parsedData.rawTrimmedJson.substr(0, 500));
-
-      Json::Value rawJsonCheck;
-      Json::CharReaderBuilder rBuilder;
-      std::unique_ptr<Json::CharReader> r(rBuilder.newCharReader());
-      std::string err_parse_raw;
-
-      if (r->parse(parsedData.rawTrimmedJson.c_str(),
-                   parsedData.rawTrimmedJson.c_str() +
-                       parsedData.rawTrimmedJson.length(),
-                   &rawJsonCheck, &err_parse_raw) &&
-          rawJsonCheck.isObject() && rawJsonCheck.isMember("error")) {
-        finalAgentResponseToUser = parsedData.rawTrimmedJson;
-      } else {
-        finalAgentResponseToUser =
-            "Agent '" + agentName +
-            "' encountered an issue processing the response from the language "
-            "model. Parser status: " +
-            parsedData.status +
-            ". Raw: " + parsedData.rawTrimmedJson.substr(0, 200);
-      }
-      setSkipNextFlowIteration(true);
-      continue;
-    }
-
-    for (const auto &thought : parsedData.thoughts) {
-      logMessage(LogLevel::DEBUG,
-                 "Agent '" + agentName + "': LLM Thought (" + thought.type +
-                     ")",
-                 thought.content);
-    }
-
-    if (parsedData.status == "SUCCESS_FINAL") {
-      logMessage(LogLevel::INFO,
-                 "Agent '" + agentName + "': LLM indicates SUCCESS_FINAL.");
-      finalAgentResponseToUser = parsedData.finalResponseField;
-
-      if (finalAgentResponseToUser.empty()) {
-        for (const auto &action : parsedData.actions) {
-          if (action.type == "output" && action.action == "send_response" &&
-              action.params.isMember("text") &&
-              action.params["text"].isString()) {
-            finalAgentResponseToUser = action.params["text"].asString();
-            logMessage(LogLevel::DEBUG,
-                       "Agent '" + agentName +
-                           "': Using text from 'send_response' action for "
-                           "final output (SUCCESS_FINAL).",
-                       finalAgentResponseToUser.substr(0, 200));
-            break;
-          }
-        }
-      }
-      if (finalAgentResponseToUser.empty()) {
-        logMessage(LogLevel::WARN,
-                   "Agent '" + agentName +
-                       "': SUCCESS_FINAL status but 'final_response' field and "
-                       "'send_response' action text are empty. Sending generic "
-                       "success.");
-        finalAgentResponseToUser =
-            "Task completed successfully by " + agentName + ".";
-      }
-      setSkipNextFlowIteration(true);
-    } else if (parsedData.status == "REQUIRES_ACTION") {
-      if (!parsedData.actions.empty()) {
-        logMessage(
-            LogLevel::INFO,
-            "Agent '" + agentName + "': LLM requires action(s). Processing " +
-                std::to_string(parsedData.actions.size()) + " action(s).");
-        std::string actionResultsText = processActions(parsedData.actions);
-        addToHistory("action_results", actionResultsText);
-      } else {
-        logMessage(LogLevel::WARN,
-                   "Agent '" + agentName +
-                       "': LLM status REQUIRES_ACTION but no actions provided.",
-                   parsedData.rawTrimmedJson);
-        finalAgentResponseToUser = "Agent '" + agentName +
-                                   "' is unable to proceed: LLM indicated "
-                                   "action needed but provided no actions.";
-        setSkipNextFlowIteration(true);
-      }
-    } else if (parsedData.status == "REQUIRES_CLARIFICATION") {
-      logMessage(LogLevel::INFO,
-                 "Agent '" + agentName + "': LLM requires clarification.");
-      finalAgentResponseToUser = "I need more information to proceed.";
-      bool queryFoundInAction = false;
-      for (const auto &action : parsedData.actions) {
-        if (action.type == "workflow_control" &&
-            action.action == "request_user_input" &&
-            action.params.isMember("query_to_user") &&
-            action.params["query_to_user"].isString()) {
-          finalAgentResponseToUser = action.params["query_to_user"].asString();
-          queryFoundInAction = true;
-          logMessage(LogLevel::DEBUG,
-                     "Agent '" + agentName +
-                         "': Using query from 'request_user_input' action.");
-          break;
-        }
-      }
-      if (!queryFoundInAction && !parsedData.finalResponseField.empty()) {
-        finalAgentResponseToUser = parsedData.finalResponseField;
-        logMessage(
-            LogLevel::DEBUG,
-            "Agent '" + agentName +
-                "': Using 'final_response' field for clarification query.",
-            finalAgentResponseToUser.substr(0, 200));
-      } else if (!queryFoundInAction && parsedData.finalResponseField.empty()) {
-        logMessage(
-            LogLevel::WARN,
-            "Agent '" + agentName +
-                "': REQUIRES_CLARIFICATION status but no 'request_user_input' "
-                "action with query found, and 'final_response' is empty.");
-      }
-      setSkipNextFlowIteration(true);
-    } else if (parsedData.status.rfind("ERROR_", 0) == 0) {
-      logMessage(
-          LogLevel::ERROR, "Agent '" + agentName + "': LLM reported an error.",
-          "Status: " + parsedData.status + ". Details in final_response: " +
-              parsedData.finalResponseField.substr(0, 200));
-      finalAgentResponseToUser =
-          parsedData.finalResponseField.empty()
-              ? ("Agent '" + agentName +
-                 "' encountered an error: " + parsedData.status)
-              : parsedData.finalResponseField;
-      setSkipNextFlowIteration(true);
-    } else {
-      logMessage(
-          LogLevel::WARN,
-          "Agent '" + agentName + "': LLM response has unknown status ('" +
-              parsedData.status + "'). Using raw JSON as final response.",
-          parsedData.rawTrimmedJson.substr(0, 500));
-      finalAgentResponseToUser = parsedData.rawTrimmedJson;
-      setSkipNextFlowIteration(true);
-    }
-  }
-
-  if (currentIteration >= iterationLimit && !skipNextFlowIteration) {
-    logMessage(LogLevel::WARN, "Agent '" + agentName +
-                                   "' reached iteration limit (" +
-                                   std::to_string(iterationLimit) + ").");
-    if (finalAgentResponseToUser.empty()) {
-      finalAgentResponseToUser = "Agent '" + agentName +
-                                 "' has processed the maximum iterations (" +
-                                 std::to_string(iterationLimit) +
-                                 ") for this request. Please try rephrasing or "
-                                 "breaking down the request.";
-    }
-  }
-
-  logMessage(LogLevel::INFO,
-             "Agent '" + agentName + "' completed prompt cycle.",
-             "Current iteration: " + std::to_string(currentIteration) +
-                 ", Iteration limit: " + std::to_string(iterationLimit) +
-                 ", Skip next iteration: " +
-                 (skipNextFlowIteration ? "true" : "false"));
-
-  // logMessage(LogLevel::INFO,
-  //            "Agent '" + agentName + "' final response to user:",
-  //            finalAgentResponseToUser.substr(0, 200) +
-  //                (finalAgentResponseToUser.length() > 200 ? "..." : ""));
-
-  // logMessage(LogLevel::INFO,
-  //            "Agent '" + agentName + "' final response to user (full):",
-  //            finalAgentResponseToUser);
-
-#define RESET "\033[0m"
-#define RED "\033[31m"
-
-  std::cout << "\n"
-            << RED << agentName << ": " << RESET << finalAgentResponseToUser
-            << std::endl;
-
-  return finalAgentResponseToUser;
-}
 
 // Implementation for internalGetCurrentTime
 std::string Agent::internalGetCurrentTime(const Json::Value &params) {

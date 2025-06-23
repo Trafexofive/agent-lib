@@ -1,0 +1,23 @@
+known_relics:
+  - name: "relic-forge-bay-api"
+    state: "Operational"
+    purpose: "The ecosystem's factory. Accepts FullRelicPlanInput JSON to materialize projects."
+  - name: "AgentFactoryRelic"
+    state: "Operational"
+    purpose: "A service for running declarative YAML-defined agents via an Ollama backend."
+  - name: "praetorian-comms"
+    state: "Operational"
+    purpose: "Sovereign, human-centric collaboration platform with a PostgreSQL backend."
+
+known_prototypes:
+  - name: "chimeradash / intelstream-agents"
+    state: "Advanced Frontend Prototype"
+    purpose: "The canonical blueprint for the master command and control UI. Its features dictate backend service requirements, especially event-driven automation."
+
+known_patterns:
+  - name: "Standard Backend Stack"
+    components: ["FastAPI", "PostgreSQL", "SQLAlchemy", "Alembic", "Docker", ".env", "Makefile"]
+    description: "The default, robust stack for any new relational data-driven relic."
+  - name: "Standard Frontend Stack"
+    components: ["Vite", "React", "TypeScript", "Nginx", "Docker"]
+    description: "The default stack for serving modern, single-page application UIs."

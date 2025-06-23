@@ -1,0 +1,27 @@
+# GOLD ESSENCE: Unreasonable Imperative (Anticipating needs), Modularity for Emergence (Complex predictive behavior).
+# BLUE-SKY: This concept requires a sophisticated model of user behavior.
+orchestrations:
+  - id: 'predictive-briefing-generator'
+    alias: 'Predictive Morning Briefing Generator'
+    description: 'Analyzes user''s calendar for the NEXT day. Based on meeting titles and attendees, it proactively runs research and analysis tasks overnight, so the morning briefing is generated instantly when requested.'
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '0 1 * * *' # 1:00 AM daily
+    action:
+      - service: 'calendar.get_events'
+        data: { date: 'tomorrow' }
+        response_variable: 'tomorrows_events'
+      - swarm:
+          iterable: "{{ tomorrows_events.json }}"
+          loop_variable: 'event'
+          action:
+            - agent:
+                id: 'pre-research-agent-v1'
+                goal: "A meeting titled '{{ event.title }}' is scheduled for tomorrow. Perform a pre-emptive background search on the key topics and attendees. Save the raw findings."
+                response_variable: 'pre_research_data'
+            - service: 'cache.set'
+              data:
+                # Store the findings in a temporary cache with a 24-hour TTL.
+                key: "briefing_cache_{{ event.id }}"
+                value: "{{ pre_research_data.content }}"
+                ttl: 86400

@@ -1,0 +1,51 @@
+# GOLD ESSENCE: Modularity for Emergence (Agent modifying the platform), Absolute Sovereignty (Building tools for the user's direct needs).
+
+orchestrations:
+  - id: 'interactive-agent-creator'
+    alias: 'Interactive Agent Scaffolder'
+    description: 'An agent that interviews a user to gather requirements for a new agent, then writes and deploys the new agent''s profile YAML file.'
+
+    trigger:
+      # Triggered by a user command in a chat interface.
+      - platform: 'command'
+        patterns:
+          - "create a new agent"
+          - "build an agent"
+
+    action:
+      # 1. The 'interviewer' agent gathers requirements from the human.
+      - agent:
+          id: 'requirements-interviewer-agent-v1'
+          goal: >
+            Your goal is to interview the user to define a new agent profile.
+            Ask them for the agent's ID, a description, its main goal (for the system prompt),
+            and a list of tools it should be allowed to use. You must get a clear answer for each of these.
+          capabilities:
+            allowed_tools:
+              - 'human.request_input' # Can ask the user questions and get structured responses.
+          response_variable: 'agent_requirements'
+
+      # 2. A 'writer' agent takes the structured requirements and generates the YAML.
+      - agent:
+          id: 'yaml-writer-agent-v1'
+          goal: >
+            Using these structured requirements, generate a complete and valid agent-profile.yaml file.
+            Requirements: {{ agent_requirements.json | to_json }}
+          response_variable: 'generated_yaml'
+
+      # 3. The meta-tool 'component.create_or_update' writes the file to the workspace.
+      - service: 'component.create_or_update'
+        data:
+          component_type: 'agent'
+          # The ID comes from the data gathered in step 1.
+          component_id: "{{ agent_requirements.json.id }}"
+          yaml_content: "{{ generated_yaml.content }}"
+
+      # 4. Notify the user of success.
+      - service: 'notify.user'
+        data:
+          user_id: "{{ trigger.user.id }}"
+          message: "Success! Your new agent '{{ agent_requirements.json.id }}' has been created. The platform is now reloading all components to activate it."
+
+      # 5. Trigger a live reload of the platform's components.
+      - service: 'platform.reload_components'

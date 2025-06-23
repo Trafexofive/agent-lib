@@ -1,0 +1,15 @@
+- id: 'yaml.query'
+  description: 'Uses the yq binary to query and extract data from a YAML file, similar to how jq works for JSON.'
+  runtime: 'binary'
+  handler: '/app/bin/yq'
+  # Final command: /app/bin/yq "${PARAM_QUERY}" "${PARAM_INPUT_FILE}"
+  parameters:
+    input_file:
+      description: 'The path to the source YAML file.'
+      type: 'path'
+      required: true
+    query:
+      description: 'The yq query string to execute (e.g., .metadata.name).'
+      type: 'string'
+      required: true
+  returns: 'The queried data as a string.'

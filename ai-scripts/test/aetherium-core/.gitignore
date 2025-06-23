@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.py[co]
+
+.env
+.dockerignore
+
+data/
+logs/
+
+.vscode/
+.idea/

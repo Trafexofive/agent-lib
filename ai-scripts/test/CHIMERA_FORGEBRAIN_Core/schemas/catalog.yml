@@ -1,0 +1,10 @@
+schemas:
+  - name: "FullRelicPlanInput"
+    description: "The primary JSON structure for instructing the relic-forge-bay-api."
+    version: "1.0"
+    path: "./FullRelicPlanInput.schema.json"
+
+  - name: "WorkflowDefinition"
+    description: "The YAML structure for defining automated workflows."
+    version: "1.1"
+    path: "./Workflow.schema.yml"

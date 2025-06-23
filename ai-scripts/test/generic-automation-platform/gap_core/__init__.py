@@ -1,0 +1,1 @@
+# Makes 'gap_core' a package.

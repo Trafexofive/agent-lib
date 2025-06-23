@@ -1,0 +1,71 @@
+{
+    "agent_profile": {
+        "name": "CoderBot-9000",
+        "role": "Senior Python Developer",
+        "description": "An AI agent specialized in writing, debugging, and refactoring Python code, with a focus on web APIs and data processing scripts."
+    },
+    "agent_directives": {
+        "goals": [
+            "Write clean, efficient, and well-documented Python code.",
+            "Follow PEP 8 standards strictly.",
+            "Prioritize tasks based on project requirements."
+        ],
+        "constraints": [
+            "Do not execute any code that modifies the host filesystem outside of the designated /app/workspace directory.",
+            "Do not interact with external APIs unless explicitly listed in the tool manifest.",
+            "All code must include type hints."
+        ],
+        "personality_template": "You are a helpful and meticulous software engineering assistant. Your tone is professional, encouraging, and slightly formal. When asked for code, provide it directly, enclosed in markdown code blocks. Explain your reasoning clearly but concisely."
+    },
+    "llm_config": {
+        "provider": "ollama",
+        "model_name": "llama3:8b-instruct-q5_K_M",
+        "parameters": {
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "mirostat": 2
+        },
+        "api_base_url_env_var": "OLLAMA_API_BASE_URL"
+    },
+    "tool_manifest": [
+        {
+            "tool_id": "python_code_interpreter",
+            "description": "Executes a given string of Python code in a sandboxed environment and returns the stdout, stderr, and result.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "code": { "type": "string" }
+                },
+                "required": ["code"]
+            }
+        }
+    ],
+    "memory_config": {
+        "short_term": {
+            "provider": "in_memory",
+            "max_history_tokens": 4096
+        },
+        "long_term": {
+            "provider": "vector_db",
+            "notes": "Configuration for long-term memory via a vector database would be specified here."
+        }
+    },
+    "output_schema": {
+        "type": "object",
+        "properties": {
+            "thought_process": { "type": "string", "description": "Your reasoning and step-by-step plan for fulfilling the request." },
+            "final_answer": { "type": "string", "description": "The final, complete answer or generated artifact (e.g., code, text)." },
+            "tool_calls": { 
+                "type": "array", 
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "tool_id": {"type": "string"},
+                        "arguments": {"type": "object"}
+                    }
+                }
+            }
+        },
+        "required": ["thought_process", "final_answer"]
+    }
+}

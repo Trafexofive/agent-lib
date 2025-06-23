@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bespoke-registry-server:latest
+    container_name: bespoke-registry-server-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8009}:8009"
+    volumes:
+      - ./app:/app/app # For live code changes in development
+      # Mount host directories to persist data across container restarts
+      - ./app/persistent_storage/uploaded_assets:/app/persistent_storage/uploaded_assets
+      - ./app/persistent_storage/registry_db:/app/persistent_storage/registry_db
+    env_file:
+      - .env
+    environment:
+      # Ensures Uvicorn inside container uses the correct internal port
+      - APP_PORT_INTERNAL=8009

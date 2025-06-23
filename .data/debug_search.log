@@ -1,0 +1,18 @@
+
+=== SEARCH: 'Himothy Covenant v6.1' (engine: auto, limit: 10) ===
+Engines tried: ['duckduckgo', 'google', 'simple']
+Results found: 0
+=== END SEARCH ===
+
+
+=== SEARCH: 'Factorio game' (engine: auto, limit: 3) ===
+Engines tried: ['duckduckgo', 'google', 'simple']
+Results found: 0
+=== END SEARCH ===
+
+
+=== SEARCH: 'this is a highly specific query that should return zero results 1a2b3c4d5e' (engine: auto, limit: 10) ===
+Engines tried: ['duckduckgo', 'google', 'simple']
+Results found: 0
+=== END SEARCH ===
+

@@ -166,7 +166,7 @@ relics:
     type: "knowledge_base"
     access_method: "relic_specific_query_engine" # Implies a dedicated C++ function or service
     # For instance, this might be a specialized search over a Git repo of blueprints.
-    # function_identifier: "queryFactorioBlueprintDB"
+    # function_identifier: "queryFactorioBlueprintnGoDB"
     tags: ["factorio", "gaming", "design_patterns", "knowledge_resource"]
 
 # --- Sub-Agents (References to other Agent Profiles) ---

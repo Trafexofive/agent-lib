@@ -1,0 +1,63 @@
+
+    Screen {
+        background: $surface-darken-1;
+        color: $text;
+        layout: vertical;
+    }
+    #main_container {
+        layout: vertical;
+        height: 1fr; /* Fill available space */
+    }
+    #status_bar {
+        width: 1fr;
+        padding: 0 1;
+        background: $primary-background;
+        color: $text-muted;
+        dock: top;
+    }
+    #chat_log {
+        height: 1fr; /* Fill available vertical space */
+        background: $panel;
+        border: round $primary-lighten-2;
+        padding: 1;
+        margin-bottom: 1;
+    }
+    #prompt_input {
+        dock: bottom;
+        border: round $accent;
+    }
+    /* Help/Modal Dialog Styling */
+    #help_dialog, #message_dialog_content, #json_input_dialog {
+        align: center middle;
+        padding: 2 4;
+        width: 80%;
+        max-width: 80; /* Max width for readability */
+        height: auto;
+        max-height: 90%;
+        border: thick $primary;
+        background: $panel-darken-1;
+    }
+    #help_title, .dialog_title {
+        width: 100%;
+        text-align: center;
+        padding-bottom: 1;
+        text-style: bold;
+    }
+    .dialog_message {
+        padding: 1 0;
+    }
+    .dialog_buttons {
+        width: 100%;
+        align-horizontal: right;
+        padding-top: 1;
+    }
+    .dialog_buttons Button {
+        margin-left: 2;
+    }
+    #json_input_area {
+        width: 1fr;
+        height: 10; /* Adjust as needed */
+        border: round $primary;
+        margin: 1 0;
+    }
+    

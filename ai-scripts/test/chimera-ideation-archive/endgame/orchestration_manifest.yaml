@@ -1,0 +1,62 @@
+# ENDGAME VISION: An orchestration that demonstrates the platform's ultimate potential,
+# combining multiple agents, human-in-the-loop, and dynamic tool generation.
+
+orchestrations:
+  - id: 'endgame-adaptive-threat-response'
+    alias: 'Adaptive Cybersecurity Threat Response'
+    description: 'An orchestration that ingests security alerts, uses specialized agents for analysis and containment, and dynamically generates new tools for novel threats.'
+
+    trigger:
+      # Ingests alerts from a real-time source like a SIEM webhook or Kafka topic.
+      - platform: 'webhook'
+        webhook_id: 'siem-critical-alert-webhook'
+
+    action:
+      # Step 1: Triage and initial data gathering by a high-speed agent.
+      - agent:
+          id: 'triage-agent-v1'
+          goal: >
+            A new security alert has been received. Extract key indicators of compromise (IOCs) such as
+            IP addresses, file hashes, and domain names from the alert data: {{ trigger.json.raw_alert }}
+          response_variable: 'triage_report'
+
+      # Step 2: Parallel analysis by specialized agents.
+      - parallel:
+          # The ThreatIntel agent enriches the IOCs using external APIs and internal knowledge.
+          - agent:
+              id: 'threat-intel-agent-v2'
+              knowledge: ['past_incidents_kb', 'threat_feed_kb']
+              goal: "Analyze these IOCs and provide a threat assessment: {{ triage_report.iocs }}"
+              response_variable: 'intel_assessment'
+          # The ImpactAnalysis agent determines the potential blast radius within our own systems.
+          - agent:
+              id: 'impact-analysis-agent-v1'
+              knowledge: ['asset_inventory_kb', 'network_topology_kb']
+              goal: "Given these IOCs, what is the potential impact on our infrastructure? List affected assets: {{ triage_report.iocs }}"
+              response_variable: 'impact_report'
+
+      # Step 3: Synthesis and plan generation by a senior 'SOC Lead' agent.
+      - agent:
+          id: 'soc-lead-agent-v1'
+          goal: >
+            Synthesize the intel assessment ({{ intel_assessment.content }}) and the impact report
+            ({{ impact_report.content }}). Formulate a multi-step containment plan. If a specific tool is
+            needed to block a new type of threat, define the required API call using the 'tool_generator' tool.
+          response_variable: 'containment_plan'
+
+      # Step 4: CRITICAL - Human-in-the-loop for approval before action.
+      - workflow.run:
+          id: 'request_and_verify_approval'
+          inputs:
+            approval_prompt: "A critical threat has been detected. Review the following automated containment plan and approve execution."
+            approval_context: "{{ containment_plan.content }}"
+          response_variable: 'approval_decision'
+
+      # Step 5: Execute the approved plan.
+      - choose:
+          - conditions:
+              - "{{ approval_decision.result == 'approved' }}"
+            sequence:
+              # This is the magic. The engine would dynamically execute the steps defined by the SOC Lead agent.
+              - engine.execute_dynamic_plan:
+                  plan: "{{ containment_plan.steps }}"

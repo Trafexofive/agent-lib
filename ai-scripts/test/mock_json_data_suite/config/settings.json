@@ -1,0 +1,1 @@
+{"theme":"dark","notificationsEnabled":true,"language":"en-US","timezone":"America/New_York","apiEndpoints":{"users":"/api/v1/users","products":"/api/v1/products"},"featureFlags":{"newDashboard":true,"betaAccess":false}}

@@ -1,0 +1,63 @@
+# This example demonstrates how the platform would integrate with the IoT world
+# using the standard MQTT protocol. This is crucial for reacting to physical sensors and devices.
+
+orchestrations:
+  - id: 'greenhouse-climate-control'
+    alias: 'Greenhouse Climate Control'
+    description: 'Listens to MQTT topics for temperature and humidity data from a sensor in the greenhouse and reacts to maintain optimal conditions.'
+
+    # The MQTT trigger subscribes to a specific topic.
+    trigger:
+      - platform: 'mqtt'
+        topic: 'greenhouse/sensors/dht22/state'
+        # The platform would parse the JSON payload from the MQTT message.
+
+    # Conditions can be used to create deadbands and prevent rapid cycling of equipment.
+    condition:
+      - condition: 'or'
+        conditions:
+          # Condition A: It's too hot.
+          - condition: 'numeric_state'
+            # Use the value from the JSON payload.
+            value_template: "{{ trigger.json.temperature }}"
+            above: 28
+          # Condition B: It's too humid.
+          - condition: 'numeric_state'
+            value_template: "{{ trigger.json.humidity }}"
+            above: 75
+
+    action:
+      # Use a 'choose' block to decide which action to take.
+      - choose:
+          # Case 1: Too hot.
+          - conditions:
+              - condition: 'numeric_state'
+                value_template: "{{ trigger.json.temperature }}"
+                above: 28
+            sequence:
+              - service: 'mqtt.publish'
+                data:
+                  topic: 'greenhouse/actuators/exhaust_fan/set'
+                  payload: 'ON'
+
+          # Case 2: Too humid.
+          - conditions:
+              - condition: 'numeric_state'
+                value_template: "{{ trigger.json.humidity }}"
+                above: 75
+            sequence:
+              - service: 'mqtt.publish'
+                data:
+                  topic: 'greenhouse/actuators/dehumidifier/set'
+                  payload: 'ON'
+
+        # Default action if neither of the above are true (i.e., conditions are now normal).
+        default:
+          - service: 'mqtt.publish'
+            data:
+              topic: 'greenhouse/actuators/exhaust_fan/set'
+              payload: 'OFF'
+          - service: 'mqtt.publish'
+            data:
+              topic: 'greenhouse/actuators/dehumidifier/set'
+              payload: 'OFF'

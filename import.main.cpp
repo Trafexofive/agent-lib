@@ -45,115 +45,49 @@ int	main(void)
     MiniGemini	myApi;
 
 	// Assume myApi is an initialized MiniGemini instance
-	Agent agent1(myApi);
-	Agent note(myApi);
-	// Load configuration into agent1
-	if (loadAgentProfile(agent1, "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-profiles/standard-agent-MK1/standard-agent-MK1.yml"))
-	{
-		std::cout << "Agent Name after load: " << agent1.getName() << std::endl;
-		// std::cout << "listing conf after load "<< std::endl;
-		// agent1.listAllAgentInfo();
-		// Modify the agent slightly
-		// agent1.addEnvVar("SESSION_ID", "xyz789");
-		// agent1.addTask("Final review step");
-		// test while to chat.
-		while (true)
-		{
-			std::string userInput;
-			std::cout << "=======================================\n=> ";
-			std::getline(std::cin, userInput);
-			if (userInput == "exit")
-				break ;                // Exit condition
-			agent1.prompt(userInput); // Assuming chat method exists
-		}
-		// // Save the modified configuration (profile aspects only)
-		// if (saveAgentProfile(agent1,
-				// "./agents/order_processor_modified.yaml")) {
-		//     std::cout << "Modified profile saved." << std::endl;
-		// } else {
-		//     std::cerr << "Failed to save modified profile." << std::endl;
-		// }
-	}
-	else
-	{
-		std::cerr << "Failed to load agent profile." << std::endl;
-	}
-	return (0);
+	Agent DEMURGE(myApi);
+
+    // Load agent yaml profile
+    if (loadAgentProfile(DEMURGE, "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-agent-MK1/DEMURGE.yml")) {
+        std::cout << "Agent Name after load: " << DEMURGE.getName() << std::endl;
+
+        // Start command loop
+        while (true) {
+            std::string userInput;
+            std::cout << "=======================================\n=> ";
+            std::getline(std::cin, userInput);
+            if (userInput == "exit")
+                break; // Exit condition
+            DEMURGE.prompt(userInput); // Assuming prompt method exists
+        }
+    } else {
+        std::cerr << "Failed to load agent profile." << std::endl;
+    }
 }
 
+// draft -h page :
+// // -h, --help: Show this help message
+// // -v, --version: Show version information
+// // // -c, --config <file>: Specify a configuration file
+// // // -l, --list: List available agents
+// // // -a, --agent <name>: Specify an agent to use
+// // // -t, --tool <name>: Specify a tool to use
+// // // -i, --input <text>: Provide input text for the agent
+// // // -o, --output <file>: Specify an output file for the agent's response
+// // // --verbose: Enable verbose output
+// // // --quiet: Suppress output
+// // // --debug: Enable debug mode
+// // // --no-color: Disable colored output
+// // // --config-dir <dir>: Specify a directory for configuration files
+// // // --data-dir <dir>: Specify a directory for data files
+// // // --cache-dir <dir>: Specify a directory for cache files
+// // // --log-file <file>: Specify a file for logging output
+// // // --log-level <level>: Set the logging level (e.g., debug, info, warning, error)
+// // // --timeout <seconds>: Set a timeout for operations
+// // // --retry <count>: Set the number of retries for failed operations
+// // // --no-cache: Disable caching
+// // // --no-ssl: Disable SSL verification
+// // // --proxy <url>: Specify a proxy server to use
+// // // --user-agent <string>: Set a custom user agent string
 
-// main for note agent only
 
-// void LoadBuiltinsToAgent(Agent &agentToConfigure)
-// {
-//     // Load built-in tools into the agent
-//     // bash tool
-//     Tool *bashTool = new Tool("BashExecutor", "Executes bash commands", 
-//                                executeBashCommandReal);
-//     agentToConfigure.addTool(bashTool);
-// }
-
-
-
-// void PrintPizzazLine(const std::string& line) {
-//     const int width = 40; // Total width, including borders
-//     const int inner_width = width - 2; // Space between borders
-//
-//     // Top border: ╔═══════════════════════════════════════╗
-//     std::cout << "╔" << std::string(inner_width, '═') << "╗" << std::endl;
-//
-//     // Middle line: center the string between ║ characters
-//     int padding = (inner_width - line.length()) / 2;
-//     if (padding < 0) padding = 0; // No negative padding if string is too long
-//     std::string left_padding(padding, ' ');
-//     std::string right_padding(inner_width - line.length() - padding, ' ');
-//     std::cout << "║" << left_padding << line << right_padding << "║" << std::endl;
-//
-//     // Bottom border: ╚═══════════════════════════════════════╝
-//     std::cout << "╚" << std::string(inner_width, '═') << "╝" << std::endl;
-// }
-//
-// int main() {
-//     PrintPizzazLine("Yo, this is MAX PIZZAZ!");
-//     return 0;
-// }
-//
-//
-//
-// int	main(void)
-// {
-//     MiniGemini	myApi;
-//
-// 	// Assume myApi is an initialized MiniGemini instance
-// 	Agent agent1(myApi);
-// 	// Load configuration into agent1
-// 	if (loadAgentProfile(agent1, "./config/agents/standard-profiles/standard-note-agent-MK1/note-agent.yml"))
-// 	{
-// 		std::cout << "Agent Name after load: " << agent1.getName() << std::endl;
-//         // LoadBuiltinsToAgent(agent1);
-// 		// agent1.listAllAgentInfo();
-// 		// Modify the agent slightly
-// 		// agent1.addTask("Final review step");
-// 		while (true)
-// 		{
-// 			std::string userInput;
-// 			std::cout << "=======================================\n=> ";
-// 			std::getline(std::cin, userInput);
-// 			if (userInput == "exit")
-// 				break ;                // Exit condition
-// 			agent1.prompt(userInput); // Assuming chat method exists
-// 		}
-// 		// // Save the modified configuration (profile aspects only)
-// 		// if (saveAgentProfile(agent1,
-// 				// "./agents/order_processor_modified.yaml")) {
-// 		//     std::cout << "Modified profile saved." << std::endl;
-// 		// } else {
-// 		//     std::cerr << "Failed to save modified profile." << std::endl;
-// 		// }
-// 	}
-// 	else
-// 	{
-// 		std::cerr << "Failed to load agent profile." << std::endl;
-// 	}
-// 	return (0);
-// }

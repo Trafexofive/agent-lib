@@ -1,0 +1,69 @@
+# GOLD ESSENCE: Absolute Sovereignty (Homelab Focus), Modularity (Orchestrating tools like ffprobe, Plex), FAAFO (Iterative improvement from simple file move to complex transcoding).
+
+orchestrations:
+  - id: 'media-ingest-and-process-pipeline'
+    alias: 'Homelab Media Ingest Pipeline'
+    description: 'Watches a download directory, identifies new media, enriches it with metadata, transcodes if necessary, moves it to the correct Plex library, and sends a notification.'
+
+    trigger:
+      - platform: 'file.watcher'
+        path: '/downloads/completed/movies'
+        event: 'created'
+        pattern: '*.mkv,*.mp4'
+
+    action:
+      - variables:
+          source_path: "{{ trigger.data.path }}"
+          filename: "{{ trigger.data.filename }}"
+
+      - service: 'log.write'
+        data: { message: "New media detected: {{ filename }}" }
+
+      # 1. Get technical metadata using a shell command tool.
+      - service: 'shell.execute'
+        data:
+          command: "ffprobe -v quiet -print_format json -show_format -show_streams '{{ source_path }}'"
+        response_variable: 'media_info'
+
+      # 2. Use a specialized agent to find clean metadata (title, year, etc.)
+      - agent:
+          id: 'media-metadata-agent-v1'
+          goal: "Based on the filename '{{ filename }}', determine the correct movie title and year. Output as JSON."
+          response_variable: 'clean_metadata'
+
+      # 3. Create a clean filename and destination path based on agent results.
+      - variables:
+          movie_title: "{{ clean_metadata.json.title }}"
+          movie_year: "{{ clean_metadata.json.year }}"
+          # e.g., "Blade Runner 2049 (2017).mkv"
+          new_filename: "{{ movie_title }} ({{ movie_year }}).{{ filename.split('.')[-1] }}"
+          # e.g., "/media/movies/Blade Runner 2049 (2017)/"
+          destination_dir: "/media/movies/{{ movie_title }} ({{ movie_year }})/"
+
+      # 4. Make the destination directory.
+      - service: 'file.create_directory'
+        data:
+          path: "{{ destination_dir }}"
+
+      # 5. Move the file.
+      - service: 'file.move'
+        data:
+          source: "{{ source_path }}"
+          destination: "{{ destination_dir }}{{ new_filename }}"
+
+      # 6. Trigger a library scan in the media server.
+      - service: 'plex.scan_library'
+        data:
+          section_name: 'Movies'
+
+      # 7. Send a rich notification.
+      - service: 'notify.discord'
+        data:
+          channel_id: '1234567890_media_updates'
+          embed:
+            title: "✅ New Movie Added: {{ movie_title }}"
+            description: "Successfully processed and added to the Movies library."
+            fields:
+              - name: 'Year'
+                value: "{{ movie_year }}"
+                inline: true

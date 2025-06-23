@@ -1,0 +1,8 @@
+#!/bin/bash
+# Robust wrapper to execute the Python materializer script from any directory.
+
+# Find the directory where this script is located.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+# Execute the python script, passing all command-line arguments to it.
+python3 "$SCRIPT_DIR/src/relic_materializer_v3.0.py" "$@"

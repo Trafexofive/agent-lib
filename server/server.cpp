@@ -521,7 +521,7 @@ int main() {
     if (agentProfilePathEnv && std::string(agentProfilePathEnv).empty() == false) {
         agentProfilePath = agentProfilePathEnv;
     } else {
-        agentProfilePath = "config/agents/standard-profiles/standard-agent-MK1/standard-agent-MK1.yml";
+        agentProfilePath = "config/agents/standard-agent-MK1/standard-agent-MK1.yml";
         logMessage(LogLevel::WARN, "AGENT_PROFILE_PATH not set. Defaulting to: " + agentProfilePath);
     }
     

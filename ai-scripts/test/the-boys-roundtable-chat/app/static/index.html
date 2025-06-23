@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Roundtable...</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+</head>
+<body>
+    <div id="app-container">
+        <header>
+            <h1 id="chatHeaderTitle">The Boys: Diabolical Roundtable</h1>
+            <div id="connectionStatus">Status: Disconnected</div>
+        </header>
+
+        <div id="nickname-prompt-overlay">
+            <div id="nickname-prompt">
+                <h2>Enter Your Supe Codename:</h2>
+                <input type="text" id="nicknameInput" placeholder="e.g., Butcher, Starlight, TheDeep" maxlength="30">
+                <button id="joinButton">Join the Mayhem</button>
+                <p class="small-text">Keep it clean, Compound V junkie. Or don't. We don't care.</p>
+            </div>
+        </div>
+
+        <main id="chat-area" style="display: none;">
+            <div id="messages">
+                <!-- Messages will appear here -->
+            </div>
+            <div id="input-area">
+                <input type="text" id="messageInput" placeholder="Spill the tea, or the blood...">
+                <button id="sendButton">SEND IT</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>© Vought International. Unauthorized access is... encouraged, actually. Let's see what you got.</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

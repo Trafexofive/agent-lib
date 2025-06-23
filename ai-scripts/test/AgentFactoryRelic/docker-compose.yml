@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  agent-factory-relic-backend-api:
+    build:
+      context: ./service_code_backend
+    container_name: agent-factory-relic-backend-api-ctnr
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      # Mounts the backend code for live development reloading
+      - ./service_code_backend:/app
+      # Mounts agent configs into the container so the API can read them
+      - ./agent_configs:/app/agent_configs
+      # Mounts a logs directory for potential file-based logging
+      - ./logs:/app/logs
+      # Mounts a data directory for tools that might need to read/write files
+      - ./data:/app/data
+    networks:
+      - agent-factory-relic-network
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    container_name: agent-factory-relic-ollama-ctnr
+    ports:
+      - ":11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - agent-factory-relic-network
+    restart: unless-stopped
+
+networks:
+  agent-factory-relic-network:
+    driver: bridge
+
+volumes:
+  ollama_data: {}

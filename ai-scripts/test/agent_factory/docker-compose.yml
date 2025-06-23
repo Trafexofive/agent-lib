@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  agent-factory-db:
+    image: postgres:15-alpine
+    container_name: agent-factory-db-ctnr
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - agent_factory_pg_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT_HOST}:5432"
+    networks:
+      - agent_factory_network
+    restart: unless-stopped
+
+  agent-factory-backend-api:
+    build:
+      context: ./service_code_backend
+    container_name: agent-factory-backend-api-ctnr
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    volumes:
+      - ./service_code_backend:/app
+    depends_on:
+      - agent-factory-db
+    networks:
+      - agent_factory_network
+    restart: unless-stopped
+    command: bash -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${BACKEND_PORT_CONTAINER}"
+
+  agent-factory-frontend-ui:
+    build:
+      context: ./service_code_frontend
+    container_name: agent-factory-frontend-ui-ctnr
+    ports:
+      - "${FRONTEND_PORT_HOST}:${FRONTEND_PORT_CONTAINER}"
+    depends_on:
+      - agent-factory-backend-api
+    networks:
+      - agent_factory_network
+    restart: unless-stopped
+
+volumes:
+  agent_factory_pg_data:
+
+networks:
+  agent_factory_network:
+    driver: bridge

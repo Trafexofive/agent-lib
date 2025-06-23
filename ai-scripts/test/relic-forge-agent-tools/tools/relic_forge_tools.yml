@@ -1,0 +1,92 @@
+# config/tools/relic_forge_tools.yml
+# Tools for interacting with the Relic Forge Bay API.
+
+RelicForgeBayAPITools:
+  ForgeRelic:
+    name: "relic_forge_forge_relic"
+    description: >
+      Forges a new relic based on a JSON plan string.
+      The plan itself must be provided as a JSON string within the 'plan_json_string' parameter.
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/forge_relic.sh" # Relative to this YML file
+    parameters_schema:
+      type: "object"
+      properties:
+        plan_json_string: { type: "string", description: "A JSON string representing the full relic plan." }
+      required: ["plan_json_string"]
+    example_usage:
+      plan_json_string: '{"relic_name": "ExampleRelic", "version": "0.1.0", "artifacts": [{"title": "README", "path": "README.md", "contentType": "text/markdown", "content": "# Example"}]}'
+
+  ListRelics:
+    name: "relic_forge_list_relics"
+    description: "Lists all forged relics and their metadata from the Relic Forge Bay API."
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/list_relics.sh"
+    parameters_schema: {}
+    example_usage: {}
+
+  GetRelicMetadata:
+    name: "relic_forge_get_relic_metadata"
+    description: "Gets metadata for a specific relic by its ID from the Relic Forge Bay API."
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/get_relic_metadata.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        relic_id: { type: "string", description: "The UUID of the relic." }
+      required: ["relic_id"]
+    example_usage:
+      relic_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+  DownloadRelic:
+    name: "relic_forge_download_relic"
+    description: >
+      Downloads a forged relic package (.tar.gz) to a specified output path.
+      Returns a JSON object with 'status' and 'output_path' on success.
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/download_relic.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        relic_id: { type: "string", description: "The UUID of the relic to download." }
+        output_path: { type: "string", description: "The local file system path to save the downloaded .tar.gz file." }
+      required: ["relic_id", "output_path"]
+    example_usage:
+      relic_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      output_path: "/tmp/downloaded_relic.tar.gz"
+
+  DeleteRelic:
+    name: "relic_forge_delete_relic"
+    description: "Deletes a forged relic (metadata and package) by its ID from the Relic Forge Bay API."
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/delete_relic.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        relic_id: { type: "string", description: "The UUID of the relic to delete." }
+      required: ["relic_id"]
+    example_usage:
+      relic_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+  GetForgeHealth:
+    name: "relic_forge_get_health"
+    description: "Checks the health status of the Relic Forge Bay API."
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/get_forge_health.sh"
+    parameters_schema: {}
+    example_usage: {}
+
+  GetForgeCapabilities:
+    name: "relic_forge_get_capabilities"
+    description: "Gets the capabilities information of the Relic Forge Bay API."
+    type: "script"
+    runtime: "bash"
+    path: "../scripts/relic_forge/get_forge_capabilities.sh"
+    parameters_schema: {}
+    example_usage: {}

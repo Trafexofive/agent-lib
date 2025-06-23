@@ -1,0 +1,6 @@
+- platform: 'bluetooth_le_presence'
+  # Tracks a specific Bluetooth device (e.g., a beacon on a keychain).
+  device_mac: 'AA:BB:CC:11:22:33'
+  # Fires when the device is first detected after being away.
+  event: 'enter_zone'
+  zone: 'office'

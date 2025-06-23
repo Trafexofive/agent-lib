@@ -1,0 +1,22 @@
+workflows:
+  - id: 'onboard-new-service-to-monitoring'
+    alias: 'Onboard New Service to Monitoring'
+    inputs:
+      service_name: 'The name of the new service (e.g., my-cool-app).'
+      health_endpoint_url: 'The full URL of its /health endpoint.'
+    sequence:
+      - service: 'prometheus.add_scrape_target'
+        data:
+          job_name: "{{ inputs.service_name }}"
+          scrape_url: "{{ inputs.health_endpoint_url }}"
+      - service: 'alertmanager.create_rule'
+        data:
+          alert_name: "{{ inputs.service_name }}Down"
+          expression: "up{job='{{ inputs.service_name }}'} == 0"
+          for: '5m'
+          labels: { severity: 'critical' }
+          annotations: { summary: 'Service {{ inputs.service_name }} is down!' }
+      - service: 'notify.slack'
+        data:
+          channel: '#ops-deployments'
+          message: '✅ Service `{{ inputs.service_name }}` has been successfully onboarded to our monitoring and alerting stack.'

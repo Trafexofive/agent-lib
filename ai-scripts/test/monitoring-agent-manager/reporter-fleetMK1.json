@@ -1,0 +1,158 @@
+[
+  {
+    "id": "agent-main-econ-001",
+    "name": "Global Economic Insights Reporter",
+    "description": "Monitors and reports on key macroeconomic indicators and financial market data from global institutions, producing concise and actionable economic reports.",
+    "targets": [
+      {
+        "id": "target-econ-001-imfdata",
+        "description": "IMF Economic Outlook Data",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "IMF World Economic Outlook latest data OR IMF DataMapper GDP growth",
+        "informationToExtract": "Global and regional GDP growth rates (real, nominal), inflation rates (CPI), government debt (% of GDP), current account balance (% of GDP)."
+      },
+      {
+        "id": "target-econ-001-worldbank",
+        "description": "World Bank Development Metrics",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "World Bank Open Data GNI per capita OR poverty headcount",
+        "informationToExtract": "GNI per capita (Atlas method), poverty headcount ratio (% at $2.15/day), income inequality (Gini index)."
+      }
+    ],
+    "reportFrequency": "Monthly",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  },
+  {
+    "id": "agent-main-tech-001",
+    "name": "Technology Sector Performance Reporter",
+    "description": "Tracks technology industry metrics, including R&D spending, venture capital trends, and market share, delivering comprehensive tech sector reports.",
+    "targets": [
+      {
+        "id": "target-tech-001-vcfunding",
+        "description": "Venture Capital Investment Trends",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "CB Insights State of Venture latest OR PitchBook NVCA Venture Monitor",
+        "informationToExtract": "Total VC funding in tech ($B, quarterly), number of deals, top funded sectors (e.g., AI, fintech), average deal size."
+      },
+      {
+        "id": "target-tech-001-marketshare",
+        "description": "Tech Market Share Analysis",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "Gartner cloud market share OR StatCounter OS market share latest",
+        "informationToExtract": "Market share for cloud services (AWS, Azure, Google Cloud), operating systems (Windows, macOS, Linux), browser share (Chrome, Safari, Firefox)."
+      }
+    ],
+    "reportFrequency": "Weekly",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  },
+  {
+    "id": "agent-main-supply-001",
+    "name": "Global Supply Chain Monitor",
+    "description": "Monitors global supply chain metrics, including freight rates, port performance, and inventory levels, to produce actionable logistics reports.",
+    "targets": [
+      {
+        "id": "target-supply-001-containerrates",
+        "description": "Container Shipping Rates",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "Drewry World Container Index latest OR Shanghai Containerized Freight Index SCFI",
+        "informationToExtract": "Average spot rates for 40ft containers (Asia-USWC, Asia-North Europe, $/TEU), percentage change (WoW, YoY)."
+      },
+      {
+        "id": "target-supply-001-portdata",
+        "description": "Global Port Performance",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "Port of Shanghai OR Los Angeles container throughput TEUs OR UNCTAD port statistics",
+        "informationToExtract": "Container throughput (TEUs, YoY change), average vessel waiting times, port congestion metrics."
+      }
+    ],
+    "reportFrequency": "Weekly",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  },
+  {
+    "id": "agent-main-energy-001",
+    "name": "Energy Market Data Reporter",
+    "description": "Tracks energy and commodity market data, including oil prices, production volumes, and renewable energy metrics, for detailed energy sector reports.",
+    "targets": [
+      {
+        "id": "target-energy-001-oilprices",
+        "description": "Crude Oil Price Benchmarks",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "Brent crude oil price latest OR WTI crude oil price $/bbl",
+        "informationToExtract": "Daily/monthly Brent and WTI crude oil prices ($/barrel), Brent-WTI spread, price change (WoW, MoM)."
+      },
+      {
+        "id": "target-energy-001-renewables",
+        "description": "Renewable Energy Capacity",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "IRENA renewable capacity statistics OR BNEF renewable investment trends",
+        "informationToExtract": "Global installed capacity for solar PV, wind, hydro (GW), annual renewable investment ($B)."
+      }
+    ],
+    "reportFrequency": "Daily",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  },
+  {
+    "id": "agent-main-regulatory-001",
+    "name": "Regulatory Compliance Reporter",
+    "description": "Monitors regulatory activities, enforcement actions, and compliance costs across jurisdictions, generating regulatory impact reports.",
+    "targets": [
+      {
+        "id": "target-regulatory-001-gdprfines",
+        "description": "GDPR Enforcement Data",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "EDPB GDPR fines overview OR national DPA GDPR enforcement statistics",
+        "informationToExtract": "Total number of GDPR fines, total fine value (€), breakdown by country and infringement type."
+      },
+      {
+        "id": "target-regulatory-001-usregs",
+        "description": "US Federal Regulation Volume",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "Federal Register statistics OR QuantGov regulatory metrics latest",
+        "informationToExtract": "Number of final rules issued, total pages in Federal Register, number of proposed rules."
+      }
+    ],
+    "reportFrequency": "Monthly",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  },
+  {
+    "id": "agent-main-health-001",
+    "name": "Public Health Metrics Reporter",
+    "description": "Tracks global public health data, including disease incidence, healthcare spending, and safety statistics, for comprehensive health reports.",
+    "targets": [
+      {
+        "id": "target-health-001-whodata",
+        "description": "WHO Global Health Metrics",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "WHO Global Health Observatory life expectancy OR disease incidence",
+        "informationToExtract": "Life expectancy at birth, maternal mortality ratio, incidence of TB and HIV per 100,000 population."
+      },
+      {
+        "id": "target-health-001-pharmasales",
+        "description": "Pharmaceutical Market Data",
+        "sourceType": "WEB_SEARCH",
+        "sourceValue": "IQVIA pharmaceutical market review OR EvaluatePharma top drugs sales",
+        "informationToExtract": "Global pharmaceutical market size ($B), top-selling drugs by revenue, sales by therapeutic area."
+      }
+    ],
+    "reportFrequency": "Weekly",
+    "status": "active",
+    "createdAt": "2025-06-01T20:49:00.000Z",
+    "updatedAt": "2025-06-01T20:49:00.000Z",
+    "lastRunStatus": "pending"
+  }
+]

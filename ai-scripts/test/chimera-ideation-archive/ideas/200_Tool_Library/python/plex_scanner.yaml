@@ -1,0 +1,9 @@
+- id: 'plex.scan_library'
+  description: 'Connects to the Plex Media Server and initiates a library scan for a specific section.'
+  runtime: 'python'
+  handler: 'gap_core.integrations.plex.PlexScanTool'
+  parameters:
+    section_name:
+      description: 'The exact name of the Plex library section to scan (e.g., Movies, TV Shows).'
+      type: 'string'
+      required: true

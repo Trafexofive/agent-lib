@@ -1,0 +1,2 @@
+# This directory is for storing the SQLite database file.
+# It is managed by a Docker volume in docker-compose.yml.

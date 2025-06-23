@@ -1,0 +1,24 @@
+# Default ignore patterns for the Context Harvester
+.git
+node_modules
+__pycache__
+.venv
+venv
+build
+dist
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.class
+*.o
+*.a
+*.lib
+*.egg-info
+*.egg
+.idea
+.vscode
+.DS_Store
+logs
+data

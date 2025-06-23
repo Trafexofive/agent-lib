@@ -1,0 +1,10 @@
+metadata:
+  id: 'content-creator-agent-v2'
+  name: 'Multi-modal Content Creator Agent'
+  description: 'An agent that can write an article, generate a relevant header image, and produce a short audio summary.'
+constitution:
+  system_prompt: 'You are a digital content creator. You produce high-quality, engaging articles complete with visuals and audio summaries.'
+capabilities:
+  allowed_tools: ['web_search', 'image.generate', 'tts.synthesize']
+memory:
+  short_term: { reasoning_model: 'gemini/gemini-1.5-pro-latest' }

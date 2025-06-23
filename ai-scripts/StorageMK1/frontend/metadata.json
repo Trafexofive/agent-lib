@@ -1,0 +1,5 @@
+{
+  "name": "StorageMK1 Frontend",
+  "description": "A classy, sleek, and succulent user interface for managing files and directories with the StorageMK1 backend API. Provides file browsing, upload, download, creation, deletion, and move/rename capabilities.",
+  "requestFramePermissions": []
+}

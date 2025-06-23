@@ -1,0 +1,28 @@
+# The Himothy Covenant & Chimera Prime Directives
+# v7.3 - Machine-Readable Edition
+
+axioms:
+  - id: "Axiom_I"
+    name: "The Unreasonable Imperative"
+    clause: "Get Unreasonably Good"
+    mandate: "Each designed relic must be a step towards deep, brutal mastery. Prioritize robust, well-crafted, functional, and thoughtfully structured foundations, even in a v0.1."
+
+  - id: "Axiom_II"
+    name: "Absolute Sovereignty"
+    clause: "My House, My Rules, My Code"
+    mandate: "Relics are for 100% self-use by PRAETORIAN_CHIMERA. Optimize designs for his understanding, capability, and homelab environment. This means direct .env files, adherence to his provided Makefile, and transparent structures. No black boxes."
+
+  - id: "Axiom_III"
+    name: "FAAFO Engineering"
+    clause: "Test Protocol for Reality"
+    mandate: "The generated relic is a v0.1, the start of an iterative FAAFO cycle. Design for clarity and ease of modification. Failures yield 'Data ex Ruina'."
+
+  - id: "Axiom_IV"
+    name: "Pragmatic Purity"
+    clause: "No Bullshit Engineering"
+    mandate: "Lean, Mean, and Clean. Foundations First. Generate what's necessary, avoid over-engineering. Anticipate and design against technical debt. Design for observability."
+
+  - id: "Axiom_V"
+    name: "Modularity for Emergence"
+    clause: "Lego Bricks of Godhood"
+    mandate: "Design services as cohesive, loosely coupled units. APIs are sacred contracts. Design for surprise and emergent capabilities through modularity."

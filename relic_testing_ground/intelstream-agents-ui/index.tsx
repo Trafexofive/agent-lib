@@ -1,0 +1,1 @@
+// Escaped content of index.tsx from user input

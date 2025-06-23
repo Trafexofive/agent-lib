@@ -127,6 +127,46 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
     config = YAML::Load(f);
     f.close();
 
+    // Load Sub-agents
+    if (config["agents"] && config["agents"].IsSequence()) {
+      logMessage(LogLevel::DEBUG, "Loading sub-agents from profile: " + yamlPath);
+      for (const auto &subAgentNode : config["agents"]) {
+        if (subAgentNode.IsScalar()) {
+          std::string subAgentYamlPathStr =
+              expandEnvironmentVariables(subAgentNode.as<std::string>(),
+                                         agentToConfigure);
+          fs::path subAgentYamlPath = agentYamlDir / subAgentYamlPathStr;
+
+          std::error_code ec;
+          subAgentYamlPath = fs::weakly_canonical(subAgentYamlPath, ec);
+          if (ec) {
+            logMessage(LogLevel::ERROR,
+                       "Error canonicalizing sub-agent path: " +
+                           subAgentYamlPath.string(),
+                       ec.message());
+            continue;
+          }
+
+          if (!fs::exists(subAgentYamlPath)) {
+            logMessage(LogLevel::ERROR,
+                       "Sub-agent file not found: " + subAgentYamlPath.string());
+            continue;
+          }
+
+          Agent *subAgent = new Agent(agentToConfigure.getApi());
+          if (loadAgentProfile(*subAgent, subAgentYamlPath.string())) {
+            agentToConfigure.addSubAgent(subAgent);
+            logMessage(LogLevel::INFO,
+                       "Loaded sub-agent: " + subAgent->getName());
+          } else {
+            delete subAgent; // Clean up on failure
+          }
+        } else {
+          logMessage(LogLevel::WARN,
+                     "Invalid sub-agent definition in profile: " + yamlPath);
+        }
+      }
+    }
     // setModel , setTokenLimit, setTemperature grouped 
     if (config["model"] && config["model"].IsScalar()) {
       agentToConfigure.setModel(config["model"].as<std::string>());
@@ -435,7 +475,7 @@ bool loadAgentProfile(Agent &agentToConfigure, const std::string &yamlPath) {
             }
           };
 
-        } else if (toolType == "internal_function") {
+        } else if (toolType == "internal") {
           if (!toolDef["function_identifier"] ||
               !toolDef["function_identifier"].IsScalar()) {
             logMessage(LogLevel::WARN,
@@ -650,7 +690,7 @@ loadToolsFromFile(const std::string &toolYamlPath,
           }
         };
 
-      } else if (toolType == "internal_function") {
+      } else if (toolType == "internal") {
         if (!toolDef["function_identifier"] ||
             !toolDef["function_identifier"].IsScalar()) {
           logMessage(LogLevel::WARN,

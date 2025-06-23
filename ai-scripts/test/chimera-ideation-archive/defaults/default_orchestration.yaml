@@ -1,0 +1,16 @@
+# This file provides a simple, safe, and useful orchestration that works out-of-the-box.
+# It can be copied to the user's workspace/orchestrations/ directory to get started.
+
+orchestrations:
+  - id: 'default-hourly-heartbeat'
+    alias: 'Platform Heartbeat'
+    description: 'A simple orchestration that runs every hour to confirm the engine is alive and can execute a basic tool.'
+    trigger:
+      - platform: 'time_pattern'
+        # A cron-like pattern: at minute 0 of every hour.
+        pattern: '0 * * * *'
+    action:
+      - service: 'log.write'
+        data:
+          level: 'info'
+          message: 'HEARTBEAT: The OrchestrationEngine is running and has processed the default hourly trigger.'

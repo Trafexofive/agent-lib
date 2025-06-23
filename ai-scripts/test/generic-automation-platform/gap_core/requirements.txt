@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+PyYAML
+python-json-logger
+google-generativeai
+groq

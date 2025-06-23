@@ -1,0 +1,21 @@
+# GOLD ESSENCE: FAAFO Engineering (Reacting to real-world data), Pragmatic Purity (Solving a real problem: cost).
+orchestrations:
+  - id: 'cost-aware-device-runner'
+    alias: 'Run High-Power Devices During Off-Peak Hours'
+    description: 'Monitors a real-time energy pricing API and only allows high-draw devices (e.g., dishwasher, EV charger) to run when the price per kWh is below a certain threshold.'
+    trigger:
+      - platform: 'state'
+        entity_id: 'switch.dishwasher_request'
+        to: 'on'
+    action:
+      - service: 'log.write'
+        data: { message: 'Dishwasher run requested. Waiting for low energy price.' }
+      - repeat:
+          until:
+            - condition: 'numeric_state'
+              entity_id: 'sensor.energy_price_per_kwh'
+              below: 0.15
+          sequence:
+            - delay: '00:15:00' # Wait 15 minutes before checking again
+      - service: 'switch.turn_on'
+        target: { entity_id: 'switch.dishwasher_power' }

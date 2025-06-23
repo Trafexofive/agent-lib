@@ -1,0 +1,28 @@
+# GOLD ESSENCE: Modularity (Combining weather data with local sensors).
+orchestrations:
+  - id: 'smart-plant-watering'
+    alias: 'Smart Plant Watering System'
+    description: 'Waters plants based on soil moisture, but only if it has not rained recently and is not expected to rain soon.'
+    trigger:
+      - platform: 'numeric_state'
+        entity_id: 'sensor.plant_a_moisture'
+        below: 30 # Trigger when soil is dry
+        for:
+          hours: 4
+    condition:
+      - condition: 'and'
+        conditions:
+          - condition: 'numeric_state'
+            entity_id: 'sensor.weather_rainfall_last_24h'
+            below: 5 # Less than 5mm of rain in the last day
+          - condition: 'state'
+            entity_id: 'sensor.weather_forecast_condition'
+            state: 'sunny'
+    action:
+      - service: 'switch.turn_on'
+        data:
+          entity_id: 'switch.garden_sprinkler_valve'
+      - delay: '00:05:00' # Water for 5 minutes
+      - service: 'switch.turn_off'
+        data:
+          entity_id: 'switch.garden_sprinkler_valve'

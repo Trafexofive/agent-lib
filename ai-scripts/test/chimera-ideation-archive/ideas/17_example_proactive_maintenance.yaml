@@ -1,0 +1,51 @@
+# GOLD ESSENCE: FAAFO Engineering (Proactive checks instead of waiting for failure), Absolute Sovereignty (Managing the homelab).
+
+orchestrations:
+  - id: 'proactive-disk-health-check'
+    alias: 'Proactive Disk Health & Space Check'
+    description: 'Periodically checks the health of storage drives and disk space usage, notifying the user BEFORE a failure occurs.'
+
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '0 4 * * *' # Run every day at 4:00 AM
+
+    action:
+      # Run checks in parallel for efficiency
+      - parallel:
+        - service: 'shell.execute'
+          data:
+            command: 'smartctl -H /dev/sda'
+          response_variable: 'sda_health'
+        - service: 'shell.execute'
+          data:
+            command: 'df -h /mnt/storage | tail -n 1 | awk ''{print $5}'' | sed ''s/%//'''
+          response_variable: 'storage_usage_pct'
+
+      # A notification action with embedded conditional logic in the message template.
+      - service: 'notify.pushover'
+        data:
+          user_key: 'YOUR_PUSHOVER_USER_KEY'
+          # Title changes based on severity.
+          title: >-
+            {% if 'PASSED' not in sda_health.stdout or storage_usage_pct.stdout|int > 90 %}
+              🚨 CRITICAL STORAGE ALERT
+            {% elif storage_usage_pct.stdout|int > 80 %}
+              ⚠️ Storage Warning
+            {% else %}
+              ✅ Daily Storage Report
+            {% endif %}
+          # Message provides a full summary.
+          message: |
+            **Disk Health (/dev/sda):**
+            {{ sda_health.stdout }}
+
+            **Storage Usage (/mnt/storage):** {{ storage_usage_pct.stdout }}%
+
+            {% if storage_usage_pct.stdout|int > 90 %}
+            **ACTION REQUIRED:** Storage usage is critical!
+            {% elif storage_usage_pct.stdout|int > 80 %}
+            **Recommendation:** Consider clearing space soon.
+            {% endif %}
+          # Priority changes based on severity.
+          priority: >-
+            {% if 'PASSED' not in sda_health.stdout or storage_usage_pct.stdout|int > 90 %}2{% else %}0{% endif %}

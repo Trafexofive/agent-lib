@@ -1,0 +1,1 @@
+// Escaped content of types.ts from user input

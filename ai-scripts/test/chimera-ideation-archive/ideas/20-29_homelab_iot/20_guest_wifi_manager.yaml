@@ -1,0 +1,23 @@
+# GOLD ESSENCE: Absolute Sovereignty (Controlling the network), Pragmatic Purity (A simple, useful utility).
+orchestrations:
+  - id: 'guest-wifi-password-rotator'
+    alias: 'Guest Wi-Fi Daily Password Rotator'
+    description: 'Generates a new, random password for the guest Wi-Fi network every day and displays it on a designated screen.'
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '0 5 * * *' # 5:00 AM daily
+    action:
+      - service: 'utils.generate_random_string'
+        data:
+          length: 12
+          characters: 'alphanumeric'
+        response_variable: 'new_password'
+      - service: 'unifi.set_wlan_password'
+        data:
+          wlan_name: 'GuestNet'
+          password: "{{ new_password.result }}"
+      - service: 'display.show_text'
+        data:
+          display_id: 'eink_dashboard'
+          header: 'Guest Wi-Fi:'
+          text: "{{ new_password.result }}"

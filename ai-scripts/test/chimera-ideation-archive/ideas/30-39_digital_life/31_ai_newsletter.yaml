@@ -1,0 +1,36 @@
+# GOLD ESSENCE: Modularity for Emergence (Combining multiple agents to create novel content).
+orchestrations:
+  - id: 'weekly-ai-newsletter-generator'
+    alias: 'Weekly AI Newsletter Generator'
+    description: 'Every week, this orchestration scans several RSS feeds, uses an agent to pick the top 5 stories, another to write summaries, and a final one to compose a newsletter.'
+    trigger:
+      - platform: 'time_pattern'
+        pattern: '0 10 * * 5' # Every Friday at 10:00 AM
+    action:
+      - service: 'rss.fetch_all'
+        data:
+          feeds: ['http://blog1/feed', 'http://blog2/feed']
+        response_variable: 'all_articles'
+      - agent:
+          id: 'curator-agent-v1'
+          goal: 'From this list of articles, select the 5 most interesting and impactful stories for a technical audience. Output a JSON list of their URLs.'
+          context: "{{ all_articles.json }}"
+          response_variable: 'top_5_urls'
+      - swarm:
+          iterable: "{{ top_5_urls.json }}"
+          loop_variable: 'article_url'
+          action:
+            - agent:
+                id: 'summarizer-agent-v1'
+                goal: "Read the article at {{ article_url }} and write a punchy, one-paragraph summary."
+          response_variable: 'summaries'
+      - agent:
+          id: 'editor-agent-v1'
+          goal: 'You are a witty tech newsletter editor. Take these summaries and compose them into a friendly, engaging newsletter email. Add a brief intro and outro.'
+          context: "{{ summaries | to_json }}"
+          response_variable: 'final_newsletter'
+      - service: 'email.send'
+        data:
+          to: 'subscribers@my.list'
+          subject: "This Week in AI - {{ now().strftime('%Y-%m-%d') }}"
+          body_html: "{{ final_newsletter.content }}"

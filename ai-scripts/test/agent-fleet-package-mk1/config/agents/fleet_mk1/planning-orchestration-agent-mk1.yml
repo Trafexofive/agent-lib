@@ -1,0 +1,33 @@
+# --- Agent Profile: PlanningOrchestrationAgentMK1 (v1.0) ---
+version: "agent-1.0"
+name: "PlanningOrchestrationAgentMK1"
+description: "Specialized agent for decomposing complex goals and planning task delegation to other agents."
+system_prompt: "system_prompts/planning-orchestration-agent-prompt.md"
+model: "gemini-2.5-pro-preview-03-25" # Requires strong reasoning and planning capabilities
+token_limit: 12000
+iteration_cap: 5 # Usually produces a plan in fewer iterations
+environment:
+  AGENT_ALIAS: "Strategos-Bot"
+import:
+  tools:
+    - "../../tools/core.tools.yml" # For web_search_snippets if needed for planning context
+schema: |
+  {
+    "status": "string (REQUIRED, Enum: SUCCESS | ERROR | EXECUTING )",
+    "thoughts": [
+      {
+        "type": "string (REQUIRED, Enum: PLAN | OBSERVATION | QUESTION | HYPOTHESIS | CRITIQUE | ASSUMPTION | GOAL | NORM | DECISION | LONG_TERM | SHORT_TERM | REFLECTION| or a better suitable type)",
+        "content": "string (REQUIRED, The textual content of the thought.)"
+      }
+    ],
+    "actions": [
+      {
+        "action": "string (REQUIRED, Name of the tool, script, or internal function to execute.)",
+        "type": "string (REQUIRED, Enum: tool | script | internal_function )",
+        "params": "object (REQUIRED, structure depends on the action)",
+        "confidence": "float (OPTIONAL, 0.0-1.0)",
+        "warnings": ["string (OPTIONAL)"]
+      }
+    ],
+    "final_response": "string | null (REQUIRED, User-facing response, or null if actions are pending.)"
+  }

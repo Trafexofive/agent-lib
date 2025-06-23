@@ -1,0 +1,112 @@
+# config/tools/file_system_tools.yml
+# Tools for detailed file and directory operations.
+
+FileSystemTools:
+  ReadFileContent:
+    name: "fs_read_file"
+    description: "Reads the entire content of a specified file. Returns content as a string."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/read_content.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Absolute or relative path to the file." }
+      required: ["path"]
+    example_usage: { "path": "/tmp/my_document.txt" }
+
+  WriteFileContent:
+    name: "fs_write_file"
+    description: "Writes (or overwrites) content to a specified file. Creates parent directories if they don't exist."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/write_content.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Absolute or relative path to the file." }
+        content: { type: "string", description: "The content to write to the file." }
+      required: ["path", "content"]
+    example_usage: { "path": "data/output.log", "content": "Log entry: Process started." }
+
+  AppendFileContent:
+    name: "fs_append_file"
+    description: "Appends content to a specified file. Creates the file and parent directories if they don't exist."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/append_content.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Path to the file." }
+        content: { type: "string", description: "Content to append." }
+      required: ["path", "content"]
+    example_usage: { "path": "data/output.log", "content": "\nLog entry: Process continued." }
+
+  ListDirectoryDetailed:
+    name: "fs_list_directory_detailed"
+    description: "Lists contents of a directory with details (type, size, permissions, mtime). Returns JSON array."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/list_detailed.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Path to the directory." }
+      required: ["path"]
+    example_usage: { "path": "./config" }
+
+  CheckExistence:
+    name: "fs_check_existence"
+    description: "Checks if a file or directory exists at the given path. Returns JSON with 'exists' (boolean) and 'type' ('file', 'directory', or 'not_found')."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/check_existence.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Path to check." }
+      required: ["path"]
+    example_usage: { "path": "/etc/hosts" }
+
+  GetFileProperties:
+    name: "fs_get_file_properties"
+    description: "Gets properties (size, mtime, type, permissions) for a specific file or directory. Returns JSON."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/get_properties.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        path: { type: "string", description: "Path to the file or directory." }
+      required: ["path"]
+    example_usage: { "path": "requirements.txt" }
+
+  CreateTarArchive:
+    name: "fs_create_tar_archive"
+    description: "Creates a .tar.gz archive from a source path (file or directory) at a specified destination path."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/create_tar_archive.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        source_path: { type: "string", description: "Path to the file or directory to archive." }
+        destination_archive_path: { type: "string", description: "Full path for the output .tar.gz file." }
+        archive_base_name: { type: "string", description: "Optional. Name of the base directory inside the archive. Defaults to source_path basename." }
+      required: ["source_path", "destination_archive_path"]
+    example_usage: { "source_path": "./app", "destination_archive_path": "/tmp/app_backup.tar.gz", "archive_base_name": "my_application" }
+
+  ExtractTarArchive:
+    name: "fs_extract_tar_archive"
+    description: "Extracts a .tar.gz archive to a specified destination directory."
+    type: "script"
+    runtime: "bash"
+    path: "../../scripts/file_system/extract_tar_archive.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        archive_path: { type: "string", description: "Path to the .tar.gz file." }
+        destination_dir: { type: "string", description: "Directory to extract contents into." }
+      required: ["archive_path", "destination_dir"]
+    example_usage: { "archive_path": "/tmp/app_backup.tar.gz", "destination_dir": "./restored_app" }

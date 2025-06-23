@@ -1,0 +1,10 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-dotenv==1.0.1
+pydantic==2.7.1
+pydantic-settings==2.2.1
+httpx==0.27.0 # For making outbound API calls from connectors
+
+# Add SDKs for specific AI providers here as they are implemented
+# Example: google-generativeai for Gemini
+# Example: groq for GroqCloud (if they provide a Python SDK)

@@ -1,0 +1,6 @@
+- platform: 'sun'
+  # Triggers when the sun's elevation crosses a specific degree threshold.
+  # Useful for fine-grained lighting control that's more precise than sunrise/sunset.
+  event: 'elevation'
+  # Trigger when the sun drops below 5 degrees above the horizon.
+  below: 5

@@ -17,22 +17,12 @@ Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
   // internalFunctionDescriptions["help"] =
   //     "Provides descriptions of available tools/actions. Parameters: "
   //     "{\"action_name\": \"string\" (optional)}";
-  // internalFunctionDescriptions["skip"] = "Skips the final response generation "
-  //                                        "for the current turn. No parameters.";
-  internalFunctionDescriptions["promptAgent"] =
-      "Used To communicate with available types of agents (e.g sub-agents). "
-      "Functions like talking to another person, all agents have pretty much "
-      "the same runtime logic. Parameters: "
+  internalFunctionDescriptions["call_subagent"] =
+      "[Use -internal- type instead of tool or script] Calls a sub-agent with a prompt. Parameters: "
       "{\"agent_name\": \"string\", \"prompt\": \"string\"}";
-  internalFunctionDescriptions["hotReload"] =
-      "Reloads the agent's configuration and tools based off the agent-profile.yml conf. No parameters.";
-  // internalFunctionDescriptions["summarizeText"] =
-  //     "Summarizes provided text content. Parameters: {\"text\": "
-  //     "\"string\"}"; // Corrected typo from summerizeTool
-  // internalFunctionDescriptions["summarizeHistory"] =
-  //     "Summarizes the current conversation history. No parameters.";
-  // internalFunctionDescriptions["getWeather"] =
-  //     "Fetches current weather. Parameters: {\"location\": \"string\"}";
+  internalFunctionDescriptions["getWeather"] =
+      "[Use -internal- type instead of tool or script] Fetches weather information for a location. Parameters: "
+      "{\"location\": \"string\"}";
 }
 
 Agent::~Agent() {
@@ -128,27 +118,6 @@ void Agent::run() {
   logMessage(LogLevel::INFO,
              "Type 'exit' or 'quit' to stop, 'reset' to clear history.");
 
-  if (!initialCommands.empty()) {
-    logMessage(LogLevel::INFO,
-               "Executing " + std::to_string(initialCommands.size()) +
-                   " initial commands for agent '" + agentName + "'...");
-    std::vector<std::string> commandsToExecute = initialCommands;
-    initialCommands.clear();
-
-    for (const auto &cmd : commandsToExecute) {
-      Json::Value bashParams;
-      bashParams["command"] = cmd;
-      logMessage(LogLevel::INFO,
-                 "Running initial command for " + agentName + ":", cmd);
-      std::string result = manualToolCall(
-          "bash",
-          bashParams); // Assuming "bash" tool is available for initial commands
-      logMessage(LogLevel::INFO,
-                 "Initial command result for " + agentName + ":",
-                 result.substr(0, 200) + (result.length() > 200 ? "..." : ""));
-    }
-  }
-
   std::string userInputText;
   while (true) {
     std::cout << "\nUser (" << agentName << ") > ";
@@ -200,15 +169,15 @@ void Agent::run() {
 
 // --- Memory & State (Implementations) ---
 void Agent::addToHistory(const std::string &role, const std::string &content) {
-  const size_t MAX_HISTORY_CONTENT_LEN = 2500;
+
+  const size_t MAX_HISTORY_CONTENT_LEN = 12500;
   std::string processedContent = content.substr(0, MAX_HISTORY_CONTENT_LEN);
   bool truncated = (content.length() > MAX_HISTORY_CONTENT_LEN);
   if (truncated)
     processedContent += "... (truncated)";
   conversationHistory.push_back({role, processedContent});
-  logMessage(LogLevel::DEBUG, "Agent '" + agentName + "': Added to history.",
-             "Role: " + role + (truncated ? " (Content Truncated)" : ""));
 }
+
 void Agent::addScratchpadItem(const std::string &key,
                               const std::string &value) {
   scratchpad.push_back({key, value});
@@ -221,6 +190,7 @@ void Agent::addLongTermMemory(const std::string &role,
                               const std::string &content) {
   longTermMemory.push_back({role, content});
 }
+
 void Agent::addEnvironmentVariable(const std::string &key,
                                    const std::string &value) {
   auto it =
@@ -301,7 +271,7 @@ Agent::getHistory() const {
   return conversationHistory;
 }
 
-// --- Sub-Agent Management (Implementations) ---
+// --- Sub-Agent Management
 void Agent::addSubAgent(Agent *subAgentInstance) {
   if (!subAgentInstance || subAgentInstance == this) {
     logMessage(LogLevel::WARN,
@@ -423,6 +393,7 @@ std::string Agent::directiveTypeToString(AgentDirective::Type type) const {
 // --- Internal "Tool-Like" Function Implementations ---
 std::string Agent::internalGetHelp(const Json::Value &params) {
   std::string targetActionName;
+
   if (params.isMember("action_name") && params["action_name"].isString()) {
     targetActionName = params["action_name"].asString();
   }
@@ -486,6 +457,7 @@ std::string Agent::internalPromptAgent(const Json::Value &params) {
     return "Error [promptAgent]: Requires string parameters 'agent_name' and "
            "'prompt'.";
   }
+
   std::string targetAgentName = params["agent_name"].asString();
   std::string subPromptText = params["prompt"].asString();
   Agent *targetAgent = getSubAgent(targetAgentName);
@@ -546,27 +518,6 @@ std::string Agent::internalSummarizeText(const Json::Value &params) {
     return "Error [summarizeText]: Exception during summarization: " +
            std::string(e.what());
   }
-}
-
-std::string Agent::internalSummarizeHistory(const Json::Value &params) {
-  (void)params;
-  if (conversationHistory.empty())
-    return "Conversation history is empty.";
-  std::stringstream historySs;
-  historySs
-      << "Summary of the current conversation history (most recent last):\n";
-  // Limit history length for summarization to avoid overly long prompts
-  const int MAX_HISTORY_TURNS_FOR_SUMMARY = 10;
-  int startIdx = std::max(0, (int)conversationHistory.size() -
-                                 MAX_HISTORY_TURNS_FOR_SUMMARY);
-  for (size_t i = startIdx; i < conversationHistory.size(); ++i) {
-    const auto &entry = conversationHistory[i];
-    historySs << entry.first << ": " << entry.second.substr(0, 150)
-              << (entry.second.length() > 150 ? "..." : "") << "\n";
-  }
-  Json::Value summarizeParams;
-  summarizeParams["text"] = historySs.str();
-  return internalSummarizeText(summarizeParams);
 }
 
 std::string Agent::internalGetWeather(const Json::Value &params) {
@@ -683,4 +634,3 @@ void Agent::trimLLMResponse(std::string &responseText) {
   logMessage(LogLevel::DEBUG,
              "Agent '" + agentName + "': Trimmed LLM response code block.");
 }
-

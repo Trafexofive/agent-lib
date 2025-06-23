@@ -1,0 +1,1 @@
+// Escaped content of vite.config.ts from user input

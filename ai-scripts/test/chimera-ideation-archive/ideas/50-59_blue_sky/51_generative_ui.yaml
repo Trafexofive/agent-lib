@@ -1,0 +1,29 @@
+# GOLD ESSENCE: Modularity for Emergence (The backend generates the frontend).
+# BLUE-SKY: This requires a tool that can convert a JSON schema into HTML/JS components.
+orchestrations:
+  - id: 'generative-task-dashboard'
+    alias: 'Generative Task Dashboard'
+    description: 'When a complex, multi-step task is started (e.g., video transcoding), this orchestration dynamically generates a temporary web UI to monitor its progress.'
+    trigger:
+      - platform: 'event'
+        event_type: 'task.started'
+        event_data: { type: 'video_transcode' }
+    action:
+      - variables:
+          task_id: "{{ trigger.data.task_id }}"
+      - agent:
+          id: 'ui-designer-agent-v1'
+          goal: >
+            A video transcoding task has started. Generate a UI definition JSON object for a progress dashboard.
+            It should include: a progress bar (bound to state key '{{ task_id }}_progress'),
+            a text area for logs (bound to '{{ task_id }}_log'),
+            and a 'Cancel' button (which triggers webhook 'cancel_task_{{ task_id }}').
+          response_variable: 'ui_definition'
+      - service: 'ui.generate_from_schema'
+        data:
+          schema: "{{ ui_definition.json }}"
+          page_id: "task_{{ task_id }}"
+          ttl: 3600 # UI page expires in 1 hour
+      - service: 'notify.user'
+        data:
+          message: "Video transcoding has started. You can monitor its progress here: https://gap.clevo.ddnsgeek.com/ui/task_{{ task_id }}"

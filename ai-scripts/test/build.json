@@ -1,0 +1,80 @@
+{
+  "schema_version": "2.0",
+  "metadata": {
+    "relic_id": "relic-context-harvester",
+    "relic_name": "Context Harvester",
+    "version": "1.0.0",
+    "description": "A sovereign, Python-based CLI tool to recursively gather all relevant project files, format them into a single markdown block, and copy it to the clipboard for AI analysis.",
+    "author": "Demurge-Prime-Orchestrator",
+    "tags": ["devops", "context-aware", "cli-tool", "ai-tooling"]
+  },
+  "deployment_spec": {
+    "service_name": "relic-context-harvester",
+    "tool_dependencies": {
+      "system_packages": ["python3", "python3-pip", "python3-venv"],
+      "python_packages": ["pyperclip"],
+      "description": "A standalone Python tool. It is recommended to run it in a virtual environment."
+    }
+  },
+  "artifact_groups": [
+    {
+      "group_name": "executable",
+      "description": "The main executable script for the tool.",
+      "artifacts": [
+        {
+          "path": "harvester",
+          "content": "#!/bin/bash\n# Robust wrapper to execute the Python harvester from its virtual environment.\n\nSCRIPT_DIR=$(cd -- \"$(dirname -- \"${BASH_SOURCE[0]}\")\" &> /dev/null && pwd)\nVENV_PATH=\"$SCRIPT_DIR/.venv\"\n\n# Check if venv exists\nif [ ! -d \"$VENV_PATH\" ]; then\n    echo \"Virtual environment not found. Please run 'make setup' first.\"\n    exit 1\nfi\n\n# Activate venv and run the python script, passing all arguments\n\"$VENV_PATH/bin/python\" \"$SCRIPT_DIR/src/context_harvester.py\" \"$@\"\n",
+          "permissions": "0o755",
+          "description": "The main user-facing executable."
+        }
+      ]
+    },
+    {
+      "group_name": "source_code",
+      "description": "The core Python logic for the harvester.",
+      "artifacts": [
+        {
+          "path": "src/context_harvester.py",
+          "content": "#!/usr/bin/env python3\nimport argparse\nimport fnmatch\nfrom pathlib import Path\nimport pyperclip\nimport sys\n\ndef load_ignore_patterns(root_dir: Path) -> list[str]:\n    ignore_file = root_dir / '.harvesterignore'\n    if not ignore_file.is_file():\n        return []\n    with open(ignore_file, 'r', encoding='utf-8') as f:\n        return [line.strip() for line in f if line.strip() and not line.startswith('#')]\n\ndef is_ignored(path: Path, root_dir: Path, patterns: list[str]) -> bool:\n    relative_path = path.relative_to(root_dir)\n    for pattern in patterns:\n        if fnmatch.fnmatch(str(relative_path), pattern) or any(fnmatch.fnmatch(part, pattern) for part in relative_path.parts):\n            return True\n    return False\n\ndef generate_tree(root_dir: Path, patterns: list[str], max_level: int = 3) -> str:\n    tree_lines = []\n    def recurse(dir_path: Path, prefix: str = '', level: int = 0):\n        if level >= max_level: return\n        files = sorted([p for p in dir_path.iterdir() if not is_ignored(p, root_dir, patterns)])\n        pointers = ['├── '] * (len(files) - 1) + ['└── ']\n        for pointer, path in zip(pointers, files):\n            tree_lines.append(f\"{prefix}{pointer}{path.name}\")\n            if path.is_dir():\n                extension = '│   ' if pointer == '├── ' else '    '\n                recurse(path, prefix + extension, level + 1)\n    recurse(root_dir)\n    return '\\n'.join(tree_lines)\n\ndef main():\n    parser = argparse.ArgumentParser(description='AI Context Harvester')\n    parser.add_argument('project_dir', nargs='?', default='.', help='Project directory to analyze.')\n    parser.add_argument('-f', '--file', help='Output to file instead of clipboard.')\n    args = parser.parse_args()\n\n    root_dir = Path(args.project_dir).resolve()\n    if not root_dir.is_dir():\n        print(f\"Error: Directory not found at '{root_dir}'\", file=sys.stderr)\n        sys.exit(1)\n\n    ignore_patterns = load_ignore_patterns(root_dir)\n    output = ['# AI Project Analysis - {}'.format(root_dir.name)]\n\n    tree_str = generate_tree(root_dir, ignore_patterns)\n    output.append('\\n## Directory Structure\\n```\\n{}\\n```'.format(tree_str))\n\n    output.append('\\n## Project Files')\n    all_files = sorted([p for p in root_dir.rglob('*') if p.is_file() and not is_ignored(p, root_dir, ignore_patterns)])\n\n    for file_path in all_files:\n        rel_path = file_path.relative_to(root_dir)\n        try:\n            content = file_path.read_text(encoding='utf-8')\n            output.append(f\"\\n### File: {rel_path}\\n```{Path(rel_path).suffix.lstrip('.')}\\n{content}\\n```\")\n        except Exception:\n            output.append(f\"\\n### File: {rel_path}\\n```\\n[Could not read binary file]\\n```\")\n    \n    final_output = '\\n'.join(output)\n\n    if args.file:\n        Path(args.file).write_text(final_output, encoding='utf-8')\n        print(f\"Project context harvested to '{args.file}'.\")\n    else:\n        try:\n            pyperclip.copy(final_output)\n            print('Project context copied to clipboard!')\n        except pyperclip.PyperclipException:\n            print('Error: Clipboard functionality not available. Please install xclip, xsel, or wl-copy.', file=sys.stderr)\n\nif __name__ == '__main__':\n    main()\n",
+          "permissions": "0o644"
+        },
+        {
+          "path": "requirements.txt",
+          "content": "pyperclip",
+          "permissions": "0o644"
+        }
+      ]
+    },
+    {
+      "group_name": "configuration",
+      "description": "Configuration files for the harvester.",
+      "artifacts": [
+        {
+          "path": ".harvesterignore",
+          "content": "# Default ignore patterns for the Context Harvester\n.git\nnode_modules\n__pycache__\n.venv\nvenv\nbuild\ndist\n*.pyc\n*.pyo\n*.pyd\n*.so\n*.dll\n*.class\n*.o\n*.a\n*.lib\n*.egg-info\n*.egg\n.idea\n.vscode\n.DS_Store\nlogs\ndata\n",
+          "permissions": "0o644",
+          "description": "Declarative ignore file, the sovereign way."
+        }
+      ]
+    },
+    {
+      "group_name": "documentation",
+      "description": "Build and usage instructions.",
+      "artifacts": [
+        {
+          "path": "Makefile",
+          "content": ".PHONY: help setup\n\nhelp:\n\t@echo \"Usage: make [target]\"\n\t@echo \"Targets:\"\n\t@echo \"  setup   - Creates a Python virtual environment and installs dependencies.\"\n\nsetup:\n\t@echo \"Creating virtual environment in ./.venv ...\"\n\tpython3 -m venv .venv\n\t@echo \"Installing dependencies from requirements.txt ...\"\n\t./.venv/bin/pip install -r requirements.txt\n\t@echo \"Setup complete. Run the tool with './harvester'\"\n",
+          "permissions": "0o644"
+        },
+        {
+          "path": "README.md",
+          "content": "# Relic: Context Harvester\n\nA sovereign, Python-based CLI tool to recursively gather all relevant project files, format them into a single markdown block, and copy it to the clipboard for AI analysis. It is a replacement for shell-based scripts, offering superior portability, maintainability, and control.\n\nIt uses a `.harvesterignore` file for declarative control over what files and directories to exclude.",
+          "permissions": "0o644"
+        }
+      ]
+    }
+  ],
+  "setup_and_operation": {
+    "setup_instructions_markdown": "### Setup and Usage\n\n**1. Initial Setup (One-time only):**\n\nThis tool uses a self-contained Python virtual environment. To set it up, run:\n\n```bash\nmake setup\n```\n\nThis will create a `.venv` directory and install the required `pyperclip` library into it.\n\n**2. Make the Harvester Executable:**\n\n```bash\nchmod +x harvester\n```\n\n**3. Running the Harvester:**\n\nTo analyze the current directory and copy the context to your clipboard:\n\n```bash\n./harvester\n```\n\nTo analyze a different directory:\n\n```bash\n./harvester /path/to/your/project\n```\n\nTo save the output to a file instead of the clipboard:\n\n```bash\n./harvester -f project_context.md\n```\n\n**4. Customizing Ignores:**\n\nEdit the `.harvesterignore` file to add or remove patterns. The syntax is similar to `.gitignore`."
+  }
+}

@@ -1,0 +1,7 @@
+workflows:
+  - id: 'example-workflow-1'
+    alias: 'Example Workflow'
+    sequence:
+      - service: 'notify.send'
+        data:
+          message: 'Hello from a workflow!'

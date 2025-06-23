@@ -1,0 +1,55 @@
+# config/tools/web_search_tools.yml
+# Tools for performing web searches and fetching page content.
+
+WebSearchTools:
+  GeneralWebSearch:
+    name: "search_web_general"
+    description: >
+      Performs a general web search using a specified search engine (defaults to DuckDuckGo).
+      Returns the search results page URL and potentially the raw HTML content (if small enough or requested).
+      Extracting structured results (titles, links, snippets) from raw HTML is complex and best handled by the agent or a dedicated parsing tool.
+    type: "script"
+    runtime: "bash"
+    path: "scripts/bash/web_search/search_general.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        query: { type: "string", description: "The search query." }
+        engine: { type: "string", enum: ["duckduckgo", "google", "bing_conceptual"], default: "duckduckgo", description: "Search engine to use. 'google' and 'bing_conceptual' are illustrative; direct scraping may violate ToS." }
+        num_results_hint: { type: "integer", default: 10, description: "Hint for number of results (engine dependent)."}
+        # fetch_html: { type: "boolean", default: false, description: "Attempt to fetch and return raw HTML of the SERP."}
+      required: ["query"]
+    example_usage: { "query": "latest advancements in AI", "engine": "duckduckgo" }
+
+  SiteSpecificSearch:
+    name: "search_web_site_specific"
+    description: >
+      Performs a web search targeting a specific site using 'site:domain.com' syntax with DuckDuckGo or Google.
+      Returns the search results page URL and potentially raw HTML.
+    type: "script"
+    runtime: "bash"
+    path: "scripts/bash/web_search/search_site_specific.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        query: { type: "string", description: "The search query." }
+        site_domain: { type: "string", description: "The domain to search within (e.g., 'example.com')." }
+        engine: { type: "string", enum: ["duckduckgo", "google"], default: "duckduckgo", description: "Search engine to use." }
+      required: ["query", "site_domain"]
+    example_usage: { "query": "FastAPI best practices", "site_domain": "stackoverflow.com" }
+
+  FetchWebPageContent:
+    name: "search_fetch_page_content"
+    description: >
+      Fetches the raw HTML content of a given URL. Similar to 'net_curl_url' but specialized for web page content retrieval focus.
+      Returns the HTML content as a string or an error if fetching fails.
+    type: "script"
+    runtime: "bash"
+    path: "scripts/bash/web_search/fetch_page_content.sh"
+    parameters_schema:
+      type: "object"
+      properties:
+        url: { type: "string", description: "The full URL of the web page to fetch." }
+        user_agent: { type: "string", default: "AgentShellCurl/1.0", description: "Custom User-Agent string."}
+      required: ["url"]
+    example_usage: { "url": "https_example.com/article" }

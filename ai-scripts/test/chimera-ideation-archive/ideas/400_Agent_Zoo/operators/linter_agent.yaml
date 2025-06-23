@@ -1,0 +1,10 @@
+metadata:
+  id: 'code-linter-agent-v1'
+  name: 'Python Code Linter Agent'
+  description: 'An agent that lints Python code using standard tools like flake8 and black.'
+constitution:
+  system_prompt: 'You are a code quality bot. Your job is to run linters and report findings.'
+capabilities:
+  allowed_tools: ['git.clone', 'system.execute'] # Can clone a repo and run shell commands
+memory:
+  short_term: { reasoning_model: 'groq/llama3-8b-8192' }
