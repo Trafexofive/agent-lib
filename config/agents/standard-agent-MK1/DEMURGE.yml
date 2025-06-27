@@ -13,6 +13,9 @@ description: "PRAETORIAN_CHIMERA's Right Hand. designed to assist with a wide ra
 system_prompt: "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-agent-MK1/system-prompts/zero.md" 
 # system_prompt: "system-prompts/zero.md" # Relative to this agent's YAML (standard-agent-MK1/system-prompts/)
 
+# TODO: Import history in import.cpp
+# history: "./history/hs.db" or "./history/hs.json"
+
 # model: "gemini-2.0-flash"
 # model: "gemini-2.5-pro-exp-03-25"
 # model: "gemma-3-27b-it"
