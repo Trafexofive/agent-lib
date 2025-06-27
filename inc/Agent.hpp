@@ -113,9 +113,6 @@ public:
 
   // --- Memory & State ---
   void addToHistory(const std::string &role, const std::string &content);
-  void addScratchpadItem(const std::string &key, const std::string &value);
-  void addShortTermMemory(const std::string &role, const std::string &content);
-  void addLongTermMemory(const std::string &role, const std::string &content);
   void addEnvironmentVariable(const std::string &key, const std::string &value);
   void importEnvironmentFile(const std::string &filePath);
   void addExtraSystemPrompt(const std::string &promptFragment);
@@ -150,6 +147,7 @@ private:
   std::string agentName;
   std::string agentDescription;
   std::string systemPrompt;
+
   std::string llmResponseSchema;  // For guiding LLM, not strict validation here
   std::string llmResponseExample; // For guiding LLM
 
@@ -164,10 +162,6 @@ private:
   std::vector<std::string> extraSystemPrompts;
   std::vector<std::pair<std::string, Agent *>>
       subAgents; // name -> Agent* (non-owning)
-
-  StringKeyValuePair scratchpad;
-  StringKeyValuePair shortTermMemory;
-  StringKeyValuePair longTermMemory;
 
   std::vector<std::string> tasks;
   std::vector<std::string> initialCommands; // Executed by run()

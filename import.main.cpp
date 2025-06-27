@@ -38,30 +38,58 @@ void commandHandler(const std::string &command) {
 }
 
 
-
-// --- Example Usage ---
-int	main(void)
+//main loop for CLI interaction with the agent
+int CLI(Agent &agent, const std::string &confPath = "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-agent-MK1/DEMURGE.yml")
 {
-    MiniGemini	myApi;
+    // Load agent profile from the specified path
+    if (!loadAgentProfile(agent, confPath)) {
+        std::cerr << "Failed to load agent profile from: " << confPath << std::endl;
+        return 1; // Return error code
+    }
 
-	// Assume myApi is an initialized MiniGemini instance
-	Agent DEMURGE(myApi);
+    std::cout << "Agent Name after load: " << agent.getName() << std::endl;
 
-    // Load agent yaml profile
-    if (loadAgentProfile(DEMURGE, "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-agent-MK1/DEMURGE.yml")) {
-        std::cout << "Agent Name after load: " << DEMURGE.getName() << std::endl;
+    std::vector<std::string> replies; 
+    std::string userInput;
 
-        // Start command loop
-        while (true) {
-            std::string userInput;
-            std::cout << "=======================================\n=> ";
-            std::getline(std::cin, userInput);
-            if (userInput == "exit")
-                break; // Exit condition
-            DEMURGE.prompt(userInput); // Assuming prompt method exists
+    while (true) {
+        std::cout << "=======================================\n=> ";
+        std::getline(std::cin, userInput);
+        if (userInput == "exit")
+            break; // Exit condition
+
+        // Process the user input with the agent
+        try {
+            std::string response = agent.prompt(userInput); // Assuming prompt method exists
+            replies.push_back("User: " + userInput);
+            replies.push_back("Agent: " + response);
+        } catch (const ApiError &e) {
+            std::cerr << "API Error: " << e.what() << std::endl;
+            replies.push_back("Error: " + std::string(e.what()));
+        } catch (const std::exception &e) {
+            std::cerr << "Exception: " << e.what() << std::endl;
+            replies.push_back("Exception: " + std::string(e.what()));
         }
+    }
+
+    return 0; // Return success code
+}
+
+
+int main(int ac, char **av)
+{
+    MiniGemini llmClient;
+
+	Agent DEMURGE(llmClient);
+
+    if (ac > 1) {
+        // If a command line argument is provided, use it as the agent profile path
+        std::string confPath = av[1];
+        return CLI(DEMURGE, confPath);
     } else {
-        std::cerr << "Failed to load agent profile." << std::endl;
+        // If no command line argument is provided, use a default path
+        std::string defaultConfPath = "/home/mlamkadm/ai-repos/agents/agent-lib/config/agents/standard-agent-MK1/DEMURGE.yml";
+        return CLI(DEMURGE, defaultConfPath);
     }
 }
 

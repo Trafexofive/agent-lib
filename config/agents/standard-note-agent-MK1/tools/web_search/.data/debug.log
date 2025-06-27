@@ -1,0 +1,38 @@
+[2025-06-24 21:54:49] Operation: search, Params: {'limit': 5, 'operation': 'search', 'query': 'new factorio bps'}
+[2025-06-24 21:54:49] Starting search for: 'new factorio bps' (engine: auto, limit: 5)
+[2025-06-24 21:54:49] Searching Bing: https://www.bing.com/search?q=new+factorio+bps&count=5&first=1&FORM=PERE
+[2025-06-24 21:54:50] Bing matches found: 0
+[2025-06-24 21:54:50] Bing search completed: 0 results in 1.13s
+[2025-06-24 21:54:50] Searching DuckDuckGo Lite: https://lite.duckduckgo.com/lite/?q=new+factorio+bps&kl=us-en
+[2025-06-24 21:54:51] DuckDuckGo Lite matches found: 0
+[2025-06-24 21:54:51] DuckDuckGo search completed: 0 results in 0.96s
+[2025-06-24 21:54:51] Trying Searx instance: https://searx.be/search?q=new+factorio+bps&format=json&categories=general
+[2025-06-24 21:54:51] Request attempt 1 failed for https://searx.be/search?q=new+factorio+bps&format=json&categories=general: HTTP Error 403: Forbidden
+[2025-06-24 21:54:53] Request attempt 2 failed for https://searx.be/search?q=new+factorio+bps&format=json&categories=general: HTTP Error 403: Forbidden
+[2025-06-24 21:54:53] Searx instance https://searx.be failed: HTTP Error 403: Forbidden
+[2025-06-24 21:54:53] Trying Searx instance: https://search.sapti.me/search?q=new+factorio+bps&format=json&categories=general
+[2025-06-24 21:54:54] Searx instance https://search.sapti.me failed: Expecting value: line 1 column 1 (char 0)
+[2025-06-24 21:54:54] Trying Searx instance: https://searx.tiekoetter.com/search?q=new+factorio+bps&format=json&categories=general
+[2025-06-24 21:54:55] Searx instance https://searx.tiekoetter.com failed: Expecting value: line 1 column 1 (char 0)
+[2025-06-24 21:54:55] Trying Searx instance: https://searx.org/search?q=new+factorio+bps&format=json&categories=general
+[2025-06-24 21:54:57] Searx instance https://searx.org failed: Expecting value: line 1 column 1 (char 0)
+[2025-06-24 21:54:57] Searx search completed: 0 results in 5.42s
+[2025-06-24 21:54:57] Search completed. Engines tried: ['bing', 'duckduckgo', 'searx'], Results: 0
+[2025-06-24 21:55:02] Operation: search, Params: {'limit': 5, 'operation': 'search', 'query': 'Factorio blueprint exchange'}
+[2025-06-24 21:55:02] Starting search for: 'Factorio blueprint exchange' (engine: auto, limit: 5)
+[2025-06-24 21:55:02] Searching Bing: https://www.bing.com/search?q=Factorio+blueprint+exchange&count=5&first=1&FORM=PERE
+[2025-06-24 21:55:04] Bing matches found: 10
+[2025-06-24 21:55:04] Bing search completed: 5 results in 1.24s
+[2025-06-24 21:55:04] Search completed. Engines tried: ['bing'], Results: 5
+[2025-06-24 21:55:07] Operation: search, Params: {'limit': 5, 'operation': 'search', 'query': 'new factorio bps'}
+[2025-06-24 21:55:07] Starting search for: 'new factorio bps' (engine: auto, limit: 5)
+[2025-06-24 21:55:07] Searching Bing: https://www.bing.com/search?q=new+factorio+bps&count=5&first=1&FORM=PERE
+[2025-06-24 21:55:14] Bing matches found: 20
+[2025-06-24 21:55:14] Bing search completed: 5 results in 6.33s
+[2025-06-24 21:55:14] Search completed. Engines tried: ['bing'], Results: 5
+[2025-06-24 21:55:23] Operation: search, Params: {'limit': 5, 'operation': 'search', 'query': 'Factorio blueprint site latest uploads'}
+[2025-06-24 21:55:23] Starting search for: 'Factorio blueprint site latest uploads' (engine: auto, limit: 5)
+[2025-06-24 21:55:23] Searching Bing: https://www.bing.com/search?q=Factorio+blueprint+site+latest+uploads&count=5&first=1&FORM=PERE
+[2025-06-24 21:55:25] Bing matches found: 13
+[2025-06-24 21:55:25] Bing search completed: 5 results in 1.10s
+[2025-06-24 21:55:25] Search completed. Engines tried: ['bing'], Results: 5

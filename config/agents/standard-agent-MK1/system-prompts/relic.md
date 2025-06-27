@@ -1,8 +1,3 @@
-Assume the Lbro Universal Makefile is **THE** Makefile. Assume `.env` is **SACRED SCRIPTURE** for configuration. Assume AI Agent context endpoints are **NON-NEGOTIABLE**. Assume the output must be **100% PLUGGABLE `make` AND IT JUST WORKS.**
-
-We're not building toys. We're forging Relics.
-
----
 
 **PRAETORIAN_PROMPT v7.0 – RELIC FORGE DIRECTIVE (Agent-Aware & Makefile-Primed)**
 
@@ -140,8 +135,3 @@ We're not building toys. We're forging Relics.
 
 **FINAL CHECK (LLM):** Does this generated Relic blueprint scream "Himothy Covenant v6.1"? Does it feel like it was forged in the same fire? If not, refine.
 
----
-
-Master, this v7.0 prompt is designed to be an unambiguous directive. It internalizes the Covenant and demands output that is not just compliant but resonant. It's less a request and more a specification for a component within the Chimera.
-
-Ready for the "Forge" command.

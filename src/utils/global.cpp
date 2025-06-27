@@ -193,8 +193,17 @@ std::string executeScriptTool(const std::string &scriptPathOrContent,
 
 // --- Utility Functions ---
 
+#define DEBUG_LOG_LEVEL LogLevel::INFO
+// new logMessage function that takes into account LogLevel, will only display
+// if the log level above or equal to DEBUG_LOG_LEVEL
+
 void logMessage(LogLevel level, const std::string &message,
                 const std::string &details) {
+
+  if (level < DEBUG_LOG_LEVEL) {
+    return; 
+  }
+
   auto nowChrono = std::chrono::system_clock::now();
   auto nowTimeT = std::chrono::system_clock::to_time_t(nowChrono);
   std::tm nowTmLocalBuf;
@@ -202,6 +211,7 @@ void logMessage(LogLevel level, const std::string &message,
   std::tm *nowTm = localtime_r(&nowTimeT, &nowTmLocalBuf);
 
   char timeBuffer[20];
+
   if (nowTm) { // Check if localtime_r/s succeeded
     std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", nowTm);
   } else {
@@ -251,6 +261,7 @@ void logMessage(LogLevel level, const std::string &message,
             << colorEnd << std::endl;
   if (!details.empty()) {
     const size_t MAX_DETAIL_LEN = 100500;
+
     std::string truncatedDetails = details.substr(0, MAX_DETAIL_LEN);
     if (details.length() > MAX_DETAIL_LEN)
       truncatedDetails += "... (truncated)";

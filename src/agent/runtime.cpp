@@ -1,12 +1,14 @@
 #include "../../inc/Agent.hpp" // Your Agent class header
 
-static void saveStringToFile(const std::string &filename, const std::string &content) {
-    std::ofstream file(filename);
+// will create the file if it does not exist, will append if it does, needs to be clean and error free. relative to the current working directory
+static void saveStringToFile(const std::string &path, const std::string &content) 
+{
+    std::ofstream file(path, std::ios::app);
     if (file.is_open()) {
-        file << content;
+        file << content << std::endl; // Append a newline for readability
         file.close();
     } else {
-        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        std::cerr << "Error opening file for writing: " << path << std::endl;
     }
 }
 
@@ -40,43 +42,6 @@ static void saveJsonToFile(const Json::Value &jsonData, const std::string &filen
 }
 
 
-
-// std::vector<StructuredThought> Agent::thinkMore(std::vector<StructuredThought> thoughts)
-// {
-//     std::vector<StructuredThought> ExpandedThoughts;
-//
-//     for (const auto &thought : thoughts) {
-//         if (thought.type == "expand") {
-//             // Here you would implement the logic to expand the thought
-//             // For now, we just copy it to the expanded thoughts
-//             ExpandedThoughts.push_back(thought);
-//         } else if (thought.type == "refine") {
-//             // Implement refinement logic here
-//             // For now, we just copy it to the expanded thoughts
-//             ExpandedThoughts.push_back(thought);
-//         } else {
-//             // If it's not an expand or refine type, we can just keep it as is
-//             ExpandedThoughts.push_back(thought);
-//         }
-//     }
-
-// std::vector<StructuredThought> Agent::ThinkMore(std::vector<StructuredThought> thoughts, size_t scale) // scaled version
-// {
-//     std::vector<StructuredThought> expandedThoughts;
-//     // use scale to gen more thoughts in parallel
-//
-//     std::string promptText = "<instruction>Expand and refine the following thoughts.</instruction>\n";
-//
-//         for (const auto &thought : thoughts) {
-//         promptText += "<thought>\n";
-//         promptText += "<type>" + thought.type + "</type>\n";
-//         promptText += "<content>" + thought.content + "</content>\n";
-//         promptText += "</thought>\n";
-//     } 
-//
-
-
-
 std::string Agent::prompt(const std::string &userInput) {
 
     if (!userInput.empty()) {
@@ -93,6 +58,14 @@ std::string Agent::prompt(const std::string &userInput) {
                                    std::to_string(iterationLimit));
 
         std::string fullPromptText = buildFullPrompt();
+
+        size_t id = 0;
+        id++;
+
+        std::string filename = "agent_" + agentName + "_thoughts_" +
+            std::to_string(id) + ".xml";
+        saveStringToFile(filename, fullPromptText);
+
         std::string llmRawResponse = executeApiCall(fullPromptText);
 
         std::string trimmedLlmResponse = llmRawResponse;
@@ -100,6 +73,19 @@ std::string Agent::prompt(const std::string &userInput) {
 
         ParsedLLMResponse parsedData = parseStructuredLLMResponse(trimmedLlmResponse);
         addToHistory("model", parsedData.rawTrimmedJson);
+
+        // continue after any error , status check for ERROR in status string
+        if (parsedData.status.find("ERROR") != std::string::npos) {
+            logMessage(LogLevel::ERROR,
+                       "Agent '" + agentName +
+                       "': LLM returned an error status: " + parsedData.status,
+                       "Raw trimmed JSON: " +
+                       parsedData.rawTrimmedJson.substr(0, 500));
+            finalAgentResponseToUser = "Agent '" + agentName +
+                "' encountered an error while processing your request. "
+                "Please check the logs for details and readjust.";
+            continue;
+        }
 
         if (!parsedData.success) {
             logMessage(LogLevel::ERROR,
@@ -122,13 +108,12 @@ std::string Agent::prompt(const std::string &userInput) {
                 rawJsonCheck.isObject() && rawJsonCheck.isMember("error")) {
                 finalAgentResponseToUser = parsedData.rawTrimmedJson;
             } else {
-                finalAgentResponseToUser =
-                    "Agent '" + agentName +
-                    "' encountered an issue processing the response from the language "
-                    "model. Parser status: " + parsedData.status +
-                    ". Raw: " + parsedData.rawTrimmedJson.substr(0, 200);
+                finalAgentResponseToUser = "Agent '" + agentName +
+                    "' encountered a critical error parsing the LLM response. "
+                    "Please check the logs for details and readjust.";
+                continue;
             }
-            break; // Exit on parse failure
+            break;
         }
 
         // Log thoughts for debugging
@@ -174,6 +159,7 @@ std::string Agent::prompt(const std::string &userInput) {
             }
             break;
         }
+
     }
 
 #define RESET "\033[0m"

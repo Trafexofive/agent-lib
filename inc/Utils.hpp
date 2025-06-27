@@ -12,12 +12,12 @@
 
 // Logging Enum & Function Prototype
 enum class LogLevel {
-  DEBUG,
+  TOOL_CALL,
   INFO,
+  TOOL_RESULT,
+  DEBUG,
   WARN,
   ERROR,
-  TOOL_CALL,
-  TOOL_RESULT,
   PROMPT
 };
 

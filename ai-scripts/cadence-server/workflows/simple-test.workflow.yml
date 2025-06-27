@@ -1,0 +1,45 @@
+
+metadata:
+  name: "simple-file-creation-test"
+  version: "1.0.0"
+  description: "A minimal workflow to test the core functionality of the CADAF engine. It creates a file and then reads it back."
+triggers:
+  - webhook: "/workflows/run/simple-test"
+
+inputs:
+  filename:
+    type: "string"
+    description: "The name of the file to create within the 'reports' directory."
+    default: "cadence_test_file.txt"
+  message:
+    type: "string"
+    description: "The message to write into the file."
+    default: "CADAF Hearth is online and operational."
+jobs:
+  - id: "main"
+    name: "Create and Verify File"
+    steps:
+      - id: "log_start"
+        name: "Log Workflow Start"
+        uses: "builtin:log"
+        message: "Starting simple-test workflow for file: $(inputs.filename)"
+      - id: "create_the_file"
+        name: "Create a test file with a message"
+        tool: "filesystem_unrestricted" 
+        operation: "create_file"
+        path: "./reports/$(inputs.filename)"
+        content: |
+          Workflow Run ID: $(this.runtime.workflow_run_id)
+          Message: $(inputs.message)
+        overwrite: true
+      - id: "verify_file_content"
+        name: "Read the file back to verify content"
+        depends_on: ["create_the_file"]
+        tool: "filesystem_unrestricted"
+        operation: "read_file"
+        path: "./reports/$(inputs.filename)"
+      - id: "log_result"
+        name: "Log the content that was read from the file"
+        depends_on: ["verify_file_content"]
+        uses: "builtin:log"
+        message: "Verification successful. Read content: $(steps.verify_file_content.result.content | to_json)"

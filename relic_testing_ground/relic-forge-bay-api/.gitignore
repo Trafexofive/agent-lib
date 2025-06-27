@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtualenv
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+
+# Databases
+*.sqlite3
+*.db
+app/storage/forge_db/*.db
+
+# Logs & Files
+logs/
+*.log
+app/storage/forged_relics/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Temp files
+dummy_plan.json
+*.tar.gz

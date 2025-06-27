@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  cadence-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cadence-server
+    restart: unless-stopped
+    ports:
+      - "${CADENCE_API_PORT:-8000}:8000"
+    volumes:
+      # Mount directories for workflows, logs, secrets, and reports
+      - ./workflows:/app/workflows
+      - ./secrets:/app/secrets
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1

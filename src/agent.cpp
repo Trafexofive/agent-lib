@@ -9,25 +9,20 @@
 #include <sstream>          // For std::stringstream
 
 // --- End Logging ---
-
 Agent::Agent(MiniGemini &apiRef, const std::string &agentNameVal)
     : api(apiRef), agentName(agentNameVal), currentIteration(0),
       iterationLimit(10), skipNextFlowIteration(false) {
+
   logMessage(LogLevel::DEBUG, "Agent instance created", "Name: " + agentName);
-  // internalFunctionDescriptions["help"] =
-  //     "Provides descriptions of available tools/actions. Parameters: "
-  //     "{\"action_name\": \"string\" (optional)}";
   internalFunctionDescriptions["call_subagent"] =
-      "[Use -internal- type instead of tool or script] Calls a sub-agent with a prompt. Parameters: "
+      "[Use -internal- type instead of tool or script] Allows talking to a "
+      "registered sub-agent using text input, Very essential in the "
+      "CHIMERA_ECOSYS (delegating, access to specialized agents ...). Parameters: "
       "{\"agent_name\": \"string\", \"prompt\": \"string\"}";
-  internalFunctionDescriptions["getWeather"] =
-      "[Use -internal- type instead of tool or script] Fetches weather information for a location. Parameters: "
-      "{\"location\": \"string\"}";
 }
 
 Agent::~Agent() {
-  logMessage(LogLevel::DEBUG, "Agent instance destroyed, cleaning up tools.",
-             "Name: " + agentName);
+
   for (auto &pair : registeredTools) {
     delete pair.second;
   }
@@ -39,16 +34,20 @@ void Agent::setName(const std::string &newName) { agentName = newName; }
 void Agent::setDescription(const std::string &newDescription) {
   agentDescription = newDescription;
 }
+
 void Agent::setSystemPrompt(const std::string &prompt) {
   systemPrompt = prompt;
 }
+
 void Agent::setSchema(const std::string &schema) { llmResponseSchema = schema; }
 void Agent::setExample(const std::string &example) {
   llmResponseExample = example;
 }
+
 void Agent::setIterationCap(int cap) {
   iterationLimit = (cap > 0) ? cap : 10;
-} // Ensure a positive cap, default 10
+}
+
 void Agent::setDirective(const AgentDirective &dir) { currentDirective = dir; }
 void Agent::addTask(const std::string &task) { tasks.push_back(task); }
 void Agent::addInitialCommand(const std::string &command) {
@@ -104,8 +103,6 @@ Tool *Agent::getTool(const std::string &toolNameKey) const {
 // --- Core Agent Loop (Reset, Run - Implementations) ---
 void Agent::reset() {
   conversationHistory.clear();
-  scratchpad.clear();
-  shortTermMemory.clear();
   // LongTermMemory might persist or be cleared based on deeper design choices
   currentIteration = 0;
   skipNextFlowIteration = false;
@@ -170,7 +167,7 @@ void Agent::run() {
 // --- Memory & State (Implementations) ---
 void Agent::addToHistory(const std::string &role, const std::string &content) {
 
-  const size_t MAX_HISTORY_CONTENT_LEN = 12500;
+  const size_t MAX_HISTORY_CONTENT_LEN = 112500;
   std::string processedContent = content.substr(0, MAX_HISTORY_CONTENT_LEN);
   bool truncated = (content.length() > MAX_HISTORY_CONTENT_LEN);
   if (truncated)
@@ -178,18 +175,6 @@ void Agent::addToHistory(const std::string &role, const std::string &content) {
   conversationHistory.push_back({role, processedContent});
 }
 
-void Agent::addScratchpadItem(const std::string &key,
-                              const std::string &value) {
-  scratchpad.push_back({key, value});
-}
-void Agent::addShortTermMemory(const std::string &role,
-                               const std::string &content) {
-  shortTermMemory.push_back({role, content});
-}
-void Agent::addLongTermMemory(const std::string &role,
-                              const std::string &content) {
-  longTermMemory.push_back({role, content});
-}
 
 void Agent::addEnvironmentVariable(const std::string &key,
                                    const std::string &value) {
