@@ -1,0 +1,7 @@
+description: "Enhances focus and reduces verbosity in agent responses."
+prompt_modifications:
+  pre_prompt: "Focus strictly on the core task. Avoid unnecessary details or explanations."
+  post_prompt: "Provide a concise and direct response."
+llm_param_tweaks:
+  temperature: 0.2
+  top_p: 0.3

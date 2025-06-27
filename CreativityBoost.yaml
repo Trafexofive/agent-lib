@@ -1,0 +1,7 @@
+description: "Encourages more imaginative and 'Hot Rod Red Typeshit' thinking."
+prompt_modifications:
+  pre_prompt: "Think outside the box. Embrace unconventional ideas and perspectives."
+  post_prompt: "Generate creative and unique solutions, even if they seem unusual at first."
+llm_param_tweaks:
+  temperature: 0.9
+  top_p: 0.8
